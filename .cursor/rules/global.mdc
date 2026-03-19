@@ -1,0 +1,27 @@
+---
+description: Global rules for the entire Recount monorepo
+globs: ["**/*"]
+---
+
+# Recount — Global Rules
+
+## Stack
+- Monorepo: npm workspaces
+- API: Node.js 20 + Express 4 (ESM, not CJS)
+- Web: Next.js 14 App Router + TypeScript + Tailwind
+- Extension: Manifest V3, Vanilla JS, no framework
+- DB: PostgreSQL via Supabase
+
+## Naming Conventions
+- Files: kebab-case (e.g. api-client.js, tab-events.ts)
+- React components: PascalCase (e.g. ReportCard.tsx)
+- DB tables: snake_case plural (e.g. tab_events)
+- Constants: UPPER_SNAKE_CASE
+- Environment vars: UPPER_SNAKE_CASE
+
+## Code Style
+- ESM imports everywhere (import/export, not require)
+- Always use async/await, never raw .then() chains
+- All errors must be caught and logged — never swallow silently
+- No console.log in production — use a structured logger (pino)
+- Never hardcode secrets or API keys

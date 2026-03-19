@@ -1,0 +1,23 @@
+---
+description: Backend API rules
+globs: ["packages/api/**/*"]
+---
+
+# API Rules
+
+## Route Pattern
+- Validate request body/query with Zod before any logic
+- Use requireAuth middleware on all routes except /auth/*
+- Use requireLicense on all report routes
+- Always return { error: string } on errors with correct HTTP status
+- Always return { data: ... } on success
+
+## Supabase
+- Use the service role client for all server-side DB operations
+- Never use the anon client server-side
+- Always check for Supabase errors before using the returned data
+
+## Security
+- Stripe webhook must verify signature before processing
+- Rate limit: 200 req/15min global, 10 req/15min on auth routes
+- Never log full request bodies (may contain tokens)

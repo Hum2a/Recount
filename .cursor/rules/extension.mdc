@@ -1,0 +1,21 @@
+---
+description: Chrome Extension rules
+globs: ["packages/extension/**/*"]
+---
+
+# Extension Rules
+
+## Storage
+- Use chrome.storage.local for all persistence — never localStorage
+- Buffer tab events locally, flush every 5 min via alarm
+- Max buffer size: 500 events — flush immediately if exceeded
+
+## Security
+- Strip query strings before storing any URL
+- Never capture chrome://, extension://, or localhost pages
+- Respect the user's sensitive domain exclusion list
+- CSP: script-src 'self' only
+
+## API Calls
+- Always use src/utils/api-client.js — never raw fetch
+- api-client.js handles auth headers and token refresh automatically

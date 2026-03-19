@@ -1,0 +1,117 @@
+import { saveSession, clearSession, getSession } from "../utils/auth.js";
+import { apiFetch } from "../utils/api-client.js";
+import { DEFAULT_API_URL, STORAGE_SETTINGS } from "../utils/constants.js";
+import { getLocal } from "../utils/storage.js";
+
+const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
+
+function todayUtc() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function setMsg(text, ok = false) {
+  const m = $("msg");
+  m.textContent = text;
+  m.style.color = ok ? "#4ade80" : "#f87171";
+}
+
+async function refreshUI() {
+  const session = await getSession();
+  const auth = $("auth-section");
+  const app = $("app-section");
+  if (session?.access_token) {
+    auth.hidden = true;
+    app.hidden = false;
+    const res = await apiFetch("/api/payments/status");
+    const body = await res.json().catch(() => ({}));
+    const licensed = body.data?.license_active;
+    $("welcome").textContent = licensed
+      ? "Signed in — full access."
+      : "Signed in — free plan (7-day history, no AI reports).";
+
+    const intRes = await apiFetch(`/api/intentions/${todayUtc()}`);
+    const intBody = await intRes.json().catch(() => ({}));
+    const goals = intBody.data?.goals;
+    $("goals").value = Array.isArray(goals) ? goals.join("\n") : "";
+  } else {
+    auth.hidden = false;
+    app.hidden = true;
+  }
+}
+
+$("login-btn").addEventListener("click", async () => {
+  setMsg("");
+  const email = /** @type {HTMLInputElement} */ ($("email")).value.trim();
+  const password = /** @type {HTMLInputElement} */ ($("password")).value;
+  const settings = await getLocal(STORAGE_SETTINGS, {});
+  const base = settings.apiUrl || DEFAULT_API_URL;
+  const res = await fetch(`${base}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setMsg(body.error || "Login failed");
+    return;
+  }
+  const s = body.data?.session;
+  if (!s?.access_token) {
+    setMsg("No session returned");
+    return;
+  }
+  await saveSession({
+    access_token: s.access_token,
+    refresh_token: s.refresh_token,
+    expires_at: s.expires_at,
+  });
+  setMsg("Signed in.", true);
+  await refreshUI();
+});
+
+$("save-goals").addEventListener("click", async () => {
+  setMsg("");
+  const raw = /** @type {HTMLTextAreaElement} */ ($("goals")).value;
+  const goals = raw
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+  if (goals.length === 0) {
+    setMsg("Add at least one goal.");
+    return;
+  }
+  const res = await apiFetch("/api/intentions", {
+    method: "POST",
+    body: JSON.stringify({ date: todayUtc(), goals }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setMsg(body.error || "Could not save");
+    return;
+  }
+  setMsg("Intentions saved.", true);
+});
+
+$("unlock-btn").addEventListener("click", async () => {
+  setMsg("");
+  const res = await apiFetch("/api/payments/create-session", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  const body = await res.json().catch(() => ({}));
+  const url = body.data?.url;
+  if (!url) {
+    setMsg(body.error || "Could not start checkout");
+    return;
+  }
+  chrome.tabs.create({ url });
+});
+
+$("logout-btn").addEventListener("click", async () => {
+  await clearSession();
+  await refreshUI();
+  setMsg("Signed out.", true);
+});
+
+refreshUI();

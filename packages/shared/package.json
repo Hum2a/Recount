@@ -1,0 +1,11 @@
+{
+  "name": "@recount/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./domain-categories": "./src/domain-categories.js"
+  }
+}

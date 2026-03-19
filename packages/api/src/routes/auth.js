@@ -1,0 +1,97 @@
+import { Router } from "express";
+import { z } from "zod";
+import { supabaseAuth } from "../db/client-auth.js";
+import { supabaseAdmin } from "../db/client.js";
+import { authLimiter } from "../middleware/rateLimiter.js";
+import { validate } from "../middleware/validate.js";
+import { logger } from "../logger.js";
+
+const router = Router();
+
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+const refreshSchema = z.object({
+  refresh_token: z.string().min(1),
+});
+
+router.post("/signup", authLimiter, validate(signupSchema), async (req, res, next) => {
+  try {
+    const { email, password } = req.validated;
+    const { data, error } = await supabaseAuth.auth.signUp({ email, password });
+    if (error) {
+      logger.warn({ err: error }, "signup");
+      return res.status(400).json({ error: error.message });
+    }
+    if (!data.user) return res.status(400).json({ error: "Signup failed" });
+
+    const { error: profileErr } = await supabaseAdmin.from("profiles").upsert(
+      { id: data.user.id, email },
+      { onConflict: "id" }
+    );
+    if (profileErr) {
+      logger.error({ err: profileErr }, "profile upsert on signup");
+      return res.status(500).json({ error: "Could not create profile" });
+    }
+
+    return res.json({
+      data: {
+        user: data.user,
+        session: data.session,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/login", authLimiter, validate(loginSchema), async (req, res, next) => {
+  try {
+    const { email, password } = req.validated;
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+    if (error) {
+      return res.status(401).json({ error: error.message });
+    }
+    if (!data.session) return res.status(401).json({ error: "Invalid credentials" });
+
+    await supabaseAdmin.from("profiles").upsert(
+      { id: data.user.id, email: data.user.email ?? email },
+      { onConflict: "id" }
+    );
+
+    return res.json({
+      data: {
+        user: data.user,
+        session: data.session,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/refresh", authLimiter, validate(refreshSchema), async (req, res, next) => {
+  try {
+    const { refresh_token } = req.validated;
+    const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token });
+    if (error || !data.session) {
+      return res.status(401).json({ error: error?.message ?? "Invalid refresh token" });
+    }
+    return res.json({
+      data: {
+        session: data.session,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+export default router;

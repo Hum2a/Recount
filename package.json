@@ -1,0 +1,14 @@
+{
+  "name": "recount",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w @recount/api",
+    "dev:web": "npm run dev -w @recount/web",
+    "build": "npm run build --workspaces --if-present",
+    "build:extension": "npm run build -w @recount/extension"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

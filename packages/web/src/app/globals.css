@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 6% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 4% 10%;
+  --muted: 240 4% 46%;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}

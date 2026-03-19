@@ -1,0 +1,20 @@
+---
+description: Next.js dashboard rules
+globs: ["packages/web/**/*"]
+---
+
+# Web Dashboard Rules
+
+## Architecture
+- Use Server Components by default; add "use client" only when needed
+- Data fetching: use fetch() in Server Components, not useEffect
+- Auth: check session server-side in layout.tsx using Supabase SSR
+
+## UI
+- Use shadcn/ui primitives — do not build custom UI atoms from scratch
+- All colours via Tailwind CSS variables — no inline hex values
+- Dark mode first — use dark: variant only for light mode overrides
+
+## State
+- Prefer URL state (searchParams) over client state where possible
+- Use Zustand only for global client state (auth, payment status)

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Recount</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Recount</h1>
+      <section id="auth-section">
+        <label>Email <input type="email" id="email" autocomplete="username" /></label>
+        <label>Password <input type="password" id="password" autocomplete="current-password" /></label>
+        <button type="button" id="login-btn">Sign in</button>
+        <p class="muted">New here? Create an account on the web dashboard, then sign in here.</p>
+      </section>
+      <section id="app-section" hidden>
+        <p class="muted" id="welcome"></p>
+        <label>Today’s goals (one per line)</label>
+        <textarea id="goals" rows="4" placeholder="Ship the API&#10;Deep work block"></textarea>
+        <button type="button" id="save-goals">Save intentions</button>
+        <hr />
+        <button type="button" id="unlock-btn" class="secondary">Unlock full access (Stripe)</button>
+        <button type="button" id="logout-btn" class="ghost">Sign out</button>
+      </section>
+      <p id="msg" class="msg" role="status"></p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

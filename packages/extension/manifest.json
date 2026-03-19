@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Recount",
+  "version": "1.0.0",
+  "description": "Honest productivity tracking with AI accountability reports.",
+  "permissions": ["tabs", "storage", "alarms", "activeTab", "scripting", "idle", "notifications"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "options_page": "src/options/index.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content/eod-nudge.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
