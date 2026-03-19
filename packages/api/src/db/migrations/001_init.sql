@@ -22,6 +22,8 @@ CREATE TABLE public.intentions (
   UNIQUE(user_id, date)
 );
 
+-- duration_sec / date are filled by trigger (generated STORED cols require IMMUTABLE
+-- expressions; timestamptz casts/extracts are often STABLE on Postgres — Supabase rejects them).
 CREATE TABLE public.tab_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -29,16 +31,35 @@ CREATE TABLE public.tab_events (
   title TEXT,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
-  duration_sec INTEGER GENERATED ALWAYS AS (
-    CASE
-      WHEN end_time IS NOT NULL THEN (EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER)
-      ELSE NULL
-    END
-  ) STORED,
+  duration_sec INTEGER,
   category TEXT,
-  date DATE GENERATED ALWAYS AS (start_time::DATE) STORED,
+  date DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE OR REPLACE FUNCTION public.tab_events_derive_fields()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  NEW.date := (NEW.start_time AT TIME ZONE 'UTC')::DATE;
+  IF NEW.end_time IS NOT NULL THEN
+    NEW.duration_sec :=
+      (FLOOR(EXTRACT(EPOCH FROM NEW.end_time) - EXTRACT(EPOCH FROM NEW.start_time)))::INTEGER;
+  ELSE
+    NEW.duration_sec := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tab_events_derive_fields ON public.tab_events;
+CREATE TRIGGER tab_events_derive_fields
+  BEFORE INSERT OR UPDATE ON public.tab_events
+  FOR EACH ROW
+  EXECUTE FUNCTION public.tab_events_derive_fields();
+-- If your Postgres errors on EXECUTE FUNCTION, use: EXECUTE PROCEDURE public.tab_events_derive_fields();
 
 CREATE TABLE public.reports (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
