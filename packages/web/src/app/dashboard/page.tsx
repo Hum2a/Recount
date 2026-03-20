@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { AnimatedCard } from "@/components/motion/animated-card";
 import { GenerateReportButton } from "./generate-report-button";
 import { UpgradeCard } from "./upgrade-card";
 
@@ -41,8 +42,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {!licensed && <UpgradeCard />}
-      <section className="rounded-xl bg-card p-6 ring-1 ring-white/10">
+      {!licensed && (
+        <AnimatedCard>
+          <UpgradeCard />
+        </AnimatedCard>
+      )}
+      <AnimatedCard delay={0.04} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">
         <h2 className="text-lg font-medium">Today ({date})</h2>
         <p className="mt-2 text-sm text-muted">
           Active browser time (tracked): <span className="text-foreground font-mono">{minutes} min</span>
@@ -57,8 +62,8 @@ export default async function DashboardPage() {
             )}
           </ul>
         </div>
-      </section>
-      <section className="rounded-xl bg-card p-6 ring-1 ring-white/10">
+      </AnimatedCard>
+      <AnimatedCard delay={0.08} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">
         <h2 className="text-lg font-medium">Top domains</h2>
         <ul className="mt-4 space-y-2 font-mono text-sm">
           {top.length === 0 && <li className="text-muted">No events yet for today.</li>}
@@ -71,9 +76,9 @@ export default async function DashboardPage() {
             </li>
           ))}
         </ul>
-      </section>
+      </AnimatedCard>
       {licensed && (
-        <section className="rounded-xl bg-card p-6 ring-1 ring-white/10">
+        <AnimatedCard delay={0.12} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-lg font-medium">AI accountability</h2>
             <GenerateReportButton date={date} />
@@ -92,7 +97,7 @@ export default async function DashboardPage() {
           ) : (
             <p className="mt-4 text-sm text-muted">No report for today yet. Generate one when you are ready.</p>
           )}
-        </section>
+        </AnimatedCard>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +9,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export function UpgradeCard() {
   const [err, setErr] = useState<string | null>(null);
+  const reduce = useReducedMotion();
 
   async function checkout() {
     setErr(null);
@@ -36,7 +38,11 @@ export function UpgradeCard() {
   }
 
   return (
-    <div className="rounded-xl border border-accent/40 bg-card p-6">
+    <motion.div
+      className="rounded-xl border border-accent/40 bg-card/90 p-6 shadow-lg shadow-blue-500/10 backdrop-blur-sm"
+      whileHover={reduce ? undefined : { y: -2 }}
+      transition={{ type: "spring", stiffness: 420, damping: 28 }}
+    >
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-medium">Unlock lifetime access</h2>
@@ -47,6 +53,6 @@ export function UpgradeCard() {
         <Button onClick={checkout}>Unlock lifetime access — £14.99</Button>
       </div>
       {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
-    </div>
+    </motion.div>
   );
 }

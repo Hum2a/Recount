@@ -10,5 +10,35 @@
 }
 
 body {
-  @apply bg-background text-foreground antialiased;
+  @apply text-foreground antialiased;
+}
+
+/* Soft radial backdrop (very subtle) */
+.bg-mesh {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -30%, rgba(59, 130, 246, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(139, 92, 246, 0.06), transparent 45%);
+  background-attachment: fixed;
+}
+
+@layer base {
+  a {
+    @apply transition-colors duration-200 ease-out;
+  }
+
+  ::selection {
+    @apply bg-blue-500/30 text-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
