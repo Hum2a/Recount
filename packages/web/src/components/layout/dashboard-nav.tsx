@@ -5,15 +5,19 @@ import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const links = [
+const baseLinks = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/reports", label: "Reports" },
   { href: "/dashboard/history", label: "History" },
   { href: "/dashboard/settings", label: "Settings" },
-  { href: "/pricing", label: "Pricing" },
 ];
 
-export function DashboardNav() {
+export function DashboardNav({ showAdminLink = false }: { showAdminLink?: boolean }) {
+  const links = [
+    ...baseLinks,
+    ...(showAdminLink ? [{ href: "/dashboard/admin" as const, label: "Staff" }] : []),
+    { href: "/pricing" as const, label: "Pricing" },
+  ];
   const pathname = usePathname();
   const reduce = useReducedMotion();
 

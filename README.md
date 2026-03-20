@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`**, **`002_auth_profile_trigger.sql`**, **`003_profile_app_role.sql`**.
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`**, **`002_auth_profile_trigger.sql`**, **`003_profile_app_role.sql`**, **`004_profiles_rls_select_only.sql`** (locks `profiles` to **SELECT** for browser JWTs so users cannot self-promote via the Supabase client).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 
@@ -66,6 +66,12 @@ Promote your first admin in Supabase → SQL:
 `UPDATE public.profiles SET app_role = 'admin' WHERE email = 'you@example.com';`
 
 The **`developer`** role is reserved for future staff-only tools; only **`admin`** can change others’ roles via the API today.
+
+### Staff dashboard (web)
+
+- Route: **`/dashboard/admin`**, linked from the main dashboard nav as **Staff** when `profiles.app_role` is **`admin`** or **`developer`** (nav uses an RLS-backed read of your own row).
+- The admin segment **re-checks** access on the Next.js server by calling **`GET /api/profiles/me`** with your session access token — not something you can satisfy by tampering with client-side JS alone.
+- **Admins** see a form to **`PATCH /api/admin/users/:userId/role`**; **developers** see the same staff page without role assignment (API still requires **admin** for that PATCH).
 
 ## Production API (live backend)
 
