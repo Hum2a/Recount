@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 
 function safeNextPath(raw: string | null) {
@@ -43,6 +44,7 @@ export default function LoginPage() {
       animate={reduce ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
+      <AppMark href="/" className="mb-6" wordmarkClassName="text-xl font-semibold tracking-tight" />
       <h1 className="text-2xl font-semibold">Sign in</h1>
       <p className="mt-2 text-sm text-muted">
         No account?{" "}

@@ -7,6 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Recount — Honest productivity",
   description: "Passive tab tracking with morning intentions and AI accountability reports.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

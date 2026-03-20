@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { AppMark } from "@/components/brand/app-mark";
 import { createClient } from "@/lib/supabase/server";
 import { getMaybeStaffForNav } from "@/lib/auth/staff-access";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
@@ -23,9 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </Suspense>
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link href="/dashboard" className="text-lg font-semibold">
-            Recount
-          </Link>
+          <AppMark href="/dashboard" wordmarkClassName="text-lg font-semibold" />
           <p className="text-sm text-muted">{user.email}</p>
         </div>
         <SignOutButton />

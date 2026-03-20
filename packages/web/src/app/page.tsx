@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { AnimatedCard } from "@/components/motion/animated-card";
 
@@ -7,7 +8,7 @@ export default function HomePage() {
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-12 px-6 py-16">
       <AnimatedCard>
         <header className="flex items-center justify-between gap-4">
-          <span className="text-lg font-semibold tracking-tight">Recount</span>
+          <AppMark href="/" />
           <div className="flex flex-wrap gap-3">
             <Link href="/pricing">
               <Button variant="ghost">Pricing</Button>

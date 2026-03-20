@@ -11,9 +11,22 @@ body {
 .wrap {
   padding: 12px;
 }
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.brand-icon {
+  border-radius: 10px;
+  flex-shrink: 0;
+}
 h1 {
   font-size: 18px;
-  margin: 0 0 12px;
+  margin: 0;
+}
+.brand-row + .install-context {
+  margin-top: 0;
 }
 .install-context {
   margin: -4px 0 10px;
