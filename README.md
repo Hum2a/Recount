@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run **`001_init.sql`** then **`002_auth_profile_trigger.sql`** from `packages/api/src/db/migrations/` in the Supabase SQL editor.
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`**, **`002_auth_profile_trigger.sql`**, **`003_profile_app_role.sql`**.
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 
@@ -51,7 +51,21 @@ npm run build -w @recount/web
 - `POST /api/intentions`, `GET /api/intentions/:date`
 - `POST /api/reports/generate`, `GET /api/reports/history`, `GET /api/reports/:date`
 - `GET /api/profiles/me`, `PATCH /api/profiles`
+- `PATCH /api/admin/users/:userId/role` — **admin** only; body `{ "app_role": "user" | "admin" | "developer" }`
 - `POST /api/payments/create-session`, `GET /api/payments/status`, `POST /api/payments/webhook`
+
+### Roles vs premium
+
+| Concept | Storage | Meaning |
+|--------|---------|--------|
+| **Premium (paid)** | `profiles.license_active` | Set to `true` when Stripe sends `checkout.session.completed`. Gates AI reports, full history, etc. (`requireLicense` on the API). |
+| **App role** | `profiles.app_role` | `user` (default), `admin`, or `developer`. **Independent of billing** — an admin can be on the free plan; a paying customer is usually still `user`. Use roles for staff permissions (`requireAppRole` in `packages/api/src/middleware/roles.js`). |
+
+Promote your first admin in Supabase → SQL:
+
+`UPDATE public.profiles SET app_role = 'admin' WHERE email = 'you@example.com';`
+
+The **`developer`** role is reserved for future staff-only tools; only **`admin`** can change others’ roles via the API today.
 
 ## Production API (live backend)
 

@@ -19,7 +19,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("email, hourly_rate, timezone, license_active")
+      .select("email, hourly_rate, timezone, license_active, app_role")
       .eq("id", req.user.id)
       .single();
 

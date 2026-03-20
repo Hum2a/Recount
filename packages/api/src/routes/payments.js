@@ -25,7 +25,7 @@ router.get("/status", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("license_active, license_key")
+      .select("license_active, license_key, app_role")
       .eq("id", req.user.id)
       .single();
 
@@ -34,6 +34,7 @@ router.get("/status", requireAuth, async (req, res, next) => {
       data: {
         license_active: data?.license_active ?? false,
         license_key: data?.license_key ?? null,
+        app_role: data?.app_role ?? "user",
       },
     });
   } catch (e) {

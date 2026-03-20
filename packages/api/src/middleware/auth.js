@@ -1,19 +1,46 @@
 import { supabaseAdmin } from "../db/client.js";
 import { logger } from "../logger.js";
 
-export async function ensureProfile(user) {
-  const { data, error } = await supabaseAdmin.from("profiles").select("id").eq("id", user.id).maybeSingle();
+/**
+ * @param {import("@supabase/supabase-js").User} user
+ * @returns {Promise<{ id: string, app_role: string, license_active: boolean }>}
+ */
+async function loadOrCreateProfile(user) {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id, app_role, license_active")
+    .eq("id", user.id)
+    .maybeSingle();
+
   if (error) {
-    logger.error({ err: error }, "ensureProfile select");
+    logger.error({ err: error }, "loadOrCreateProfile select");
     throw Object.assign(new Error("Profile lookup failed"), { status: 500 });
   }
-  if (data) return;
+  if (data) return data;
+
   const email = user.email ?? "";
-  const { error: insertErr } = await supabaseAdmin.from("profiles").insert({ id: user.id, email });
-  if (insertErr) {
-    logger.error({ err: insertErr }, "ensureProfile insert");
-    throw Object.assign(new Error("Could not create profile"), { status: 500 });
+  const { data: inserted, error: insertErr } = await supabaseAdmin
+    .from("profiles")
+    .insert({ id: user.id, email })
+    .select("id, app_role, license_active")
+    .single();
+
+  if (!insertErr && inserted) return inserted;
+
+  const { data: race, error: raceErr } = await supabaseAdmin
+    .from("profiles")
+    .select("id, app_role, license_active")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (raceErr) {
+    logger.error({ err: raceErr }, "loadOrCreateProfile re-select");
+    throw Object.assign(new Error("Profile lookup failed"), { status: 500 });
   }
+  if (race) return race;
+
+  logger.error({ err: insertErr }, "loadOrCreateProfile insert");
+  throw Object.assign(new Error("Could not create profile"), { status: 500 });
 }
 
 export async function requireAuth(req, res, next) {
@@ -25,9 +52,10 @@ export async function requireAuth(req, res, next) {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data?.user) return res.status(401).json({ error: "Invalid token" });
 
-    await ensureProfile(data.user);
+    const profile = await loadOrCreateProfile(data.user);
     req.user = data.user;
     req.accessToken = token;
+    req.profile = profile;
     next();
   } catch (e) {
     next(e);
@@ -36,6 +64,10 @@ export async function requireAuth(req, res, next) {
 
 export async function requireLicense(req, res, next) {
   try {
+    if (req.profile?.license_active) {
+      next();
+      return;
+    }
     const { data, error } = await supabaseAdmin
       .from("profiles")
       .select("license_active")

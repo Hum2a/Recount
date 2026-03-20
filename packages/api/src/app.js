@@ -11,6 +11,7 @@ import intentionsRoutes from "./routes/intentions.js";
 import reportsRoutes from "./routes/reports.js";
 import paymentsRoutes, { stripeWebhookHandler } from "./routes/payments.js";
 import profilesRoutes from "./routes/profiles.js";
+import adminRoutes from "./routes/admin.js";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api/intentions", intentionsRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/profiles", profilesRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);
 

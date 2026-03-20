@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const [tz, setTz] = useState("UTC");
   const [msg, setMsg] = useState<string | null>(null);
   const [licensed, setLicensed] = useState(false);
+  const [appRole, setAppRole] = useState<string>("user");
 
   useEffect(() => {
     let cancelled = false;
@@ -24,10 +25,16 @@ export default function SettingsPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (cancelled || !body.data) return;
-      const row = body.data as { hourly_rate?: number; timezone?: string; license_active?: boolean };
+      const row = body.data as {
+        hourly_rate?: number;
+        timezone?: string;
+        license_active?: boolean;
+        app_role?: string;
+      };
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
       setLicensed(Boolean(row.license_active));
+      setAppRole(typeof row.app_role === "string" ? row.app_role : "user");
     }
     void load();
     return () => {
@@ -99,6 +106,12 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="mt-1 text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
+        <p className="mt-3 text-sm text-muted">
+          <span className="font-medium text-foreground">Plan:</span>{" "}
+          {licensed ? "Premium (license active)" : "Free"}
+          {" · "}
+          <span className="font-medium text-foreground">Role:</span> {appRole}
+        </p>
       </div>
       <label className="block text-sm text-muted">
         Hourly rate (£)
