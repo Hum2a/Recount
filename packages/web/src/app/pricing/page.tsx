@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { AnimatedCard } from "@/components/motion/animated-card";
 import { PricingCheckout } from "./pricing-checkout";
@@ -12,9 +13,17 @@ export default function PricingPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
-      <Link href="/" className="text-sm text-muted hover:text-foreground">
-        ← Home
-      </Link>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <AppMark href="/" />
+        <div className="flex flex-wrap gap-3">
+          <Link href="/login">
+            <Button variant="ghost">Sign in</Button>
+          </Link>
+          <Link href="/signup">
+            <Button>Get started</Button>
+          </Link>
+        </div>
+      </header>
 
       {cancelled && (
         <AnimatedCard className="mt-6">

@@ -35,6 +35,8 @@ set NODE_OPTIONS=--max-old-space-size=8192
 npm run build -w @recount/web
 ```
 
+If the build fails with **`ENOSPC`**, free disk space (and delete `packages/web/.next` if the cache is huge) before retrying.
+
 ## Extension
 
 - **Dev**: load unpacked `packages/extension` from `chrome://extensions`.
