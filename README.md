@@ -39,7 +39,8 @@ npm run build -w @recount/web
 
 - **Dev**: load unpacked `packages/extension` from `chrome://extensions`.
 - **Prod**: load `packages/extension/dist` after `npm run build:extension`.
-- **Local vs store**: the extension uses `chrome.management.getSelf()` (`management` permission) to read `installType`. Unpacked loads use **`development`** → default API `http://localhost:3001`. Store installs use **`normal`** → default API `DEFAULT_API_URL_STORE` in `packages/extension/src/utils/constants.js` (set this to your real API before publishing). Override anytime under **Options** (leave URL blank to use the default for that install type).
+- **Local vs store**: the extension uses `chrome.management.getSelf()` (`management` permission) to read `installType`. Unpacked loads use **`development`** → default API `http://localhost:3001` and web app `http://localhost:3000`. Store installs use **`normal`** → default API `DEFAULT_API_URL_STORE` and web `DEFAULT_WEB_URL_STORE` in `packages/extension/src/utils/constants.js` (set both before publishing). Override under **Options** (leave blank to use defaults for that install type).
+- **Dashboard / reports**: the popup has **Dashboard** and **Reports** buttons (open the Next.js app in a new tab) plus a **Today** activity preview from the API. Sign in on the web from **Sign in on the web** when logged out. The extension session and the website session are separate; use the same email/password on the dashboard if the site asks you to sign in.
 - Add `chrome-extension://…` to API `ALLOWED_ORIGINS` when calling a deployed API.
 
 ## API routes (summary)

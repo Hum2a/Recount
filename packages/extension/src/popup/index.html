@@ -14,10 +14,23 @@
         <label>Password <input type="password" id="password" autocomplete="current-password" /></label>
         <button type="button" id="login-btn">Sign in</button>
         <button type="button" id="signup-btn" class="secondary">Create account</button>
+        <button type="button" id="open-web-login-btn" class="secondary">Sign in on the web</button>
         <p class="muted">Or sign up on the web — same account works in the extension.</p>
       </section>
       <section id="app-section" hidden>
         <p class="muted" id="welcome"></p>
+        <div class="popup-actions" role="group" aria-label="Open web app">
+          <button type="button" id="open-dashboard-btn" class="half">Dashboard</button>
+          <button type="button" id="open-reports-btn" class="half">Reports</button>
+        </div>
+        <p class="muted preview-hint">Full history, charts, and AI reports open in your browser (same account).</p>
+        <div id="activity-preview" class="activity-preview">
+          <div class="activity-preview-head">
+            <span>Today (UTC)</span>
+            <button type="button" id="refresh-activity-btn" class="inline">Refresh</button>
+          </div>
+          <pre id="activity-preview-body" class="activity-preview-body"></pre>
+        </div>
         <label>Today’s goals (one per line)</label>
         <textarea id="goals" rows="4" placeholder="Ship the API&#10;Deep work block"></textarea>
         <button type="button" id="save-goals">Save intentions</button>

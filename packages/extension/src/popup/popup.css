@@ -74,3 +74,51 @@ hr {
   border-top: 1px solid #27272a;
   margin: 12px 0;
 }
+.popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+button.half {
+  flex: 1;
+  margin-top: 0;
+}
+.preview-hint {
+  margin: 8px 0 6px;
+}
+.activity-preview {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+.activity-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+button.inline {
+  width: auto;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #27272a;
+  color: #e4e4e7;
+}
+.activity-preview-body {
+  margin: 0;
+  font: 12px/1.45 ui-monospace, monospace;
+  color: #d4d4d8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow-y: auto;
+}

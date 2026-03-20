@@ -7,6 +7,12 @@ export const DEFAULT_API_URL_LOCAL = "http://localhost:3001";
  */
 export const DEFAULT_API_URL_STORE = "https://api.recount.app";
 
+/** Next.js app — open dashboard / reports in the browser (override in Options). */
+export const DEFAULT_WEB_URL_LOCAL = "http://localhost:3000";
+
+/** Production web app origin (set to your real site before store publish). */
+export const DEFAULT_WEB_URL_STORE = "https://recount.app";
+
 export const STORAGE_SESSION = "recount_session";
 export const STORAGE_BUFFER = "recount_event_buffer";
 export const STORAGE_SETTINGS = "recount_settings";

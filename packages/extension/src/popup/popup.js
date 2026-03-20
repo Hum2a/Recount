@@ -3,6 +3,7 @@ import { apiFetch } from "../utils/api-client.js";
 import { STORAGE_INSTALL_META } from "../utils/constants.js";
 import { installChannelLabel, syncInstallMetadata } from "../utils/install-context.js";
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
+import { getResolvedWebBase } from "../utils/resolve-web-base.js";
 import { getLocal } from "../utils/storage.js";
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -10,6 +11,52 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 function todayUtc() {
   const d = new Date();
   return d.toISOString().slice(0, 10);
+}
+
+function formatDuration(sec) {
+  const m = Math.round(sec / 60);
+  if (m < 1) return "<1 min";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return rest ? `${h}h ${rest}m` : `${h}h`;
+}
+
+/** @param {string} path e.g. `/dashboard` */
+async function openWebPath(path) {
+  const base = await getResolvedWebBase();
+  const p = path.startsWith("/") ? path : `/${path}`;
+  chrome.tabs.create({ url: `${base}${p}` });
+}
+
+async function loadTodayActivityPreview() {
+  const pre = /** @type {HTMLPreElement} */ ($("activity-preview-body"));
+  if (!pre) return;
+  pre.textContent = "Loading…";
+  const date = todayUtc();
+  const res = await apiFetch(`/api/events/summary?date=${encodeURIComponent(date)}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    pre.textContent =
+      body.error === "Free plan limited to the last 7 days"
+        ? "This date isn’t available on the free plan. Open Reports on the web."
+        : body.error || "Could not load activity.";
+    return;
+  }
+  const d = body.data;
+  const total = d?.total_active_sec ?? 0;
+  const domains = Array.isArray(d?.domains) ? d.domains : [];
+  const lines = [`Total tracked: ${formatDuration(total)}`];
+  if (domains.length === 0) {
+    lines.push("No tab time recorded for this day yet.");
+  } else {
+    lines.push("Top sites:");
+    for (const row of domains.slice(0, 8)) {
+      lines.push(`  • ${row.domain} — ${formatDuration(row.seconds ?? 0)}`);
+    }
+    if (domains.length > 8) lines.push(`  … +${domains.length - 8} more`);
+  }
+  pre.textContent = lines.join("\n");
 }
 
 function setMsg(text, ok = false) {
@@ -47,11 +94,28 @@ async function refreshUI() {
     const intBody = await intRes.json().catch(() => ({}));
     const goals = intBody.data?.goals;
     $("goals").value = Array.isArray(goals) ? goals.join("\n") : "";
+    await loadTodayActivityPreview();
   } else {
     auth.hidden = false;
     app.hidden = true;
   }
 }
+
+$("open-web-login-btn")?.addEventListener("click", () => {
+  void openWebPath("/login");
+});
+
+$("open-dashboard-btn")?.addEventListener("click", () => {
+  void openWebPath("/dashboard");
+});
+
+$("open-reports-btn")?.addEventListener("click", () => {
+  void openWebPath("/dashboard/reports");
+});
+
+$("refresh-activity-btn")?.addEventListener("click", async () => {
+  await loadTodayActivityPreview();
+});
 
 $("login-btn").addEventListener("click", async () => {
   setMsg("");
