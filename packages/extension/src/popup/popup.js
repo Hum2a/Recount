@@ -1,6 +1,8 @@
 import { saveSession, clearSession, getSession } from "../utils/auth.js";
 import { apiFetch } from "../utils/api-client.js";
-import { DEFAULT_API_URL, STORAGE_SETTINGS } from "../utils/constants.js";
+import { STORAGE_INSTALL_META } from "../utils/constants.js";
+import { installChannelLabel, syncInstallMetadata } from "../utils/install-context.js";
+import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getLocal } from "../utils/storage.js";
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -16,7 +18,18 @@ function setMsg(text, ok = false) {
   m.style.color = ok ? "#4ade80" : "#f87171";
 }
 
+async function refreshInstallBadge() {
+  await syncInstallMetadata();
+  const meta = await getLocal(STORAGE_INSTALL_META, {});
+  const el = $("install-context");
+  if (el) {
+    el.textContent = installChannelLabel(meta.channel);
+    el.title = meta.installType ? `installType: ${meta.installType}` : "";
+  }
+}
+
 async function refreshUI() {
+  await refreshInstallBadge();
   const session = await getSession();
   const auth = $("auth-section");
   const app = $("app-section");
@@ -44,13 +57,12 @@ $("login-btn").addEventListener("click", async () => {
   setMsg("");
   const email = /** @type {HTMLInputElement} */ ($("email")).value.trim();
   const password = /** @type {HTMLInputElement} */ ($("password")).value;
-  const settings = await getLocal(STORAGE_SETTINGS, {});
-  const base = settings.apiUrl || DEFAULT_API_URL;
+  const base = await getResolvedApiBase();
   const res = await fetch(`${base}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     setMsg(body.error || "Login failed");
@@ -78,8 +90,7 @@ $("signup-btn").addEventListener("click", async () => {
     setMsg("Password must be at least 8 characters.");
     return;
   }
-  const settings = await getLocal(STORAGE_SETTINGS, {});
-  const base = settings.apiUrl || DEFAULT_API_URL;
+  const base = await getResolvedApiBase();
   const res = await fetch(`${base}/api/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -148,4 +159,4 @@ $("logout-btn").addEventListener("click", async () => {
   setMsg("Signed out.", true);
 });
 
-refreshUI();
+void refreshUI();

@@ -1,14 +1,12 @@
-import { DEFAULT_API_URL, STORAGE_SETTINGS } from "./constants.js";
 import { getSession, saveSession, clearSession } from "./auth.js";
-import { getLocal } from "./storage.js";
+import { getResolvedApiBase } from "./resolve-api-base.js";
 
 /**
  * @typedef {{ access_token: string, refresh_token: string, expires_at?: number }} SessionPayload
  */
 
 async function apiBase() {
-  const s = await getLocal(STORAGE_SETTINGS, {});
-  return s.apiUrl || DEFAULT_API_URL;
+  return getResolvedApiBase();
 }
 
 /**

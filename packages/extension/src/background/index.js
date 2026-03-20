@@ -1,6 +1,7 @@
 import { STORAGE_BUFFER, STORAGE_SETTINGS } from "../utils/constants.js";
 import { classifyDomain } from "../utils/domain-classify.js";
 import { getLocal, setLocal } from "../utils/storage.js";
+import { syncInstallMetadata } from "../utils/install-context.js";
 import { apiFetch } from "../utils/api-client.js";
 
 const FLUSH_ALARM = "recount_flush";
@@ -153,12 +154,14 @@ chrome.runtime.onInstalled.addListener(() => {
   scheduleFlushAlarm();
   scheduleEodAlarm();
   chrome.idle.setDetectionInterval(180);
+  void syncInstallMetadata();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleFlushAlarm();
   scheduleEodAlarm();
   chrome.idle.setDetectionInterval(180);
+  void syncInstallMetadata();
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
