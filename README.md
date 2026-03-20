@@ -18,6 +18,8 @@
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 
+**API env (local):** With `NODE_ENV=development` (default), missing variables in `packages/api/.env` are filled with **dev placeholders** so `npm run dev:api` starts anyway — fine for working on the web UI. Auth, Stripe, OpenAI, and Resend stay broken until you add real keys. To require a full `.env` locally, set `RELAXED_ENV=0`.
+
 ## Scripts
 
 ```bash
@@ -39,9 +41,19 @@ npm run build -w @recount/web
 - **Prod**: load `packages/extension/dist` after `npm run build:extension`.
 - Set **API base URL** under extension options (default `http://localhost:3001`). Add `chrome-extension://…` to API `ALLOWED_ORIGINS` when calling a deployed API.
 
+## API routes (summary)
+
+- `GET /health`
+- `POST /api/auth/signup|login|refresh`
+- `POST /api/events/batch`, `GET /api/events/summary`
+- `POST /api/intentions`, `GET /api/intentions/:date`
+- `POST /api/reports/generate`, `GET /api/reports/history`, `GET /api/reports/:date`
+- `GET /api/profiles/me`, `PATCH /api/profiles`
+- `POST /api/payments/create-session`, `GET /api/payments/status`, `POST /api/payments/webhook`
+
 ## Stripe
 
-Webhook: `POST /api/payments/webhook` (raw body). Event: `checkout.session.completed`. Set `STRIPE_PRICE_ID` to your one-time GBP price.
+Webhook: `POST /api/payments/webhook` (raw body). Event: `checkout.session.completed`. Set `STRIPE_PRICE_ID` to your one-time GBP price. Checkout **cancel** returns users to `/pricing?payment=cancelled` (set `WEB_URL` accordingly).
 
 ## Name
 

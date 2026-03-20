@@ -46,6 +46,9 @@ button.secondary {
   background: #27272a;
   color: #e4e4e7;
 }
+#signup-btn.secondary {
+  margin-top: 8px;
+}
 button.ghost {
   background: transparent;
   color: #a1a1aa;

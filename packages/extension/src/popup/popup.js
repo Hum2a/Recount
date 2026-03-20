@@ -70,6 +70,40 @@ $("login-btn").addEventListener("click", async () => {
   await refreshUI();
 });
 
+$("signup-btn").addEventListener("click", async () => {
+  setMsg("");
+  const email = /** @type {HTMLInputElement} */ ($("email")).value.trim();
+  const password = /** @type {HTMLInputElement} */ ($("password")).value;
+  if (password.length < 8) {
+    setMsg("Password must be at least 8 characters.");
+    return;
+  }
+  const settings = await getLocal(STORAGE_SETTINGS, {});
+  const base = settings.apiUrl || DEFAULT_API_URL;
+  const res = await fetch(`${base}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setMsg(body.error || "Signup failed");
+    return;
+  }
+  const s = body.data?.session;
+  if (s?.access_token) {
+    await saveSession({
+      access_token: s.access_token,
+      refresh_token: s.refresh_token,
+      expires_at: s.expires_at,
+    });
+    setMsg("Account created — you’re signed in.", true);
+    await refreshUI();
+    return;
+  }
+  setMsg("Check your email to confirm, then sign in.");
+});
+
 $("save-goals").addEventListener("click", async () => {
   setMsg("");
   const raw = /** @type {HTMLTextAreaElement} */ ($("goals")).value;

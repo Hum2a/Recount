@@ -58,8 +58,8 @@ DROP TRIGGER IF EXISTS tab_events_derive_fields ON public.tab_events;
 CREATE TRIGGER tab_events_derive_fields
   BEFORE INSERT OR UPDATE ON public.tab_events
   FOR EACH ROW
-  EXECUTE FUNCTION public.tab_events_derive_fields();
--- If your Postgres errors on EXECUTE FUNCTION, use: EXECUTE PROCEDURE public.tab_events_derive_fields();
+  EXECUTE PROCEDURE public.tab_events_derive_fields();
+-- Supabase/Postgres: use EXECUTE PROCEDURE here (matches 002_auth_profile_trigger.sql).
 
 CREATE TABLE public.reports (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

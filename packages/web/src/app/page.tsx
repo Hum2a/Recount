@@ -6,7 +6,10 @@ export default function HomePage() {
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-12 px-6 py-16">
       <header className="flex items-center justify-between gap-4">
         <span className="text-lg font-semibold tracking-tight">Recount</span>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <Link href="/pricing">
+            <Button variant="ghost">Pricing</Button>
+          </Link>
           <Link href="/login">
             <Button variant="ghost">Sign in</Button>
           </Link>
@@ -51,6 +54,11 @@ export default function HomePage() {
             <li>AI end-of-day reports</li>
             <li>Weekly trends &amp; CSV export</li>
           </ul>
+          <div className="mt-6">
+            <Link href="/pricing">
+              <Button className="w-full">View pricing &amp; unlock</Button>
+            </Link>
+          </div>
         </div>
       </section>
     </main>

@@ -5,6 +5,7 @@ const links = [
   { href: "/dashboard/reports", label: "Reports" },
   { href: "/dashboard/history", label: "History" },
   { href: "/dashboard/settings", label: "Settings" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 export function DashboardNav() {

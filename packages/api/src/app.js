@@ -10,6 +10,7 @@ import eventsRoutes from "./routes/events.js";
 import intentionsRoutes from "./routes/intentions.js";
 import reportsRoutes from "./routes/reports.js";
 import paymentsRoutes, { stripeWebhookHandler } from "./routes/payments.js";
+import profilesRoutes from "./routes/profiles.js";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/events", eventsRoutes);
 app.use("/api/intentions", intentionsRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/profiles", profilesRoutes);
 
 app.use(errorHandler);
 

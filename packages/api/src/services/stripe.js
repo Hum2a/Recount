@@ -32,7 +32,7 @@ export async function createCheckoutSession(userId, email) {
     mode: "payment",
     line_items: [{ price: env.STRIPE_PRICE_ID, quantity: 1 }],
     success_url: `${env.WEB_URL}/dashboard?payment=success`,
-    cancel_url: `${env.WEB_URL}/?payment=cancelled`,
+    cancel_url: `${env.WEB_URL}/pricing?payment=cancelled`,
     metadata: { userId },
   });
 

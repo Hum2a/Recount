@@ -16,14 +16,15 @@ export default function SettingsPage() {
     let cancelled = false;
     async function load() {
       const supabase = createClient();
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user || cancelled) return;
-      const { data: row } = await supabase
-        .from("profiles")
-        .select("hourly_rate, timezone, license_active")
-        .eq("id", u.user.id)
-        .single();
-      if (cancelled || !row) return;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token || cancelled) return;
+      const res = await fetch(`${apiUrl}/api/profiles/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (cancelled || !body.data) return;
+      const row = body.data as { hourly_rate?: number; timezone?: string; license_active?: boolean };
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
       setLicensed(Boolean(row.license_active));
@@ -37,16 +38,25 @@ export default function SettingsPage() {
   async function saveProfile() {
     setMsg(null);
     const supabase = createClient();
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      setMsg("Sign in again.");
+      return;
+    }
+    const res = await fetch(`${apiUrl}/api/profiles`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         hourly_rate: Number(hourly) || 0,
         timezone: tz,
-      })
-      .eq("id", u.user.id);
-    setMsg(error ? error.message : "Saved.");
+      }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setMsg(res.ok ? "Saved." : (body.error ?? "Could not save"));
   }
 
   async function exportCsv() {
@@ -88,7 +98,7 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-lg space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">Profile fields stored in Supabase (RLS).</p>
+        <p className="mt-1 text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
       </div>
       <label className="block text-sm text-muted">
         Hourly rate (£)
