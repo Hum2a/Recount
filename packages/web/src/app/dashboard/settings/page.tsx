@@ -4,21 +4,32 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckboxWithHint, FieldWithHint } from "@/components/ui/field-hint";
+import { cn } from "@/lib/utils";
+import {
+  birthYearOptions,
+  COUNTRY_OPTIONS,
+  COMPANY_SIZE_OPTIONS,
+  DEMO_CUSTOM,
+  GENDER_OPTIONS,
+  INDUSTRY_OPTIONS,
+  LOCALE_OPTIONS,
+  mergeSelectOrCustom,
+  OCCUPATION_OPTIONS,
+  PRIMARY_USE_CASE_OPTIONS,
+  REFERRAL_OPTIONS,
+  resolveSelect,
+  WORK_ROLE_OPTIONS,
+} from "./demographics-options";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const COMPANY_SIZE_OPTIONS = [
-  { value: "", label: "Skip — no answer (default)" },
-  { value: "1", label: "Just me" },
-  { value: "2-10", label: "2–10 people" },
-  { value: "11-50", label: "11–50" },
-  { value: "51-200", label: "51–200" },
-  { value: "201+", label: "201+" },
-  { value: "prefer_not_say", label: "Prefer not to say" },
-] as const;
-
 const inputClass =
   "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
+
+const selectClass = cn(
+  inputClass,
+  "cursor-pointer pr-10 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-white/15 focus-visible:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+);
 
 type ProfileRow = {
   hourly_rate?: number;
@@ -46,6 +57,34 @@ type ProfileRow = {
   demographics_updated_at?: string | null;
 };
 
+function DemographicsSelect({
+  id,
+  label,
+  hint,
+  options,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <FieldWithHint id={id} label={label} hint={hint}>
+      <select id={id} className={selectClass} value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o, i) => (
+          <option key={`${id}-${i}-${o.value}`} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </FieldWithHint>
+  );
+}
+
 export default function SettingsPage() {
   const [hourly, setHourly] = useState("0");
   const [tz, setTz] = useState("UTC");
@@ -57,16 +96,24 @@ export default function SettingsPage() {
   const [leaderOptIn, setLeaderOptIn] = useState(false);
   const [nickname, setNickname] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [countryCode, setCountryCode] = useState("");
-  const [locale, setLocale] = useState("");
-  const [genderIdentity, setGenderIdentity] = useState("");
-  const [occupation, setOccupation] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [workRole, setWorkRole] = useState("");
+  const [birthYearSelect, setBirthYearSelect] = useState("");
+  const [countrySelect, setCountrySelect] = useState("");
+  const [countryOther, setCountryOther] = useState("");
+  const [localeSelect, setLocaleSelect] = useState("");
+  const [localeOther, setLocaleOther] = useState("");
+  const [genderSelect, setGenderSelect] = useState("");
+  const [genderOther, setGenderOther] = useState("");
+  const [occupationSelect, setOccupationSelect] = useState("");
+  const [occupationOther, setOccupationOther] = useState("");
+  const [industrySelect, setIndustrySelect] = useState("");
+  const [industryOther, setIndustryOther] = useState("");
+  const [workRoleSelect, setWorkRoleSelect] = useState("");
+  const [workRoleOther, setWorkRoleOther] = useState("");
   const [companySize, setCompanySize] = useState("");
-  const [primaryUseCase, setPrimaryUseCase] = useState("");
-  const [referralSource, setReferralSource] = useState("");
+  const [primaryUseSelect, setPrimaryUseSelect] = useState("");
+  const [primaryUseOther, setPrimaryUseOther] = useState("");
+  const [referralSelect, setReferralSelect] = useState("");
+  const [referralOther, setReferralOther] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [licensed, setLicensed] = useState(false);
   const [appRole, setAppRole] = useState<string>("user");
@@ -96,16 +143,32 @@ export default function SettingsPage() {
       setLeaderOptIn(Boolean(row.leaderboard_opt_in));
       setNickname(row.leaderboard_nickname ?? "");
       setDisplayName(row.display_name ?? "");
-      setBirthYear(row.birth_year != null ? String(row.birth_year) : "");
-      setCountryCode(row.country_code ?? "");
-      setLocale(row.locale ?? "");
-      setGenderIdentity(row.gender_identity ?? "");
-      setOccupation(row.occupation ?? "");
-      setIndustry(row.industry ?? "");
-      setWorkRole(row.work_role ?? "");
+      setBirthYearSelect(row.birth_year != null ? String(row.birth_year) : "");
+      const co = resolveSelect(row.country_code, COUNTRY_OPTIONS, DEMO_CUSTOM);
+      setCountrySelect(co.select);
+      setCountryOther(co.other);
+      const loc = resolveSelect(row.locale, LOCALE_OPTIONS, DEMO_CUSTOM);
+      setLocaleSelect(loc.select);
+      setLocaleOther(loc.other);
+      const g = resolveSelect(row.gender_identity, GENDER_OPTIONS, DEMO_CUSTOM);
+      setGenderSelect(g.select);
+      setGenderOther(g.other);
+      const occ = resolveSelect(row.occupation, OCCUPATION_OPTIONS, DEMO_CUSTOM);
+      setOccupationSelect(occ.select);
+      setOccupationOther(occ.other);
+      const ind = resolveSelect(row.industry, INDUSTRY_OPTIONS, DEMO_CUSTOM);
+      setIndustrySelect(ind.select);
+      setIndustryOther(ind.other);
+      const wr = resolveSelect(row.work_role, WORK_ROLE_OPTIONS, DEMO_CUSTOM);
+      setWorkRoleSelect(wr.select);
+      setWorkRoleOther(wr.other);
       setCompanySize(row.company_size ?? "");
-      setPrimaryUseCase(row.primary_use_case ?? "");
-      setReferralSource(row.referral_source ?? "");
+      const pu = resolveSelect(row.primary_use_case, PRIMARY_USE_CASE_OPTIONS, DEMO_CUSTOM);
+      setPrimaryUseSelect(pu.select);
+      setPrimaryUseOther(pu.other);
+      const ref = resolveSelect(row.referral_source, REFERRAL_OPTIONS, DEMO_CUSTOM);
+      setReferralSelect(ref.select);
+      setReferralOther(ref.other);
     }
     void load();
     return () => {
@@ -126,7 +189,7 @@ export default function SettingsPage() {
       setMsg("Sign in again.");
       return;
     }
-    const y = birthYear.trim();
+    const y = birthYearSelect.trim();
     let birth_year: number | null = null;
     if (y) {
       const n = Number.parseInt(y, 10);
@@ -137,9 +200,49 @@ export default function SettingsPage() {
       }
       birth_year = n;
     }
-    const cc = countryCode.trim().toUpperCase();
-    if (cc && cc.length !== 2) {
-      setMsg("Country must be a 2-letter ISO code (e.g. GB) or left blank.");
+    const countryMerged = mergeSelectOrCustom(countrySelect, countryOther, DEMO_CUSTOM);
+    let country_code: string | null = null;
+    if (countryMerged) {
+      const cc = countryMerged.trim().toUpperCase();
+      if (cc.length !== 2 || !/^[A-Z]{2}$/.test(cc)) {
+        setMsg("Country must be a 2-letter ISO code (choose from the list or enter one below).");
+        return;
+      }
+      country_code = cc;
+    }
+    const localeMerged = mergeSelectOrCustom(localeSelect, localeOther, DEMO_CUSTOM);
+    if (localeMerged && localeMerged.length > 35) {
+      setMsg("Locale tag is too long (max 35 characters).");
+      return;
+    }
+    const genderMerged = mergeSelectOrCustom(genderSelect, genderOther, DEMO_CUSTOM);
+    if (genderMerged && genderMerged.length > 80) {
+      setMsg("Gender identity text is too long (max 80 characters).");
+      return;
+    }
+    const occMerged = mergeSelectOrCustom(occupationSelect, occupationOther, DEMO_CUSTOM);
+    if (occMerged && occMerged.length > 100) {
+      setMsg("Occupation is too long (max 100 characters).");
+      return;
+    }
+    const indMerged = mergeSelectOrCustom(industrySelect, industryOther, DEMO_CUSTOM);
+    if (indMerged && indMerged.length > 100) {
+      setMsg("Industry is too long (max 100 characters).");
+      return;
+    }
+    const workMerged = mergeSelectOrCustom(workRoleSelect, workRoleOther, DEMO_CUSTOM);
+    if (workMerged && workMerged.length > 80) {
+      setMsg("Role type is too long (max 80 characters).");
+      return;
+    }
+    const useMerged = mergeSelectOrCustom(primaryUseSelect, primaryUseOther, DEMO_CUSTOM);
+    if (useMerged && useMerged.length > 200) {
+      setMsg("Use case description is too long (max 200 characters).");
+      return;
+    }
+    const refMerged = mergeSelectOrCustom(referralSelect, referralOther, DEMO_CUSTOM);
+    if (refMerged && refMerged.length > 100) {
+      setMsg("Referral source is too long (max 100 characters).");
       return;
     }
     const distraction_domains = distractionText
@@ -164,15 +267,15 @@ export default function SettingsPage() {
         leaderboard_nickname: nickname.trim() || null,
         display_name: displayName.trim() || null,
         birth_year,
-        country_code: cc || null,
-        locale: locale.trim() || null,
-        gender_identity: genderIdentity.trim() || null,
-        occupation: occupation.trim() || null,
-        industry: industry.trim() || null,
-        work_role: workRole.trim() || null,
+        country_code,
+        locale: localeMerged?.trim() || null,
+        gender_identity: genderMerged?.trim() || null,
+        occupation: occMerged?.trim() || null,
+        industry: indMerged?.trim() || null,
+        work_role: workMerged?.trim() || null,
         company_size: companySize || null,
-        primary_use_case: primaryUseCase.trim() || null,
-        referral_source: referralSource.trim() || null,
+        primary_use_case: useMerged?.trim() || null,
+        referral_source: refMerged?.trim() || null,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -275,13 +378,14 @@ export default function SettingsPage() {
         <h2 className="text-lg font-medium">About you</h2>
         <p className="text-sm text-muted">
           <span className="font-medium text-foreground">Entirely optional.</span> You can ignore this whole block —
-          nothing here is required to use Recount. If you do share details, we aggregate them to improve the product; we
-          don’t sell this data. Clear any field anytime.
+          nothing here is required to use Recount. Pick from the menus for faster input; use “other” rows when you need
+          your own wording. We aggregate responses to improve the product; we don’t sell this data. Clear any field by
+          choosing the skip option at the top of each list.
         </p>
         <FieldWithHint
           id="settings-display-name"
           label="Preferred name (optional)"
-          hint="How you’d like to be addressed in the product or future emails. Leave blank if you prefer."
+          hint="How you’d like to be addressed in the product or future emails. Free text — not everyone fits a dropdown."
         >
           <input
             id="settings-display-name"
@@ -293,155 +397,215 @@ export default function SettingsPage() {
           />
         </FieldWithHint>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FieldWithHint
+          <DemographicsSelect
             id="settings-birth-year"
             label="Birth year (optional)"
-            hint="Year only (for age cohort trends). Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-birth-year"
-              className={inputClass}
-              inputMode="numeric"
-              value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="e.g. 1990"
-              aria-required={false}
-            />
-          </FieldWithHint>
-          <FieldWithHint
+            hint="Year only, for broad age-cohort trends. Large scrollable list — or skip."
+            options={birthYearOptions()}
+            value={birthYearSelect}
+            onChange={setBirthYearSelect}
+          />
+          <DemographicsSelect
             id="settings-country"
             label="Country (optional)"
-            hint="Two-letter ISO code, e.g. GB, US, DE. Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-country"
-              className={inputClass}
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
-              maxLength={2}
-              aria-required={false}
-            />
-          </FieldWithHint>
-          <FieldWithHint
+            hint="ISO 3166-1 alpha-2 list. Choose “Other” to type a two-letter code if yours isn’t listed."
+            options={COUNTRY_OPTIONS}
+            value={countrySelect}
+            onChange={setCountrySelect}
+          />
+          <DemographicsSelect
             id="settings-locale"
-            label="Locale (optional)"
-            hint="BCP-47 tag, e.g. en-GB. Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-locale"
-              className={inputClass}
-              value={locale}
-              onChange={(e) => setLocale(e.target.value)}
-              maxLength={35}
-              aria-required={false}
-            />
-          </FieldWithHint>
-          <FieldWithHint
+            label="Locale / language tag (optional)"
+            hint="BCP-47 tags (language + region). Common tags are listed; pick Other for a custom tag up to 35 characters."
+            options={LOCALE_OPTIONS}
+            value={localeSelect}
+            onChange={setLocaleSelect}
+          />
+          <DemographicsSelect
             id="settings-company-size"
             label="Company or team size (optional)"
-            hint="Rough headcount. Choose “Skip” at the top of the list to leave this unset."
-          >
-            <select
-              id="settings-company-size"
-              className={inputClass}
-              value={companySize}
-              onChange={(e) => setCompanySize(e.target.value)}
-            >
-              {COMPANY_SIZE_OPTIONS.map((o) => (
-                <option key={o.value || "na"} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </FieldWithHint>
+            hint="Rough headcount. Matches how we bucket organizations in analytics."
+            options={COMPANY_SIZE_OPTIONS}
+            value={companySize}
+            onChange={setCompanySize}
+          />
         </div>
-        <FieldWithHint
+        {countrySelect === DEMO_CUSTOM ? (
+          <FieldWithHint
+            id="settings-country-custom"
+            label="Country code (2 letters)"
+            hint="Examples: GB, US, DE, NG, IN. Uppercase Latin letters only."
+          >
+            <input
+              id="settings-country-custom"
+              className={inputClass}
+              value={countryOther}
+              onChange={(e) => setCountryOther(e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
+              maxLength={2}
+              placeholder="GB"
+            />
+          </FieldWithHint>
+        ) : null}
+        {localeSelect === DEMO_CUSTOM ? (
+          <FieldWithHint
+            id="settings-locale-custom"
+            label="Custom locale tag"
+            hint="e.g. en-GB, pt-BR, cmn-TW. Max 35 characters."
+          >
+            <input
+              id="settings-locale-custom"
+              className={inputClass}
+              value={localeOther}
+              onChange={(e) => setLocaleOther(e.target.value.slice(0, 35))}
+              maxLength={35}
+            />
+          </FieldWithHint>
+        ) : null}
+        <DemographicsSelect
           id="settings-gender"
           label="Gender identity (optional)"
-          hint="Use whatever description fits you best, or leave blank."
-        >
-          <input
-            id="settings-gender"
-            className={inputClass}
-            value={genderIdentity}
-            onChange={(e) => setGenderIdentity(e.target.value)}
-            maxLength={80}
-            aria-required={false}
-          />
-        </FieldWithHint>
-        <div className="grid gap-4 sm:grid-cols-2">
+          hint="Inclusive shorthand list. Choose “Something else” to write your own words (max 80 characters)."
+          options={GENDER_OPTIONS}
+          value={genderSelect}
+          onChange={setGenderSelect}
+        />
+        {genderSelect === DEMO_CUSTOM ? (
           <FieldWithHint
+            id="settings-gender-custom"
+            label="Describe in your own words"
+            hint="Whatever label fits you best. Kept private; used only in aggregate."
+          >
+            <input
+              id="settings-gender-custom"
+              className={inputClass}
+              value={genderOther}
+              onChange={(e) => setGenderOther(e.target.value.slice(0, 80))}
+              maxLength={80}
+            />
+          </FieldWithHint>
+        ) : null}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <DemographicsSelect
             id="settings-occupation"
             label="Occupation (optional)"
-            hint="Job title or how you describe your work. Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-occupation"
-              className={inputClass}
-              value={occupation}
-              onChange={(e) => setOccupation(e.target.value)}
-              maxLength={100}
-              aria-required={false}
-            />
-          </FieldWithHint>
-          <FieldWithHint
+            hint="Job family / title cluster. Other → free text up to 100 characters."
+            options={OCCUPATION_OPTIONS}
+            value={occupationSelect}
+            onChange={setOccupationSelect}
+          />
+          <DemographicsSelect
             id="settings-industry"
             label="Industry (optional)"
-            hint="Sector you work in. Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-industry"
-              className={inputClass}
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              maxLength={100}
-              aria-required={false}
-            />
-          </FieldWithHint>
-          <FieldWithHint
+            hint="Sector you work in. Other → specify below."
+            options={INDUSTRY_OPTIONS}
+            value={industrySelect}
+            onChange={setIndustrySelect}
+          />
+          <DemographicsSelect
             id="settings-work-role"
             label="Role type (optional)"
-            hint="e.g. individual contributor, manager, founder. Leave blank if you prefer not to say."
-          >
-            <input
-              id="settings-work-role"
-              className={inputClass}
-              value={workRole}
-              onChange={(e) => setWorkRole(e.target.value)}
-              maxLength={80}
-              aria-required={false}
-            />
-          </FieldWithHint>
+            hint="Seniority / relationship to org — not the same as job title."
+            options={WORK_ROLE_OPTIONS}
+            value={workRoleSelect}
+            onChange={setWorkRoleSelect}
+          />
         </div>
-        <FieldWithHint
+        {(occupationSelect === DEMO_CUSTOM || industrySelect === DEMO_CUSTOM || workRoleSelect === DEMO_CUSTOM) && (
+          <div className="grid gap-4 sm:grid-cols-1">
+            {occupationSelect === DEMO_CUSTOM ? (
+              <FieldWithHint
+                id="settings-occupation-custom"
+                label="Occupation (your wording)"
+                hint="Job title or short description, max 100 characters."
+              >
+                <input
+                  id="settings-occupation-custom"
+                  className={inputClass}
+                  value={occupationOther}
+                  onChange={(e) => setOccupationOther(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                />
+              </FieldWithHint>
+            ) : null}
+            {industrySelect === DEMO_CUSTOM ? (
+              <FieldWithHint
+                id="settings-industry-custom"
+                label="Industry (your wording)"
+                hint="Sector or niche, max 100 characters."
+              >
+                <input
+                  id="settings-industry-custom"
+                  className={inputClass}
+                  value={industryOther}
+                  onChange={(e) => setIndustryOther(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                />
+              </FieldWithHint>
+            ) : null}
+            {workRoleSelect === DEMO_CUSTOM ? (
+              <FieldWithHint
+                id="settings-work-role-custom"
+                label="Role type (your wording)"
+                hint="e.g. fractional CMO, apprentice electrician. Max 80 characters."
+              >
+                <input
+                  id="settings-work-role-custom"
+                  className={inputClass}
+                  value={workRoleOther}
+                  onChange={(e) => setWorkRoleOther(e.target.value.slice(0, 80))}
+                  maxLength={80}
+                />
+              </FieldWithHint>
+            ) : null}
+          </div>
+        )}
+        <DemographicsSelect
           id="settings-use-case"
           label="What will you use Recount for? (optional)"
-          hint="Helps us prioritize features. Leave blank if you prefer not to say."
-        >
-          <textarea
-            id="settings-use-case"
-            className={`${inputClass} min-h-[72px]`}
-            value={primaryUseCase}
-            onChange={(e) => setPrimaryUseCase(e.target.value)}
-            maxLength={200}
-            rows={3}
-            aria-required={false}
-          />
-        </FieldWithHint>
-        <FieldWithHint
+          hint="Helps us prioritize roadmap items. Pick the closest fit or describe your own scenario below."
+          options={PRIMARY_USE_CASE_OPTIONS}
+          value={primaryUseSelect}
+          onChange={setPrimaryUseSelect}
+        />
+        {primaryUseSelect === DEMO_CUSTOM ? (
+          <FieldWithHint
+            id="settings-use-case-custom"
+            label="Describe your use case"
+            hint="Up to 200 characters — a sentence or two is perfect."
+          >
+            <textarea
+              id="settings-use-case-custom"
+              className={cn(inputClass, "min-h-[88px] resize-y")}
+              value={primaryUseOther}
+              onChange={(e) => setPrimaryUseOther(e.target.value.slice(0, 200))}
+              maxLength={200}
+              rows={4}
+            />
+          </FieldWithHint>
+        ) : null}
+        <DemographicsSelect
           id="settings-referral"
           label="How did you hear about us? (optional)"
-          hint="Search, friend, podcast, etc. Leave blank if you prefer not to say."
-        >
-          <input
-            id="settings-referral"
-            className={inputClass}
-            value={referralSource}
-            onChange={(e) => setReferralSource(e.target.value)}
-            maxLength={100}
-            aria-required={false}
-          />
-        </FieldWithHint>
+          hint="Attribution helps us invest in the right channels. Other → short free text."
+          options={REFERRAL_OPTIONS}
+          value={referralSelect}
+          onChange={setReferralSelect}
+        />
+        {referralSelect === DEMO_CUSTOM ? (
+          <FieldWithHint
+            id="settings-referral-custom"
+            label="Tell us where"
+            hint="Blog, colleague name, subreddit, etc. Max 100 characters."
+          >
+            <input
+              id="settings-referral-custom"
+              className={inputClass}
+              value={referralOther}
+              onChange={(e) => setReferralOther(e.target.value.slice(0, 100))}
+              maxLength={100}
+            />
+          </FieldWithHint>
+        ) : null}
       </div>
       <div className="border-t border-white/10 pt-6 space-y-4">
         <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
