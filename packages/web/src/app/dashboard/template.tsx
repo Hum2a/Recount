@@ -9,7 +9,7 @@ export default function DashboardTemplate({ children }: { children: React.ReactN
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 6 }}
       animate={reduce ? undefined : { opacity: 1, y: 0 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+      transition={reduce ? { duration: 0 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>

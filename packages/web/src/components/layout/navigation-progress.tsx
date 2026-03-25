@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 const MAX_MS = 12000;
 
@@ -60,14 +61,21 @@ export function NavigationProgress() {
     };
   }, [pathname]);
 
-  if (!active) return null;
-
   return (
-    <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-[100] h-0.5 overflow-hidden bg-white/5"
-      aria-hidden
-    >
-      <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-accent to-transparent opacity-90 motion-safe:animate-nav-progress" />
-    </div>
+    <AnimatePresence>
+      {active && (
+        <motion.div
+          key="nav-progress"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none fixed inset-x-0 top-0 z-[100] h-0.5 overflow-hidden bg-white/5"
+          aria-hidden
+        >
+          <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-accent to-transparent opacity-90 motion-safe:animate-nav-progress" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

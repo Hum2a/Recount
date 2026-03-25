@@ -14,6 +14,7 @@ globs: ["packages/web/**/*"]
 - Use shadcn/ui primitives — do not build custom UI atoms from scratch
 - All colours via Tailwind CSS variables — no inline hex values
 - Dark mode first — use dark: variant only for light mode overrides
+- **Motion & transitions:** follow `.cursor/rules/motion-ui.mdc` — subtle timing, `motion-safe:` / `useReducedMotion`, shared components over scattered animations
 
 ## State
 - Prefer URL state (searchParams) over client state where possible

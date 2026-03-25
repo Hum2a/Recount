@@ -35,7 +35,7 @@ export function DashboardNav({ showAdminLink = false }: { showAdminLink?: boolea
             key={l.href}
             href={l.href}
             className={cn(
-              "relative rounded-md px-3 py-2 transition-colors duration-200",
+              "relative rounded-md px-3 py-2 transition-[color,transform] duration-300 ease-smooth motion-safe:hover:scale-[1.02]",
               active ? "text-foreground" : "text-muted hover:text-foreground"
             )}
           >

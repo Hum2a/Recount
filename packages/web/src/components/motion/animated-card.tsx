@@ -22,7 +22,18 @@ export function AnimatedCard({ children, className, delay = 0 }: Props) {
           ? { duration: 0 }
           : { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }
       }
-      className={cn(className)}
+      whileHover={
+        reduce
+          ? undefined
+          : {
+              y: -3,
+              transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+            }
+      }
+      className={cn(
+        !reduce && "motion-safe:hover:shadow-2xl motion-safe:hover:shadow-black/25 motion-safe:hover:ring-1 motion-safe:hover:ring-white/[0.08]",
+        className
+      )}
     >
       {children}
     </motion.div>

@@ -27,8 +27,23 @@ body {
     @apply transition-colors duration-200 ease-out;
   }
 
+  :where(input:not([type="checkbox"]):not([type="radio"])), textarea, select) {
+    @apply transition-[border-color,box-shadow,background-color,color] duration-200 ease-out;
+  }
+
   ::selection {
     @apply bg-blue-500/30 text-foreground;
+  }
+}
+
+/* Tables: smooth row hover (main content); rows may override with Tailwind important if needed */
+@layer components {
+  main table tbody tr {
+    @apply transition-[background-color,color,box-shadow] duration-150 ease-out;
+  }
+
+  main table tbody tr:hover {
+    @apply bg-white/[0.035];
   }
 }
 

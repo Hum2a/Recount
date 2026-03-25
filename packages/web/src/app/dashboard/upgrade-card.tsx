@@ -39,8 +39,16 @@ export function UpgradeCard() {
 
   return (
     <motion.div
-      className="rounded-xl border border-accent/40 bg-card/90 p-6 shadow-lg shadow-blue-500/10 backdrop-blur-sm"
-      whileHover={reduce ? undefined : { y: -2 }}
+      className="rounded-xl border border-accent/40 bg-card/90 p-6 shadow-lg shadow-blue-500/10 backdrop-blur-sm ring-0"
+      whileHover={
+        reduce
+          ? undefined
+          : {
+              y: -4,
+              boxShadow: "0 24px 48px -12px rgba(37, 99, 235, 0.2), 0 0 0 1px rgba(96, 165, 250, 0.25)",
+              transition: { type: "spring", stiffness: 400, damping: 26 },
+            }
+      }
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

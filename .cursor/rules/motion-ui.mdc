@@ -1,0 +1,34 @@
+---
+description: Motion, transitions, and micro-interactions for the Next.js web app
+globs: ["packages/web/**/*"]
+---
+
+# Motion & UI polish (Recount web)
+
+## Principles
+- **Subtle first:** short durations (≈150–300ms), soft easing (`ease-smooth` / `cubic-bezier(0.22, 1, 0.36, 1)`). Avoid flashy or distracting motion.
+- **Respect `prefers-reduced-motion`:** use Tailwind `motion-safe:` for transforms, scale, and non-essential transitions; pair with Framer `useReducedMotion()` for entrance/hover animations.
+- **Centralize patterns:** prefer shared components (`AnimatedCard`, `Button`, `AppMark`) and `globals.css` `@layer base` / `@layer components` over one-off animations on every page.
+
+## When to animate
+- **Layout / route:** `app/template.tsx` and `app/dashboard/template.tsx` — light page cross-fade and vertical nudge on navigation.
+- **Cards & surfaces:** `AnimatedCard` — scroll-into-view fade-up; optional hover lift + shadow/ring for depth (already applied).
+- **Controls:** `Button` — transform, shadow, color transitions (~300ms).
+- **Links & brand:** `AppMark` — gentle logo scale and wordmark tracking on hover/focus.
+- **Navigation:** `DashboardNav` — spring layout pill (existing) + slight link scale on hover.
+- **Tables:** `main table tbody tr` — transition + light hover wash (`globals.css`). Rows that need a stronger state (e.g. pricing feature picker) may use `hover:!bg-…` to override.
+- **Forms:** text inputs, textareas, selects — border/background/box-shadow transitions (`globals.css`); checkboxes in `FieldWithHint` get border/shadow transitions.
+- **Tooltips:** `HintTrigger` — scale + opacity on reveal; `?` button scales slightly on hover.
+- **Modals / overlays:** Framer `AnimatePresence` + `motion` for enter/exit (e.g. pricing feature modal); backdrop fade + panel scale/slide.
+- **Chrome:** `NavigationProgress` — fade in/out around the indeterminate bar.
+
+## What to avoid
+- Long springs, bounce, or parallax unless explicitly requested.
+- `whileTap` on large `AnimatedCard` wrappers that contain buttons (conflicts with nested clicks).
+- Animating `prefers-reduced-motion: reduce` users beyond instant or near-instant state changes.
+- Inline hex colors for shadows — prefer `shadow-black/…`, `ring-white/…`, or theme tokens.
+
+## Adding new UI
+- Reuse `AnimatedCard` for marketing/dashboard sections that should stagger or lift on hover.
+- For new modals/drawers, follow `pricing-feature-table.tsx`: portal + `AnimatePresence` + reduced-motion branches.
+- Document any new global pattern in this file if it becomes a default for the app.

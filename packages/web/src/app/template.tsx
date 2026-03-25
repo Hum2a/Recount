@@ -12,7 +12,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       transition={
         reduce
           ? { duration: 0 }
-          : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }
+          : { duration: 0.26, ease: [0.22, 1, 0.36, 1] }
       }
       className="min-h-[50vh]"
     >
