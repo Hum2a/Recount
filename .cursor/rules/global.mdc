@@ -14,6 +14,7 @@ globs: ["**/*"]
 
 ## Database
 - **Schema reference:** `.cursor/database-schema.md` (tables, columns, RLS, triggers). Update it when migrations change.
+- **Supabase security:** Every `public` table needs an explicit RLS + `GRANT` story (service-only vs user read vs user write). Follow `.cursor/rules/supabase-security.mdc` and bump migrations in `packages/api/src/db/migrations/` in order.
 
 ## Naming Conventions
 - Files: kebab-case (e.g. api-client.js, tab-events.ts)

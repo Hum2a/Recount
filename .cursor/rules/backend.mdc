@@ -16,6 +16,7 @@ globs: ["packages/api/**/*"]
 - Use the service role client for all server-side DB operations
 - Never use the anon client server-side
 - Always check for Supabase errors before using the returned data
+- New tables or policy changes: classify access (see `.cursor/rules/supabase-security.mdc`), enable RLS, add policies per command/role, align `REVOKE`/`GRANT` with that model, and update `.cursor/database-schema.md`
 
 ## Security
 - Stripe webhook must verify signature before processing

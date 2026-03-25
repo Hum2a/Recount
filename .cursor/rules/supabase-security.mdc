@@ -1,0 +1,43 @@
+---
+description: Supabase Postgres RLS, GRANTs, and security classification for new schema
+globs:
+  - "packages/api/src/db/**/*"
+  - ".cursor/database-schema.md"
+---
+
+# Supabase security (RLS + table privileges)
+
+## Principles
+
+- **Service role (API server only)** bypasses RLS and must be the path for privileged reads/writes (`stripe_customer_id`, `app_role`, `license_*`, cross-user admin, webhooks).
+- **Browser and Next.js server** use the **anon key + user JWT**. Treat that identity as **untrusted**: only grant what the product truly needs via **RLS policies** and **`GRANT`**.
+- **Every new `public` table** must have an explicit security classification and matching **RLS + privileges** before merging. Do not ship a table with RLS off or with `FOR ALL` for end users unless you have reviewed every column.
+
+## Security levels (pick one per table)
+
+Use these labels in migration comments and update `.cursor/database-schema.md`.
+
+| Level | Meaning | Typical RLS / GRANT |
+|-------|---------|---------------------|
+| **S0 — service_only** | No direct client access; API (and triggers/`SECURITY DEFINER`) only | `ENABLE ROW LEVEL SECURITY`, **no** policies for `authenticated` / `anon`; `REVOKE ALL … FROM PUBLIC`; `GRANT ALL … TO service_role` |
+| **S1 — user_select_own** | User may read own rows only (e.g. nav, profile preview) | RLS `SELECT` with `auth.uid() = user_id` (or `= id` for profiles); `GRANT SELECT` to `authenticated` only; no client `INSERT`/`UPDATE`/`DELETE` unless product requires it |
+| **S2 — user_crud_own** | User may CRUD own rows (rare if API owns writes) | Split policies per command (`SELECT` / `INSERT` / `UPDATE` / `DELETE`) with `USING` and `WITH CHECK`; **avoid** a single `FOR ALL` on tables with sensitive columns |
+| **S3 — staff** | Admin/developer sees other users’ data | Prefer **API + service role** (current admin routes), not broad `authenticated` RLS. If you must use RLS for staff, use a secure role claim pattern and document it; never trust client-supplied role without server verification |
+
+## Checklist for any new table or column
+
+1. `ALTER TABLE … ENABLE ROW LEVEL SECURITY`.
+2. Define **who** (`TO authenticated`, `TO anon`, service-only) and **which commands** (`SELECT`, `INSERT`, …).
+3. Add **`REVOKE ALL ON TABLE … FROM PUBLIC`** then **`GRANT`** only what each role needs; keep **`GRANT ALL` to `service_role`** for API tables.
+4. For columns that must not be user-writable (`app_role`, billing, license), ensure there is **no** client `UPDATE` path (RLS + no `GRANT`, or column-level strategy / API-only updates).
+5. **Triggers** that insert into protected tables should use **`SECURITY DEFINER`** with a fixed `search_path` (see `handle_new_user`).
+6. Update **`.cursor/database-schema.md`** in the same change as the migration.
+
+## Storage and Edge
+
+- **Storage buckets**: not used in the current schema; if you add buckets, define **storage RLS policies** per bucket/object path — same classification idea as tables.
+- **Edge Functions**: do not embed the service role key in client code; server-side only.
+
+## Reference migrations
+
+Apply SQL in order: `001` → `005`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments** are **S0** after `005`.

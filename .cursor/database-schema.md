@@ -1,8 +1,20 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `004`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `005`).
 
-The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS where policies exist.
+The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
+
+### PostgREST security model (after `005`)
+
+| Table | RLS | JWT client (`authenticated`) | API (`service_role`) |
+|-------|-----|------------------------------|----------------------|
+| `profiles` | On | `SELECT` own row only (`profiles_select_own` + `GRANT SELECT`) | Full |
+| `intentions` | On | No policies → no access | Full |
+| `tab_events` | On | No policies → no access | Full |
+| `reports` | On | No policies → no access | Full |
+| `payments` | On | No policies → no access | Full |
+
+**Classification:** `profiles` = **S1** (user read own); other app tables = **S0** (service only). See `.cursor/rules/supabase-security.mdc` when adding tables.
 
 ---
 
@@ -28,7 +40,7 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 | `created_at`         | TIMESTAMPTZ | `now()`   | |
 | `updated_at`         | TIMESTAMPTZ | `now()`   | |
 
-**RLS:** enabled. **Policy (after `004`):** `profiles_select_own` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id)` only. Clients cannot `UPDATE` their own row via Supabase client for privileged columns; profile updates go through the API.
+**RLS:** enabled. **Policy (after `004`):** `profiles_select_own` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id)` only. **`GRANT` (after `005`):** `REVOKE`d from `PUBLIC`; `GRANT SELECT` to `authenticated`; `service_role` has full privileges. Clients cannot `UPDATE` their own row via PostgREST; profile updates go through the API.
 
 ---
 
@@ -46,7 +58,7 @@ Daily goals per user.
 
 **Constraints:** `UNIQUE(user_id, date)`.
 
-**RLS:** enabled. Policy: `FOR ALL` using `auth.uid() = user_id` (from `001`; name `"Users see own intentions"`).
+**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
 
 **Index:** `idx_intentions_user_date (user_id, date)`.
 
@@ -71,7 +83,7 @@ Browser activity segments. `date` and `duration_sec` are set by trigger (not gen
 
 **Trigger:** `tab_events_derive_fields` `BEFORE INSERT OR UPDATE` → sets `date` (UTC date of `start_time`) and `duration_sec` from `start_time`/`end_time`.
 
-**RLS:** enabled. Policy: `FOR ALL` using `auth.uid() = user_id`.
+**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
 
 **Indexes:** `idx_tab_events_user_date (user_id, date)`, `idx_tab_events_domain (domain)`.
 
@@ -95,7 +107,7 @@ Per-user daily AI report.
 
 **Constraints:** `UNIQUE(user_id, date)`.
 
-**RLS:** enabled. Policy: `FOR ALL` using `auth.uid() = user_id`.
+**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
 
 **Index:** `idx_reports_user_date (user_id, date)`.
 
@@ -115,7 +127,7 @@ Stripe payment records.
 | `status`            | TEXT        | —       | NOT NULL |
 | `created_at`        | TIMESTAMPTZ | `now()` | |
 
-**RLS:** enabled. Policy: `FOR ALL` using `auth.uid() = user_id`.
+**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
 
 ---
 

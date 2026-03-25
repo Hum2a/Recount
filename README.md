@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`**, **`002_auth_profile_trigger.sql`**, **`003_profile_app_role.sql`**, **`004_profiles_rls_select_only.sql`** (locks `profiles` to **SELECT** for browser JWTs so users cannot self-promote via the Supabase client).
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`** … **`004_profiles_rls_select_only.sql`** (JWT **SELECT**-only on `profiles`), then **`005_rls_least_privilege_grants.sql`** (app data tables **service-only** for JWTs; table **`GRANT`**s aligned with RLS).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 
