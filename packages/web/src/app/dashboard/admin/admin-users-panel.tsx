@@ -152,10 +152,10 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
     if (!res.ok) {
       setBanner(
         typeof body.error === "string"
-          ? body.error
-          : res.status === 403
-            ? "Only administrators can change access level."
-            : "Could not save changes."
+        ? body.error
+        : res.status === 403
+          ? "You don’t have permission to change access level."
+          : "Could not save changes."
       );
       return;
     }
@@ -190,7 +190,7 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
             {canEditRoles ? (
               <>set who can use admin tools on this page.</>
             ) : (
-              <>review the directory. Changing access requires an administrator.</>
+              <>review the directory. Your role can’t edit from here.</>
             )}
           </p>
         </div>
@@ -320,12 +320,12 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
               <strong className="text-foreground">Member</strong> — uses Recount like any customer.
             </li>
             <li>
-              <strong className="text-foreground">Administrator</strong> — can open this page and change other
+              <strong className="text-foreground">Administrator</strong> — full staff tools, including changing other
               people&apos;s access.
             </li>
             <li>
-              <strong className="text-foreground">Developer (staff)</strong> — can open this page to view the list;
-              only administrators can change roles.
+              <strong className="text-foreground">Developer (staff)</strong> — same portal and API powers as an
+              administrator for support and engineering.
             </li>
           </ul>
           <p className="mt-3 text-xs">

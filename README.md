@@ -54,7 +54,7 @@ If the build fails with **`ENOSPC`**, free disk space (and delete `packages/web/
 - `POST /api/intentions`, `GET /api/intentions/:date`
 - `POST /api/reports/generate`, `GET /api/reports/history`, `GET /api/reports/:date`
 - `GET /api/profiles/me`, `PATCH /api/profiles`
-- `PATCH /api/admin/users/:userId/role` — **admin** only; body `{ "app_role": "user" | "admin" | "developer" }`
+- `PATCH /api/admin/users/:userId/role` — **admin or developer** (elevated staff); body `{ "app_role": "user" | "admin" | "developer" }`
 - `POST /api/payments/create-session`, `GET /api/payments/status`, `POST /api/payments/webhook`
 
 ### Roles vs premium
@@ -74,7 +74,7 @@ The **`developer`** role is reserved for future staff-only tools; only **`admin`
 
 - Route: **`/dashboard/admin`**, linked from the main dashboard nav as **Staff** when `profiles.app_role` is **`admin`** or **`developer`** (nav uses an RLS-backed read of your own row).
 - The admin segment **re-checks** access on the Next.js server by calling **`GET /api/profiles/me`** with your session access token — not something you can satisfy by tampering with client-side JS alone.
-- **Admins** see a form to **`PATCH /api/admin/users/:userId/role`**; **developers** see the same staff page without role assignment (API still requires **admin** for that PATCH).
+- **Admins** and **developers** both get full staff UI and may call all **`/api/admin/*`** routes (including role changes), verified server-side with `requireElevatedStaff`.
 
 ## Production API (live backend)
 

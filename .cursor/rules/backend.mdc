@@ -19,6 +19,7 @@ globs: ["packages/api/**/*"]
 - New tables or policy changes: classify access (see `.cursor/rules/supabase-security.mdc`), enable RLS, add policies per command/role, align `REVOKE`/`GRANT` with that model, and update `.cursor/database-schema.md`
 
 ## Security
+- Privileged `/api/admin/*` routes use `requireElevatedStaff` — both `admin` and `developer` app roles have the same powers
 - Stripe webhook must verify signature before processing
 - Rate limit: 200 req/15min global, 10 req/15min on auth routes
 - Never log full request bodies (may contain tokens)

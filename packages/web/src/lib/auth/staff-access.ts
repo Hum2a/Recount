@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 export const STAFF_ROLES = ["admin", "developer"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+/**
+ * Full admin portal + mutating `/api/admin/*` access. Today both staff roles qualify; use this if a read-only staff tier is added later.
+ */
+export function staffHasFullManageAccess(role: StaffRole): boolean {
+  return role === "admin" || role === "developer";
+}
+
 function isStaffRole(r: string | undefined | null): r is StaffRole {
   return Boolean(r && (STAFF_ROLES as readonly string[]).includes(r));
 }

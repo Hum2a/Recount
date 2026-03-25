@@ -136,7 +136,7 @@ Stripe payment records.
 Canonical values match the DB check and `packages/shared` (`APP_ROLES`): **`user`**, **`admin`**, **`developer`**.
 
 - **`license_active`**: billing / Pro features.
-- **`app_role`**: staff capabilities (e.g. admin API routes, admin dashboard). Independent of billing.
+- **`app_role`**: staff capabilities (admin API routes, admin dashboard). **`admin`** and **`developer`** both have full elevated access in the app (`requireElevatedStaff`); **`user`** is everyone else. Independent of billing.
 
 ---
 

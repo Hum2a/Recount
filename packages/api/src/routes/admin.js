@@ -3,7 +3,7 @@ import { z } from "zod";
 import { APP_ROLES } from "@recount/shared";
 import { supabaseAdmin } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
-import { requireAppRole } from "../middleware/roles.js";
+import { requireElevatedStaff } from "../middleware/roles.js";
 
 const router = Router();
 
@@ -87,9 +87,9 @@ async function ensureProfileExists(res, userId) {
 }
 
 /**
- * Paginated profile list for staff. **Admin or developer**
+ * Paginated profile list for staff. **Admin or developer** (elevated staff).
  */
-router.get("/users", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+router.get("/users", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { q, limit, offset } = parseListQuery(req.query);
 
@@ -117,9 +117,9 @@ router.get("/users", requireAuth, requireAppRole("admin", "developer"), async (r
 });
 
 /**
- * Full profile + row counts per table. **Admin or developer**
+ * Full profile + row counts per table. **Elevated staff**
  */
-router.get("/users/:userId", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+router.get("/users/:userId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -151,9 +151,9 @@ router.get("/users/:userId", requireAuth, requireAppRole("admin", "developer"), 
 });
 
 /**
- * Partial profile update (billing, settings, email, role). **Admin only**
+ * Partial profile update (billing, settings, email, role). **Elevated staff**
  */
-router.patch("/users/:userId", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.patch("/users/:userId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -186,9 +186,9 @@ router.patch("/users/:userId", requireAuth, requireAppRole("admin"), async (req,
 });
 
 /**
- * Change another user’s `app_role`. **Admin only.**
+ * Change another user’s `app_role`. **Elevated staff**
  */
-router.patch("/users/:userId/role", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.patch("/users/:userId/role", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const userId = req.params.userId;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -211,8 +211,8 @@ router.patch("/users/:userId/role", requireAuth, requireAppRole("admin"), async 
   }
 });
 
-/** Intentions for a user. **Admin or developer** */
-router.get("/users/:userId/intentions", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+/** Intentions for a user. **Elevated staff** */
+router.get("/users/:userId/intentions", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -240,8 +240,8 @@ router.get("/users/:userId/intentions", requireAuth, requireAppRole("admin", "de
   }
 });
 
-/** Tab events for a user. **Admin or developer** */
-router.get("/users/:userId/tab-events", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+/** Tab events for a user. **Elevated staff** */
+router.get("/users/:userId/tab-events", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -269,8 +269,8 @@ router.get("/users/:userId/tab-events", requireAuth, requireAppRole("admin", "de
   }
 });
 
-/** Reports for a user. **Admin or developer** */
-router.get("/users/:userId/reports", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+/** Reports for a user. **Elevated staff** */
+router.get("/users/:userId/reports", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -292,8 +292,8 @@ router.get("/users/:userId/reports", requireAuth, requireAppRole("admin", "devel
   }
 });
 
-/** Payment rows for a user (read-only; amounts from Stripe). **Admin or developer** */
-router.get("/users/:userId/payments", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+/** Payment rows for a user (read-only; amounts from Stripe). **Elevated staff** */
+router.get("/users/:userId/payments", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { userId } = req.params;
     if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
@@ -316,7 +316,7 @@ router.get("/users/:userId/payments", requireAuth, requireAppRole("admin", "deve
 });
 
 /** Update one intention row. **Admin only** */
-router.patch("/intentions/:intentionId", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.patch("/intentions/:intentionId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { intentionId } = req.params;
     if (!isUuid(intentionId)) return res.status(400).json({ error: "Invalid intention id" });
@@ -346,7 +346,7 @@ router.patch("/intentions/:intentionId", requireAuth, requireAppRole("admin"), a
 });
 
 /** Delete one intention row. **Admin only** */
-router.delete("/intentions/:intentionId", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.delete("/intentions/:intentionId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { intentionId } = req.params;
     if (!isUuid(intentionId)) return res.status(400).json({ error: "Invalid intention id" });
@@ -361,7 +361,7 @@ router.delete("/intentions/:intentionId", requireAuth, requireAppRole("admin"), 
 });
 
 /** Delete one tab event row. **Admin only** */
-router.delete("/tab-events/:eventId", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.delete("/tab-events/:eventId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { eventId } = req.params;
     if (!isUuid(eventId)) return res.status(400).json({ error: "Invalid event id" });
@@ -376,7 +376,7 @@ router.delete("/tab-events/:eventId", requireAuth, requireAppRole("admin"), asyn
 });
 
 /** Update one report row. **Admin only** */
-router.patch("/reports/:reportId", requireAuth, requireAppRole("admin"), async (req, res, next) => {
+router.patch("/reports/:reportId", requireAuth, requireElevatedStaff, async (req, res, next) => {
   try {
     const { reportId } = req.params;
     if (!isUuid(reportId)) return res.status(400).json({ error: "Invalid report id" });

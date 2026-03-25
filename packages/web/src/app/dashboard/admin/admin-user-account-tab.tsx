@@ -105,7 +105,7 @@ export function AdminUserAccountTab({ userId, profile, canManage, onProfileSaved
     <div className="space-y-6">
       {!canManage && (
         <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-muted">
-          View only. An administrator can edit account fields.
+          View only. Staff with full manage access can edit these fields.
         </p>
       )}
 
