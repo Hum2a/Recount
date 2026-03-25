@@ -10,10 +10,9 @@
     "activeTab",
     "scripting",
     "idle",
-    "notifications",
-    "management"
+    "notifications"
   ],
-  "host_permissions": ["<all_urls>"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "icons": {
     "16": "icons/16.png",
     "48": "icons/48.png",
@@ -38,7 +37,7 @@
   "web_accessible_resources": [
     {
       "resources": ["content/eod-nudge.js"],
-      "matches": ["<all_urls>"]
+      "matches": ["http://*/*", "https://*/*"]
     }
   ]
 }
