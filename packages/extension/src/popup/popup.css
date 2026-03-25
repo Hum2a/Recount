@@ -148,3 +148,40 @@ button.inline {
   max-height: 120px;
   overflow-y: auto;
 }
+.streak-row {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pomodoro-block {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+.pomodoro-label {
+  margin: 0 0 6px;
+}
+.pomodoro-status {
+  margin: 0 0 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #e4e4e7;
+}
+.pomodoro-btns {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+button.tiny {
+  flex: 1;
+  margin-top: 0;
+  padding: 8px 6px;
+  font-size: 12px;
+  background: #27272a;
+  color: #fafafa;
+}
+#pomodoro-stop {
+  margin-top: 0;
+}

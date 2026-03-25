@@ -38,6 +38,11 @@ const schema = z.object({
   ALLOWED_ORIGINS: z.string().min(1),
   WEB_URL: z.string().url(),
   JWT_SECRET: z.string().min(32).optional(),
+  /** Set to run POST /api/jobs/weekly-digest (cron / scheduler). */
+  DIGEST_JOB_SECRET: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return undefined;
+    return val;
+  }, z.string().min(16).optional()),
 });
 
 function isEmpty(v) {

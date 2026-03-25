@@ -19,15 +19,17 @@ export default async function DashboardPage() {
   const token = session.access_token;
   const date = todayUtc();
 
-  const [payRes, sumRes, intRes] = await Promise.all([
+  const [payRes, sumRes, intRes, streakRes] = await Promise.all([
     apiFetch("/api/payments/status", token),
     apiFetch(`/api/events/summary?date=${date}`, token),
     apiFetch(`/api/intentions/${date}`, token),
+    apiFetch("/api/profiles/me/streaks", token),
   ]);
 
   const pay = await payRes.json().catch(() => ({}));
   const summary = await sumRes.json().catch(() => ({}));
   const intention = await intRes.json().catch(() => ({}));
+  const streakBody = await streakRes.json().catch(() => ({}));
 
   const licensed = Boolean(pay.data?.license_active);
   let report: unknown = null;
@@ -39,12 +41,27 @@ export default async function DashboardPage() {
   const domains = summary.data?.domains ?? [];
   const top = domains.slice(0, 5);
   const minutes = Math.round((summary.data?.total_active_sec ?? 0) / 60);
+  const streaks = streakBody.data as
+    | { intention_streak?: number; tracking_streak?: number; tracking_min_sec_per_day?: number }
+    | undefined;
 
   return (
     <div className="space-y-8">
       {!licensed && (
         <AnimatedCard>
           <UpgradeCard />
+        </AnimatedCard>
+      )}
+      {streaks && (
+        <AnimatedCard className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">
+          <h2 className="text-lg font-medium">Streaks (UTC)</h2>
+          <p className="mt-2 text-sm text-muted">
+            Intentions:{" "}
+            <span className="font-mono text-foreground">{streaks.intention_streak ?? 0}</span> consecutive day(s) with
+            goals · Tracking:{" "}
+            <span className="font-mono text-foreground">{streaks.tracking_streak ?? 0}</span> day(s) with at least{" "}
+            {Math.round((streaks.tracking_min_sec_per_day ?? 300) / 60)} minutes recorded.
+          </p>
         </AnimatedCard>
       )}
       <AnimatedCard delay={0.04} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">

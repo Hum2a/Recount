@@ -41,6 +41,17 @@
           </div>
           <pre id="activity-preview-body" class="activity-preview-body"></pre>
         </div>
+        <p id="streak-row" class="streak-row muted" hidden></p>
+        <div class="pomodoro-block">
+          <p class="muted pomodoro-label">Focus timer (tags tab events while running)</p>
+          <p id="pomodoro-status" class="pomodoro-status muted">—</p>
+          <div class="pomodoro-btns">
+            <button type="button" class="tiny" data-pom-min="5">5m</button>
+            <button type="button" class="tiny" data-pom-min="25">25m</button>
+            <button type="button" class="tiny" data-pom-min="50">50m</button>
+          </div>
+          <button type="button" id="pomodoro-stop" class="secondary">Stop timer</button>
+        </div>
         <label>Today’s goals (one per line)</label>
         <textarea id="goals" rows="4" placeholder="Ship the API&#10;Deep work block"></textarea>
         <button type="button" id="save-goals">Save intentions</button>

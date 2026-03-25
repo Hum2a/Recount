@@ -1,6 +1,6 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `006`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `007`).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
@@ -39,6 +39,13 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 | `app_role`           | TEXT        | `'user'`  | NOT NULL; `CHECK (app_role IN ('user','admin','developer'))` — staff vs end user (`003_profile_app_role.sql`) |
 | `created_at`         | TIMESTAMPTZ | `now()`   | |
 | `updated_at`         | TIMESTAMPTZ | `now()`   | |
+| `distraction_domains` | TEXT[]     | `'{}'`    | Hostnames for intent-lock nudges (API-managed). |
+| `intent_lock_enabled` | BOOLEAN    | `false`   | Extension nudges when visiting distraction sites with goals set. |
+| `weekly_digest_enabled` | BOOLEAN  | `false`   | Include user in weekly email job (`007`). |
+| `send_tab_titles`   | BOOLEAN     | `true`    | When false, clients should omit titles on batch upload. |
+| `team_slug`         | TEXT        | nullable  | Shared team id for leaderboard (lowercase slug). |
+| `leaderboard_opt_in` | BOOLEAN    | `false`   | Show on team leaderboard. |
+| `leaderboard_nickname` | TEXT     | nullable  | Display name on leaderboard (max 80 in app). |
 
 **RLS:** enabled. **Policy (after `004`):** `profiles_select_own` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id)` only. **`GRANT` (after `005`):** `REVOKE`d from `PUBLIC`; `GRANT SELECT` to `authenticated`; `service_role` has full privileges. Clients cannot `UPDATE` their own row via PostgREST; profile updates go through the API.
 
@@ -80,6 +87,7 @@ Browser activity segments. `date` and `duration_sec` are set by trigger (not gen
 | `category`     | TEXT        | nullable | |
 | `date`         | DATE        | —       | NOT NULL; derived from `start_time` UTC |
 | `created_at`   | TIMESTAMPTZ | `now()` | |
+| `focus_session_id` | UUID    | nullable | Optional Pomodoro / focus session id (`007`). |
 
 **Trigger:** `tab_events_derive_fields` `BEFORE INSERT OR UPDATE` → sets `date` (UTC date of `start_time`) and `duration_sec` from `start_time`/`end_time`.
 

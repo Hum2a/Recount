@@ -82,6 +82,55 @@ async function updateTrackingPromptVisibility() {
   section.hidden = await hasTrackingHostAccess();
 }
 
+/** @type {ReturnType<typeof setInterval> | null} */
+let pomodoroTick = null;
+
+function clearPomodoroTick() {
+  if (pomodoroTick) {
+    clearInterval(pomodoroTick);
+    pomodoroTick = null;
+  }
+}
+
+function updatePomodoroDisplay() {
+  const status = $("pomodoro-status");
+  if (!status) return;
+  chrome.runtime.sendMessage({ type: "pomodoro-state" }, (p) => {
+    if (chrome.runtime.lastError) {
+      status.textContent = "—";
+      return;
+    }
+    if (!p?.endMs || Date.now() >= Number(p.endMs)) {
+      status.textContent = "No active timer.";
+      return;
+    }
+    const left = Math.max(0, Math.ceil((Number(p.endMs) - Date.now()) / 1000));
+    const mm = Math.floor(left / 60);
+    const ss = left % 60;
+    status.textContent = `Focus: ${mm}:${String(ss).padStart(2, "0")}`;
+  });
+}
+
+function startPomodoroTick() {
+  clearPomodoroTick();
+  updatePomodoroDisplay();
+  pomodoroTick = setInterval(updatePomodoroDisplay, 1000);
+}
+
+async function loadStreaks() {
+  const row = $("streak-row");
+  if (!row) return;
+  const res = await apiFetch("/api/profiles/me/streaks");
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.data) {
+    row.hidden = true;
+    return;
+  }
+  const d = body.data;
+  row.textContent = `Streaks — intentions: ${d.intention_streak ?? 0} day(s), tracking: ${d.tracking_streak ?? 0} day(s) (≥${d.tracking_min_sec_per_day ? Math.round(d.tracking_min_sec_per_day / 60) : 5} min/day).`;
+  row.hidden = false;
+}
+
 async function refreshUI() {
   await updateTrackingPromptVisibility();
   await refreshInstallBadge();
@@ -103,7 +152,10 @@ async function refreshUI() {
     const goals = intBody.data?.goals;
     $("goals").value = Array.isArray(goals) ? goals.join("\n") : "";
     await loadTodayActivityPreview();
+    await loadStreaks();
+    startPomodoroTick();
   } else {
+    clearPomodoroTick();
     auth.hidden = false;
     app.hidden = true;
   }
@@ -245,6 +297,23 @@ $("logout-btn").addEventListener("click", async () => {
   await clearSession();
   await refreshUI();
   setMsg("Signed out.", true);
+});
+
+for (const btn of document.querySelectorAll("[data-pom-min]")) {
+  btn.addEventListener("click", () => {
+    const m = Number(btn.getAttribute("data-pom-min"));
+    chrome.runtime.sendMessage({ type: "pomodoro-start", minutes: m }, () => {
+      void chrome.runtime.lastError;
+      startPomodoroTick();
+    });
+  });
+}
+
+$("pomodoro-stop")?.addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "pomodoro-stop" }, () => {
+    void chrome.runtime.lastError;
+    updatePomodoroDisplay();
+  });
 });
 
 void refreshUI();

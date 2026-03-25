@@ -36,7 +36,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["content/eod-nudge.js"],
+      "resources": ["content/eod-nudge.js", "content/intent-nudge.js"],
       "matches": ["http://*/*", "https://*/*"]
     }
   ]

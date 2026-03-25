@@ -6,9 +6,30 @@ import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
+type ProfileRow = {
+  hourly_rate?: number;
+  timezone?: string;
+  license_active?: boolean;
+  app_role?: string;
+  distraction_domains?: string[];
+  intent_lock_enabled?: boolean;
+  weekly_digest_enabled?: boolean;
+  send_tab_titles?: boolean;
+  team_slug?: string | null;
+  leaderboard_opt_in?: boolean;
+  leaderboard_nickname?: string | null;
+};
+
 export default function SettingsPage() {
   const [hourly, setHourly] = useState("0");
   const [tz, setTz] = useState("UTC");
+  const [distractionText, setDistractionText] = useState("");
+  const [intentLock, setIntentLock] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [sendTitles, setSendTitles] = useState(true);
+  const [teamSlug, setTeamSlug] = useState("");
+  const [leaderOptIn, setLeaderOptIn] = useState(false);
+  const [nickname, setNickname] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [licensed, setLicensed] = useState(false);
   const [appRole, setAppRole] = useState<string>("user");
@@ -25,16 +46,18 @@ export default function SettingsPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (cancelled || !body.data) return;
-      const row = body.data as {
-        hourly_rate?: number;
-        timezone?: string;
-        license_active?: boolean;
-        app_role?: string;
-      };
+      const row = body.data as ProfileRow;
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
       setLicensed(Boolean(row.license_active));
       setAppRole(typeof row.app_role === "string" ? row.app_role : "user");
+      setDistractionText(Array.isArray(row.distraction_domains) ? row.distraction_domains.join("\n") : "");
+      setIntentLock(Boolean(row.intent_lock_enabled));
+      setWeeklyDigest(Boolean(row.weekly_digest_enabled));
+      setSendTitles(row.send_tab_titles !== false);
+      setTeamSlug(row.team_slug ?? "");
+      setLeaderOptIn(Boolean(row.leaderboard_opt_in));
+      setNickname(row.leaderboard_nickname ?? "");
     }
     void load();
     return () => {
@@ -42,15 +65,23 @@ export default function SettingsPage() {
     };
   }, []);
 
-  async function saveProfile() {
-    setMsg(null);
+  async function getToken() {
     const supabase = createClient();
     const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    return sessionData.session?.access_token ?? null;
+  }
+
+  async function saveProfile() {
+    setMsg(null);
+    const token = await getToken();
     if (!token) {
       setMsg("Sign in again.");
       return;
     }
+    const distraction_domains = distractionText
+      .split("\n")
+      .map((l) => l.trim().toLowerCase())
+      .filter(Boolean);
     const res = await fetch(`${apiUrl}/api/profiles`, {
       method: "PATCH",
       headers: {
@@ -60,17 +91,22 @@ export default function SettingsPage() {
       body: JSON.stringify({
         hourly_rate: Number(hourly) || 0,
         timezone: tz,
+        distraction_domains,
+        intent_lock_enabled: intentLock,
+        weekly_digest_enabled: weeklyDigest,
+        send_tab_titles: sendTitles,
+        team_slug: teamSlug.trim() || null,
+        leaderboard_opt_in: leaderOptIn,
+        leaderboard_nickname: nickname.trim() || null,
       }),
     });
     const body = await res.json().catch(() => ({}));
-    setMsg(res.ok ? "Saved." : (body.error ?? "Could not save"));
+    setMsg(res.ok ? "Saved. Reload the browser extension if it is open so intent-lock prefs sync." : (body.error ?? "Could not save"));
   }
 
   async function exportCsv() {
     setMsg(null);
-    const supabase = createClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = await getToken();
     if (!token) {
       setMsg("Sign in again.");
       return;
@@ -99,6 +135,31 @@ export default function SettingsPage() {
     a.download = "recount-export.csv";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function downloadIcs() {
+    setMsg(null);
+    const token = await getToken();
+    if (!token) {
+      setMsg("Sign in again.");
+      return;
+    }
+    const res = await fetch(`${apiUrl}/api/events/me/calendar.ics`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setMsg(err.error ?? "Could not download calendar.");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "recount-activity.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+    setMsg("Calendar file downloaded.");
   }
 
   return (
@@ -132,6 +193,73 @@ export default function SettingsPage() {
           onChange={(e) => setTz(e.target.value)}
         />
       </label>
+      <div className="border-t border-white/10 pt-6 space-y-4">
+        <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
+        <p className="text-sm text-muted">
+          Distraction hostnames (one per line, no <code className="text-foreground/80">https://</code>). When intent lock
+          is on and you have goals for today, the extension nudges you on these sites. Reload the extension after saving.
+        </p>
+        <label className="block text-sm text-muted">
+          Distraction domains
+          <textarea
+            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 font-mono text-sm text-foreground"
+            rows={5}
+            value={distractionText}
+            onChange={(e) => setDistractionText(e.target.value)}
+            placeholder={"youtube.com\nreddit.com"}
+          />
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+          <input type="checkbox" className="mt-1" checked={intentLock} onChange={(e) => setIntentLock(e.target.checked)} />
+          <span>Enable intent lock nudges (extension must be signed in)</span>
+        </label>
+      </div>
+      <div className="border-t border-white/10 pt-6 space-y-4">
+        <h2 className="text-lg font-medium">Privacy &amp; email</h2>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+          <input type="checkbox" className="mt-1" checked={sendTitles} onChange={(e) => setSendTitles(e.target.checked)} />
+          <span>Send page titles with tab events (uncheck to record domains and time only)</span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={weeklyDigest}
+            onChange={(e) => setWeeklyDigest(e.target.checked)}
+          />
+          <span>Weekly digest email (previous UTC week; requires Resend + cron calling the digest job)</span>
+        </label>
+      </div>
+      <div className="border-t border-white/10 pt-6 space-y-4">
+        <h2 className="text-lg font-medium">Team leaderboard</h2>
+        <p className="text-sm text-muted">
+          Use the same team slug as colleagues (lowercase letters, numbers, hyphens). Opt in to appear on the board with a
+          display nickname.
+        </p>
+        <label className="block text-sm text-muted">
+          Team slug
+          <input
+            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
+            value={teamSlug}
+            onChange={(e) => setTeamSlug(e.target.value.toLowerCase())}
+            placeholder="acme-design"
+          />
+        </label>
+        <label className="block text-sm text-muted">
+          Leaderboard nickname
+          <input
+            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            maxLength={80}
+            placeholder="Alex"
+          />
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+          <input type="checkbox" className="mt-1" checked={leaderOptIn} onChange={(e) => setLeaderOptIn(e.target.checked)} />
+          <span>Show me on the team leaderboard (this UTC week&apos;s tracked minutes)</span>
+        </label>
+      </div>
       <Button onClick={saveProfile}>Save settings</Button>
       <div className="border-t border-white/10 pt-6">
         <h2 className="text-lg font-medium">Export</h2>
@@ -140,6 +268,13 @@ export default function SettingsPage() {
         </p>
         <Button variant="secondary" className="mt-3" onClick={exportCsv}>
           Download CSV
+        </Button>
+        <p className="mt-4 text-sm text-muted">
+          Subscribe in Google Calendar or Apple Calendar with the ICS feed (default range: {licensed ? "30" : "7"} UTC
+          days).
+        </p>
+        <Button variant="secondary" className="mt-3" onClick={downloadIcs}>
+          Download ICS
         </Button>
       </div>
       {msg && <p className="text-sm text-muted">{msg}</p>}

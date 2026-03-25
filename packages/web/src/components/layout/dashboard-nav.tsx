@@ -10,6 +10,7 @@ const baseLinks = [
   { href: "/dashboard/activity", label: "Activity" },
   { href: "/dashboard/reports", label: "Reports" },
   { href: "/dashboard/history", label: "History" },
+  { href: "/dashboard/team", label: "Team" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
 

@@ -12,6 +12,7 @@ import {
   fetchTabEventSummary,
   applyFreeTierActivityWindow,
 } from "../lib/tab-event-activity.js";
+import { buildIcsCalendar } from "../lib/ics.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ const eventItem = z.object({
   start_time: z.string(),
   end_time: z.string().optional().nullable(),
   category: z.string().max(64).optional(),
+  focus_session_id: z.string().uuid().optional().nullable(),
 });
 
 const batchSchema = z.object({
@@ -31,20 +33,70 @@ const summaryQuery = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
+const calendarQuery = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
 function parseIso(s) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString();
 }
 
+function utcTodayMidnight() {
+  const today = new Date();
+  return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+}
+
 /** Free tier: only last 7 days of calendar dates from UTC "today" */
 function isDateAllowedForFreeUser(requestedDateStr) {
-  const today = new Date();
-  const cutoff = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const cutoff = utcTodayMidnight();
   cutoff.setUTCDate(cutoff.getUTCDate() - 7);
   const [y, m, d] = requestedDateStr.split("-").map(Number);
   const req = new Date(Date.UTC(y, m - 1, d));
   return req >= cutoff;
+}
+
+/** @param {string} a @param {string} b YYYY-MM-DD */
+function compareYmd(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** @param {string} ymd @param {number} deltaDays */
+function addUtcDays(ymd, deltaDays) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * @returns {{ from: string, to: string }}
+ */
+function resolveCalendarRange(query, licensed) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let to = query.to ?? todayStr;
+  let from = query.from ?? (licensed ? addUtcDays(to, -29) : addUtcDays(to, -6));
+
+  if (compareYmd(from, to) > 0) {
+    const t = from;
+    from = to;
+    to = t;
+  }
+
+  if (!licensed) {
+    const cutoff = utcTodayMidnight();
+    cutoff.setUTCDate(cutoff.getUTCDate() - 7);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    if (compareYmd(from, cutoffStr) < 0) from = cutoffStr;
+    if (compareYmd(to, todayStr) > 0) to = todayStr;
+  } else {
+    const maxStart = addUtcDays(to, -365);
+    if (compareYmd(from, maxStart) < 0) from = maxStart;
+    if (compareYmd(to, todayStr) > 0) to = todayStr;
+  }
+
+  return { from, to };
 }
 
 router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next) => {
@@ -56,7 +108,7 @@ router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next)
       const end = e.end_time ? parseIso(e.end_time) : null;
       if (e.end_time && !end) throw Object.assign(new Error("Invalid end_time"), { status: 400 });
       const category = e.category ?? classifyDomain(e.domain);
-      return {
+      const row = {
         user_id: userId,
         domain: e.domain,
         title: e.title ?? null,
@@ -64,12 +116,59 @@ router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next)
         end_time: end,
         category,
       };
+      if (e.focus_session_id) row.focus_session_id = e.focus_session_id;
+      return row;
     });
 
     const { error } = await supabaseAdmin.from("tab_events").insert(rows);
     if (error) return res.status(400).json({ error: error.message });
 
     return res.json({ data: { inserted: rows.length } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** iCalendar feed of daily tracked totals (UTC dates). */
+router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), async (req, res, next) => {
+  try {
+    const licensed = await userHasLicense(req.user.id);
+    const { from, to } = resolveCalendarRange(req.validated, licensed);
+
+    const { data, error } = await supabaseAdmin
+      .from("tab_events")
+      .select("date, duration_sec")
+      .eq("user_id", req.user.id)
+      .gte("date", from)
+      .lte("date", to);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    /** @type {Record<string, number>} */
+    const secByDate = {};
+    for (const row of data ?? []) {
+      const ds = row.date;
+      if (!ds) continue;
+      secByDate[ds] = (secByDate[ds] ?? 0) + (row.duration_sec ?? 0);
+    }
+
+    const events = [];
+    for (let cur = from; compareYmd(cur, to) <= 0; cur = addUtcDays(cur, 1)) {
+      const sec = secByDate[cur] ?? 0;
+      if (sec <= 0) continue;
+      const m = Math.round(sec / 60);
+      const summary = m < 60 ? `Recount: ${m}m tracked` : `Recount: ${Math.floor(m / 60)}h ${m % 60}m tracked`;
+      events.push({
+        uid: `recount-${req.user.id}-${cur}@recount`,
+        date: cur,
+        summary,
+      });
+    }
+
+    const body = buildIcsCalendar("-//Recount//Recount Calendar//EN", events);
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="recount-activity.ics"');
+    return res.send(body);
   } catch (e) {
     next(e);
   }

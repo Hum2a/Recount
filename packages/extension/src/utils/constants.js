@@ -16,6 +16,11 @@ export const DEFAULT_WEB_URL_STORE = "https://recount.app";
 export const STORAGE_SESSION = "recount_session";
 export const STORAGE_BUFFER = "recount_event_buffer";
 export const STORAGE_SETTINGS = "recount_settings";
+export const STORAGE_POMODORO = "recount_pomodoro";
+export const STORAGE_INTENT_CACHE = "recount_intent_cache";
+export const STORAGE_INTENT_NUDGES = "recount_intent_nudges";
+
+export const PREFS_ALARM = "recount_prefs_sync";
 /** { channel, installType, updatedAt } — see install-context.js */
 export const STORAGE_INSTALL_META = "recount_install_meta";
 

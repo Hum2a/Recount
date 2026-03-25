@@ -33,6 +33,13 @@ const adminPatchProfileBody = z
     stripe_customer_id: nullableShortText,
     license_key: nullableShortText,
     app_role: z.enum([...APP_ROLES]).optional(),
+    distraction_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
+    intent_lock_enabled: z.boolean().optional(),
+    weekly_digest_enabled: z.boolean().optional(),
+    send_tab_titles: z.boolean().optional(),
+    team_slug: nullableShortText,
+    leaderboard_opt_in: z.boolean().optional(),
+    leaderboard_nickname: z.union([z.string().max(80), z.literal(""), z.null()]).optional(),
   })
   .refine((d) => Object.keys(d).length > 0, { message: "Provide at least one field" });
 
@@ -177,6 +184,18 @@ router.patch("/users/:userId", requireAuth, requireElevatedStaff, async (req, re
       const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(userId, { email: b.email });
       if (authErr) return res.status(400).json({ error: authErr.message });
       patch.email = b.email;
+    }
+    if (b.distraction_domains !== undefined) patch.distraction_domains = b.distraction_domains;
+    if (b.intent_lock_enabled !== undefined) patch.intent_lock_enabled = b.intent_lock_enabled;
+    if (b.weekly_digest_enabled !== undefined) patch.weekly_digest_enabled = b.weekly_digest_enabled;
+    if (b.send_tab_titles !== undefined) patch.send_tab_titles = b.send_tab_titles;
+    if (b.team_slug !== undefined) patch.team_slug = b.team_slug;
+    if (b.leaderboard_opt_in !== undefined) patch.leaderboard_opt_in = b.leaderboard_opt_in;
+    if (b.leaderboard_nickname !== undefined) {
+      patch.leaderboard_nickname =
+        b.leaderboard_nickname && String(b.leaderboard_nickname).trim()
+          ? String(b.leaderboard_nickname).trim().slice(0, 80)
+          : null;
     }
 
     const { data, error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId).select("*").single();
