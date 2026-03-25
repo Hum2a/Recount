@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint } from "@/components/ui/field-hint";
 
 function safeNextPath(raw: string | null) {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
@@ -53,9 +54,13 @@ export default function LoginPage() {
         </Link>
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block text-sm text-muted">
-          Email
+        <FieldWithHint
+          id="login-email"
+          label="Email"
+          hint="The address you used when you signed up. Same account works in the browser and the Recount extension."
+        >
           <input
+            id="login-email"
             className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
             type="email"
             value={email}
@@ -63,10 +68,14 @@ export default function LoginPage() {
             required
             autoComplete="email"
           />
-        </label>
-        <label className="block text-sm text-muted">
-          Password
+        </FieldWithHint>
+        <FieldWithHint
+          id="login-password"
+          label="Password"
+          hint="Your Recount account password. If you use a password manager, paste here or use its browser fill."
+        >
           <input
+            id="login-password"
             className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
             type="password"
             value={password}
@@ -74,7 +83,7 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
           />
-        </label>
+        </FieldWithHint>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Signing in…" : "Sign in"}

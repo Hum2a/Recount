@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint } from "@/components/ui/field-hint";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -47,9 +48,13 @@ export default function SignupPage() {
         </Link>
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block text-sm text-muted">
-          Email
+        <FieldWithHint
+          id="signup-email"
+          label="Email"
+          hint="We’ll use this for sign-in and important account email (e.g. confirmations). You can use the same email in the Recount browser extension."
+        >
           <input
+            id="signup-email"
             className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
             type="email"
             value={email}
@@ -57,10 +62,14 @@ export default function SignupPage() {
             required
             autoComplete="email"
           />
-        </label>
-        <label className="block text-sm text-muted">
-          Password (min 8 characters)
+        </FieldWithHint>
+        <FieldWithHint
+          id="signup-password"
+          label="Password (min 8 characters)"
+          hint="Choose a strong password (at least 8 characters). This protects your tracking data and account; store it in a password manager if you can."
+        >
           <input
+            id="signup-password"
             className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
             type="password"
             value={password}
@@ -69,7 +78,7 @@ export default function SignupPage() {
             minLength={8}
             autoComplete="new-password"
           />
-        </label>
+        </FieldWithHint>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Creating…" : "Sign up"}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint } from "@/components/ui/field-hint";
 
 type TabEvent = {
   id: string;
@@ -246,26 +247,56 @@ export function ActivityExplorer({
       <div className="text-sm text-muted">{intro}</div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm text-muted">
-          From
-          <input type="date" className={inputClass} value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="text-sm text-muted">
-          To
-          <input type="date" className={inputClass} value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <label className="text-sm text-muted min-w-[140px] flex-1">
-          Domain contains
+        <FieldWithHint
+          id="activity-filter-from"
+          label="From"
+          hint="Start of the date range (calendar day in your browser’s local timezone). Leave empty for no lower bound."
+          className="text-sm text-muted"
+        >
           <input
+            id="activity-filter-from"
+            type="date"
+            className={inputClass}
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </FieldWithHint>
+        <FieldWithHint
+          id="activity-filter-to"
+          label="To"
+          hint="End of the date range (inclusive). Leave empty for no upper bound. On the free plan the API may still clamp to the last 7 UTC days."
+          className="text-sm text-muted"
+        >
+          <input
+            id="activity-filter-to"
+            type="date"
+            className={inputClass}
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </FieldWithHint>
+        <FieldWithHint
+          id="activity-filter-domain"
+          label="Domain contains"
+          hint="Filter segments whose site hostname includes this text (case-insensitive), e.g. github or slack. Useful to focus one product or site."
+          className="text-sm text-muted min-w-[140px] flex-1"
+        >
+          <input
+            id="activity-filter-domain"
             className={inputClass}
             value={domainInput}
             onChange={(e) => setDomainInput(e.target.value)}
             placeholder="e.g. github"
           />
-        </label>
-        <label className="text-sm text-muted min-w-[160px]">
-          Category
+        </FieldWithHint>
+        <FieldWithHint
+          id="activity-filter-category"
+          label="Category"
+          hint="Recount classifies each segment (e.g. work, social). Choose one to hide everything else, or All to show every category."
+          className="text-sm text-muted min-w-[160px]"
+        >
           <select
+            id="activity-filter-category"
             className={inputClass}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -278,10 +309,15 @@ export function ActivityExplorer({
               </option>
             ))}
           </select>
-        </label>
-        <label className="text-sm text-muted w-[120px]">
-          Min minutes
+        </FieldWithHint>
+        <FieldWithHint
+          id="activity-filter-min-minutes"
+          label="Min minutes"
+          hint="Only show segments at least this long (in minutes). Leave empty to include all durations. Helps find long focus blocks or drop tiny blips."
+          className="text-sm text-muted w-[120px]"
+        >
           <input
+            id="activity-filter-min-minutes"
             type="number"
             min={1}
             max={1440}
@@ -290,17 +326,26 @@ export function ActivityExplorer({
             onChange={(e) => setMinMinutes(e.target.value)}
             placeholder="Any"
           />
-        </label>
-        <label className="text-sm text-muted min-w-[220px] flex-1">
-          Sort table by
-          <select className={inputClass} value={sort} onChange={(e) => setSort(e.target.value)}>
+        </FieldWithHint>
+        <FieldWithHint
+          id="activity-filter-sort"
+          label="Sort table by"
+          hint="Order of rows in the segment list below. Summary stats still reflect the full filtered set."
+          className="text-sm text-muted min-w-[220px] flex-1"
+        >
+          <select
+            id="activity-filter-sort"
+            className={inputClass}
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+          >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
-        </label>
+        </FieldWithHint>
         <Button type="button" variant="secondary" className="mt-6 shrink-0" onClick={clearFilters}>
           Clear filters
         </Button>

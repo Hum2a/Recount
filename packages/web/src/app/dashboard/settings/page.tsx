@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { CheckboxWithHint, FieldWithHint } from "@/components/ui/field-hint";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+const inputClass =
+  "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
 
 type ProfileRow = {
   hourly_rate?: number;
@@ -174,61 +178,69 @@ export default function SettingsPage() {
           <span className="font-medium text-foreground">Role:</span> {appRole}
         </p>
       </div>
-      <label className="block text-sm text-muted">
-        Hourly rate (£)
+      <FieldWithHint
+        id="settings-hourly-rate"
+        label="Hourly rate (£)"
+        hint="Roughly what one hour of your time is worth to you, in pounds. Recount saves this on your profile for context in the product (for example future reports or value summaries). It is not your subscription price and is not sent to payment providers."
+      >
         <input
-          className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
+          id="settings-hourly-rate"
+          className={inputClass}
           type="number"
           min={0}
           step="0.01"
           value={hourly}
           onChange={(e) => setHourly(e.target.value)}
         />
-      </label>
-      <label className="block text-sm text-muted">
-        Timezone (IANA, e.g. Europe/London)
-        <input
-          className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
-          value={tz}
-          onChange={(e) => setTz(e.target.value)}
-        />
-      </label>
+      </FieldWithHint>
+      <FieldWithHint
+        id="settings-timezone"
+        label="Timezone (IANA, e.g. Europe/London)"
+        hint="Used so dates and “today” in the app match your locale. Use a standard IANA name (e.g. Europe/London, America/Toronto). If unsure, UTC is fine."
+      >
+        <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
+      </FieldWithHint>
       <div className="border-t border-white/10 pt-6 space-y-4">
         <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
         <p className="text-sm text-muted">
           Distraction hostnames (one per line, no <code className="text-foreground/80">https://</code>). When intent lock
           is on and you have goals for today, the extension nudges you on these sites. Reload the extension after saving.
         </p>
-        <label className="block text-sm text-muted">
-          Distraction domains
+        <FieldWithHint
+          id="settings-distraction-domains"
+          label="Distraction domains"
+          hint="Websites you want reminders about when you have set daily intentions (e.g. social or news). Enter hostnames only, one per line (e.g. youtube.com). Tracking still runs; this only controls nudges when intent lock is enabled and the extension is signed in."
+        >
           <textarea
-            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 font-mono text-sm text-foreground"
+            id="settings-distraction-domains"
+            className={`${inputClass} font-mono text-sm`}
             rows={5}
             value={distractionText}
             onChange={(e) => setDistractionText(e.target.value)}
             placeholder={"youtube.com\nreddit.com"}
           />
-        </label>
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
-          <input type="checkbox" className="mt-1" checked={intentLock} onChange={(e) => setIntentLock(e.target.checked)} />
-          <span>Enable intent lock nudges (extension must be signed in)</span>
-        </label>
+        </FieldWithHint>
+        <CheckboxWithHint
+          checked={intentLock}
+          onChange={setIntentLock}
+          label="Enable intent lock nudges (extension must be signed in)"
+          hint="When on, if you saved goals for today (UTC) in the extension, Recount can show a notification and in-page banner when you focus a tab on a distraction domain. Syncs from these settings about every 30 minutes or when the extension starts."
+        />
       </div>
       <div className="border-t border-white/10 pt-6 space-y-4">
         <h2 className="text-lg font-medium">Privacy &amp; email</h2>
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
-          <input type="checkbox" className="mt-1" checked={sendTitles} onChange={(e) => setSendTitles(e.target.checked)} />
-          <span>Send page titles with tab events (uncheck to record domains and time only)</span>
-        </label>
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={weeklyDigest}
-            onChange={(e) => setWeeklyDigest(e.target.checked)}
-          />
-          <span>Weekly digest email (previous UTC week; requires Resend + cron calling the digest job)</span>
-        </label>
+        <CheckboxWithHint
+          checked={sendTitles}
+          onChange={setSendTitles}
+          label="Send page titles with tab events (uncheck to record domains and time only)"
+          hint="If checked, the browser extension includes the active tab’s title when it uploads time segments. If unchecked, only the domain and timing are stored—better for privacy, less detail in activity views."
+        />
+        <CheckboxWithHint
+          checked={weeklyDigest}
+          onChange={setWeeklyDigest}
+          label="Weekly digest email (previous UTC week; requires Resend + cron calling the digest job)"
+          hint="If enabled, your account can be included when an operator runs the weekly digest job on the API (POST /api/jobs/weekly-digest with a secret). You’ll get one email summarizing tracked time and intentions for the previous Monday–Sunday in UTC. Your server must have Resend and DIGEST_JOB_SECRET configured."
+        />
       </div>
       <div className="border-t border-white/10 pt-6 space-y-4">
         <h2 className="text-lg font-medium">Team leaderboard</h2>
@@ -236,29 +248,39 @@ export default function SettingsPage() {
           Use the same team slug as colleagues (lowercase letters, numbers, hyphens). Opt in to appear on the board with a
           display nickname.
         </p>
-        <label className="block text-sm text-muted">
-          Team slug
+        <FieldWithHint
+          id="settings-team-slug"
+          label="Team slug"
+          hint="A shared label for your group (e.g. company or squad). Everyone who enters the same slug and opts into the leaderboard appears in one list. Use lowercase letters, numbers, and hyphens only (2–64 characters)."
+        >
           <input
-            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
+            id="settings-team-slug"
+            className={inputClass}
             value={teamSlug}
             onChange={(e) => setTeamSlug(e.target.value.toLowerCase())}
             placeholder="acme-design"
           />
-        </label>
-        <label className="block text-sm text-muted">
-          Leaderboard nickname
+        </FieldWithHint>
+        <FieldWithHint
+          id="settings-leaderboard-nickname"
+          label="Leaderboard nickname"
+          hint="Name shown next to your weekly minutes on the Team page. It does not have to match your email. Max 80 characters. You can opt out anytime with the checkbox below."
+        >
           <input
-            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
+            id="settings-leaderboard-nickname"
+            className={inputClass}
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             maxLength={80}
             placeholder="Alex"
           />
-        </label>
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
-          <input type="checkbox" className="mt-1" checked={leaderOptIn} onChange={(e) => setLeaderOptIn(e.target.checked)} />
-          <span>Show me on the team leaderboard (this UTC week&apos;s tracked minutes)</span>
-        </label>
+        </FieldWithHint>
+        <CheckboxWithHint
+          checked={leaderOptIn}
+          onChange={setLeaderOptIn}
+          label="Show me on the team leaderboard (this UTC week's tracked minutes)"
+          hint="When enabled, other people with the same team slug can see your nickname and total tracked minutes for the current UTC week (Monday start). They never see your email. Turn off to hide yourself while keeping a team slug for later."
+        />
       </div>
       <Button onClick={saveProfile}>Save settings</Button>
       <div className="border-t border-white/10 pt-6">

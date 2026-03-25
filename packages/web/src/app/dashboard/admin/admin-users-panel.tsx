@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint, HintTrigger } from "@/components/ui/field-hint";
 import { AnimatedCard } from "@/components/motion/animated-card";
 
 const ROLES = ["user", "admin", "developer"] as const;
@@ -202,9 +203,14 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
         )}
       </div>
 
-      <label className="mt-6 block text-sm font-medium text-foreground">
-        Search by email
+      <FieldWithHint
+        id="admin-users-search-email"
+        label="Search by email"
+        hint="Filters the directory as you type (short delay). Matches any part of the email. Leave empty to list from the start of the roster."
+        className="mt-6 text-sm font-medium text-foreground"
+      >
         <input
+          id="admin-users-search-email"
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -212,7 +218,7 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
           className="mt-1.5 w-full max-w-md rounded-md border border-white/10 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted/70"
           autoComplete="off"
         />
-      </label>
+      </FieldWithHint>
 
       {loading && <p className="mt-6 text-sm text-muted">Loading…</p>}
       {error && !loading && (
@@ -276,7 +282,7 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
                           <select
                             className="rounded-md border border-white/10 bg-card px-2 py-1.5 text-foreground"
                             value={selected}
-                            title={ACCESS_HELP[selected]}
+                            aria-label={`Access level for ${u.email}`}
                             onChange={(e) => setRowPending(u.id, e.target.value as AppRole)}
                           >
                             {ROLES.map((r) => (
@@ -285,6 +291,10 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
                               </option>
                             ))}
                           </select>
+                          <HintTrigger
+                            labelForA11y="Change access"
+                            hint={`Member: ${ACCESS_HELP.user} Administrator: ${ACCESS_HELP.admin} Developer: ${ACCESS_HELP.developer} Choose a role, then Save.`}
+                          />
                           <Button
                             type="button"
                             className="px-3 py-1.5 text-xs"

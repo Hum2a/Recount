@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CheckboxWithHint, FieldWithHint } from "@/components/ui/field-hint";
 import { adminApi } from "./admin-fetch";
 
 const ROLES = ["user", "admin", "developer"] as const;
@@ -110,13 +111,27 @@ export function AdminUserAccountTab({ userId, profile, canManage, onProfileSaved
       )}
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <label className="block text-sm text-muted sm:col-span-2">
-          Email
-          <input className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} disabled={!canManage} />
-        </label>
-        <label className="block text-sm text-muted">
-          Hourly rate
+        <FieldWithHint
+          id={`admin-account-email-${userId}`}
+          label="Email"
+          hint="Sign-in address (also stored on auth.users). Changing it updates Supabase Auth and the profile row—use for corrections or support."
+          className="sm:col-span-2"
+        >
           <input
+            id={`admin-account-email-${userId}`}
+            className={inputClass}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!canManage}
+          />
+        </FieldWithHint>
+        <FieldWithHint
+          id={`admin-account-hourly-${userId}`}
+          label="Hourly rate"
+          hint="User’s self-reported £/hour in the product (same meaning as Settings). Not billing; optional context for reports or exports."
+        >
+          <input
+            id={`admin-account-hourly-${userId}`}
             type="number"
             step="0.01"
             min={0}
@@ -125,47 +140,66 @@ export function AdminUserAccountTab({ userId, profile, canManage, onProfileSaved
             onChange={(e) => setHourlyRate(e.target.value)}
             disabled={!canManage}
           />
-        </label>
-        <label className="block text-sm text-muted">
-          Timezone
-          <input className={inputClass} value={timezone} onChange={(e) => setTimezone(e.target.value)} disabled={!canManage} />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-muted sm:col-span-2">
+        </FieldWithHint>
+        <FieldWithHint
+          id={`admin-account-tz-${userId}`}
+          label="Timezone"
+          hint="IANA timezone on the profile (e.g. Europe/London). Affects how they think about “today” in the app; API still stores events in UTC."
+        >
           <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-white/20 bg-card"
-            checked={licenseActive}
-            onChange={(e) => setLicenseActive(e.target.checked)}
+            id={`admin-account-tz-${userId}`}
+            className={inputClass}
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
             disabled={!canManage}
           />
-          <span>
-            <span className="font-medium text-foreground">Pro / paid access</span> (normally updated by billing — only
-            change for support)
-          </span>
-        </label>
-        <label className="block text-sm text-muted sm:col-span-2">
-          Stripe customer ID
+        </FieldWithHint>
+        <CheckboxWithHint
+          className="sm:col-span-2"
+          checked={licenseActive}
+          onChange={setLicenseActive}
+          disabled={!canManage}
+          label="Pro / paid access (normally updated by billing — only change for support)"
+          hint="When on, the user is treated as licensed (Pro): longer history, AI reports, etc. Stripe webhooks usually set this; toggle manually for refunds, comps, or fixing bad data."
+        />
+        <FieldWithHint
+          id={`admin-account-stripe-${userId}`}
+          label="Stripe customer ID"
+          hint="Stripe’s cus_… id linking this user to subscriptions/invoices. Clear the field to remove the link; only set if you know the correct id from Stripe."
+          className="sm:col-span-2"
+        >
           <input
+            id={`admin-account-stripe-${userId}`}
             className={`${inputClass} font-mono text-xs`}
             value={stripeCustomerId}
             onChange={(e) => setStripeCustomerId(e.target.value)}
             disabled={!canManage}
             placeholder="Leave empty to clear"
           />
-        </label>
-        <label className="block text-sm text-muted sm:col-span-2">
-          License key
+        </FieldWithHint>
+        <FieldWithHint
+          id={`admin-account-license-key-${userId}`}
+          label="License key"
+          hint="Optional legacy or manual license string shown to the user after purchase. Empty clears it. Do not invent keys unless your product flow uses them."
+          className="sm:col-span-2"
+        >
           <input
+            id={`admin-account-license-key-${userId}`}
             className={`${inputClass} font-mono text-xs`}
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value)}
             disabled={!canManage}
             placeholder="Leave empty to clear"
           />
-        </label>
-        <label className="block text-sm text-muted sm:col-span-2">
-          Staff access
+        </FieldWithHint>
+        <FieldWithHint
+          id={`admin-account-role-${userId}`}
+          label="Staff access"
+          hint="Member = normal user. Administrator = can change roles and full staff tools. Developer = can use staff views; only admins can change roles. Misuse can expose all accounts—assign carefully."
+          className="sm:col-span-2"
+        >
           <select
+            id={`admin-account-role-${userId}`}
             className={inputClass}
             value={appRole}
             onChange={(e) => setAppRole(e.target.value as AppRole)}
@@ -175,7 +209,7 @@ export function AdminUserAccountTab({ userId, profile, canManage, onProfileSaved
             <option value="admin">Administrator</option>
             <option value="developer">Developer (staff)</option>
           </select>
-        </label>
+        </FieldWithHint>
       </div>
 
       <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 text-xs text-muted">

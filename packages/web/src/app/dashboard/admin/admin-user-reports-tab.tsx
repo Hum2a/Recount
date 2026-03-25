@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint } from "@/components/ui/field-hint";
 import { adminApi } from "./admin-fetch";
 
 type Report = {
@@ -208,42 +209,71 @@ export function AdminUserReportsTab({ userId, canManage, onDataChanged }: Props)
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-card p-5 shadow-xl">
             <h3 className="text-base font-medium text-foreground">Edit report · {editing.date}</h3>
-            <label className="mt-4 block text-sm text-muted">
-              Score (1–10, or leave empty for none)
-              <input className={inputClass} value={score} onChange={(e) => setScore(e.target.value)} />
-            </label>
-            <label className="mt-4 block text-sm text-muted">
-              AI summary
+            <FieldWithHint
+              id={`admin-report-score-${userId}`}
+              label="Score (1–10, or leave empty for none)"
+              hint="Optional accountability score from the AI report. Integer 1–10, or blank to store no score (shown as — in the UI)."
+              className="mt-4 text-sm text-muted"
+            >
+              <input
+                id={`admin-report-score-${userId}`}
+                className={inputClass}
+                value={score}
+                onChange={(e) => setScore(e.target.value)}
+              />
+            </FieldWithHint>
+            <FieldWithHint
+              id={`admin-report-summary-${userId}`}
+              label="AI summary"
+              hint="Main narrative shown to the user for this date. Edit typos, tone, or factual mistakes; this is plain text shown in the dashboard."
+              className="mt-4 text-sm text-muted"
+            >
               <textarea
+                id={`admin-report-summary-${userId}`}
                 className={`${inputClass} min-h-[120px]`}
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
               />
-            </label>
-            <label className="mt-4 block text-sm text-muted">
-              Top domains (JSON, or empty to clear)
+            </FieldWithHint>
+            <FieldWithHint
+              id={`admin-report-top-domains-${userId}`}
+              label="Top domains (JSON, or empty to clear)"
+              hint="Structured snapshot of sites the model used (array/object as JSON). Must parse with JSON.parse. Wrong syntax will block save. Empty clears the field."
+              className="mt-4 text-sm text-muted"
+            >
               <textarea
+                id={`admin-report-top-domains-${userId}`}
                 className={`${inputClass} min-h-[100px] font-mono text-xs`}
                 value={topDomainsJson}
                 onChange={(e) => setTopDomainsJson(e.target.value)}
               />
-            </label>
-            <label className="mt-4 block text-sm text-muted">
-              Goals met (one per line)
+            </FieldWithHint>
+            <FieldWithHint
+              id={`admin-report-goals-met-${userId}`}
+              label="Goals met (one per line)"
+              hint="Bullet list of intentions the report considered achieved. One line per item; becomes a string array in the database."
+              className="mt-4 text-sm text-muted"
+            >
               <textarea
+                id={`admin-report-goals-met-${userId}`}
                 className={`${inputClass} min-h-[72px] font-mono text-xs`}
                 value={goalsMetText}
                 onChange={(e) => setGoalsMetText(e.target.value)}
               />
-            </label>
-            <label className="mt-4 block text-sm text-muted">
-              Goals missed (one per line)
+            </FieldWithHint>
+            <FieldWithHint
+              id={`admin-report-goals-missed-${userId}`}
+              label="Goals missed (one per line)"
+              hint="Intentions the report said were not met. Same format as goals met—one per line, stored as an array."
+              className="mt-4 text-sm text-muted"
+            >
               <textarea
+                id={`admin-report-goals-missed-${userId}`}
                 className={`${inputClass} min-h-[72px] font-mono text-xs`}
                 value={goalsMissedText}
                 onChange={(e) => setGoalsMissedText(e.target.value)}
               />
-            </label>
+            </FieldWithHint>
             <div className="mt-4 flex gap-2">
               <Button type="button" disabled={busy} onClick={() => void saveEdit()}>
                 {busy ? "Saving…" : "Save"}

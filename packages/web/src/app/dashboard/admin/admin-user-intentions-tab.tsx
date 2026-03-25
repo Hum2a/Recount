@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FieldWithHint } from "@/components/ui/field-hint";
 import { adminApi } from "./admin-fetch";
 
 type Intention = {
@@ -137,14 +138,34 @@ export function AdminUserIntentionsTab({ userId, canManage, onDataChanged }: Pro
     <div className="space-y-4">
       <p className="text-sm text-muted">Daily goals the member set in the extension (one row per calendar day).</p>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm text-muted">
-          From
-          <input type="date" className={inputClass} value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="text-sm text-muted">
-          To
-          <input type="date" className={inputClass} value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
+        <FieldWithHint
+          id={`admin-intentions-from-${userId}`}
+          label="From"
+          hint="Only list intention rows on or after this calendar date (member’s rows). Leave empty for no start filter."
+          className="text-sm text-muted"
+        >
+          <input
+            id={`admin-intentions-from-${userId}`}
+            type="date"
+            className={inputClass}
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </FieldWithHint>
+        <FieldWithHint
+          id={`admin-intentions-to-${userId}`}
+          label="To"
+          hint="Only list rows on or before this date, inclusive. Pair with From to narrow support tickets to one week."
+          className="text-sm text-muted"
+        >
+          <input
+            id={`admin-intentions-to-${userId}`}
+            type="date"
+            className={inputClass}
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </FieldWithHint>
       </div>
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
@@ -207,18 +228,33 @@ export function AdminUserIntentionsTab({ userId, canManage, onDataChanged }: Pro
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/10 bg-card p-5 shadow-xl">
             <h3 className="text-base font-medium text-foreground">Edit intentions</h3>
-            <label className="mt-4 block text-sm text-muted">
-              Date
-              <input type="date" className={inputClass} value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-            </label>
-            <label className="mt-4 block text-sm text-muted">
-              Goals (one per line)
+            <FieldWithHint
+              id={`admin-intentions-edit-date-${userId}`}
+              label="Date"
+              hint="Calendar day this intentions row is tied to (UTC date in DB). Changing it moves which “day” these goals belong to."
+              className="mt-4 text-sm text-muted"
+            >
+              <input
+                id={`admin-intentions-edit-date-${userId}`}
+                type="date"
+                className={inputClass}
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+              />
+            </FieldWithHint>
+            <FieldWithHint
+              id={`admin-intentions-edit-goals-${userId}`}
+              label="Goals (one per line)"
+              hint="What the member planned for that day—one goal per line. Empty lines are ignored. This is what the extension and dashboard “intentions” show."
+              className="mt-4 text-sm text-muted"
+            >
               <textarea
+                id={`admin-intentions-edit-goals-${userId}`}
                 className={`${inputClass} min-h-[140px] font-mono text-xs`}
                 value={goalsText}
                 onChange={(e) => setGoalsText(e.target.value)}
               />
-            </label>
+            </FieldWithHint>
             <div className="mt-4 flex gap-2">
               <Button type="button" disabled={busy} onClick={() => void saveEdit()}>
                 {busy ? "Saving…" : "Save"}
