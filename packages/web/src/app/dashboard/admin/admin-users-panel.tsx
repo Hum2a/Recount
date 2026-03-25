@@ -13,6 +13,8 @@ type AppRole = (typeof ROLES)[number];
 type UserRow = {
   id: string;
   email: string;
+  display_name?: string | null;
+  country_code?: string | null;
   app_role: string;
   license_active: boolean;
   created_at: string;
@@ -261,6 +263,11 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
                         <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-xs text-muted">
                           You
                         </span>
+                      )}
+                      {(u.display_name || u.country_code) && (
+                        <div className="mt-0.5 text-xs text-muted">
+                          {[u.display_name, u.country_code].filter(Boolean).join(" · ")}
+                        </div>
                       )}
                       <div className="mt-0.5 text-xs text-muted">
                         Joined {new Date(u.created_at).toLocaleDateString(undefined, { dateStyle: "medium" })}

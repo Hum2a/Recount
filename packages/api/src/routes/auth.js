@@ -5,6 +5,7 @@ import { supabaseAdmin } from "../db/client.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import { validate } from "../middleware/validate.js";
 import { logger } from "../logger.js";
+import { recordLoginEvent } from "../lib/login-events.js";
 
 const router = Router();
 
@@ -41,6 +42,13 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
       return res.status(500).json({ error: "Could not create profile" });
     }
 
+    await recordLoginEvent(supabaseAdmin, {
+      userId: data.user.id,
+      eventType: "signup",
+      provider: "password",
+      req,
+    });
+
     return res.json({
       data: {
         user: data.user,
@@ -65,6 +73,13 @@ router.post("/login", authLimiter, validate(loginSchema), async (req, res, next)
       { id: data.user.id, email: data.user.email ?? email },
       { onConflict: "id" }
     );
+
+    await recordLoginEvent(supabaseAdmin, {
+      userId: data.user.id,
+      eventType: "login",
+      provider: "password",
+      req,
+    });
 
     return res.json({
       data: {

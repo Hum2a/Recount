@@ -14,9 +14,11 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`** … **`004_profiles_rls_select_only.sql`** (JWT **SELECT**-only on `profiles`), then **`005_rls_least_privilege_grants.sql`** (app data tables **service-only** for JWTs; table **`GRANT`**s aligned with RLS), then optional **`006_admin_tab_event_summary.sql`** (exact activity aggregates for large accounts).
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`** (RLS + **`GRANT`**s), optional **`006`** (activity RPC), **`007`** (focus/team prefs), optional **`008_profile_demographics_login_audience.sql`** (survey fields on `profiles`, **`login_events`** table, **`admin_audience_dashboard`** RPC for staff analytics).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
+
+**Third-party integrations (Stripe, OpenAI, Resend, extension store, feature matrix):** see [`docs/integrations-setup.md`](docs/integrations-setup.md).
 
 **API env (local):** With `NODE_ENV=development` (default), missing variables in `packages/api/.env` are filled with **dev placeholders** so `npm run dev:api` starts anyway — fine for working on the web UI. Auth, Stripe, OpenAI, and Resend stay broken until you add real keys. To require a full `.env` locally, set `RELAXED_ENV=0`.
 

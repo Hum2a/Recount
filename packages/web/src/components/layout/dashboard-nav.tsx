@@ -17,7 +17,12 @@ const baseLinks = [
 export function DashboardNav({ showAdminLink = false }: { showAdminLink?: boolean }) {
   const links = [
     ...baseLinks,
-    ...(showAdminLink ? [{ href: "/dashboard/admin" as const, label: "Staff" }] : []),
+    ...(showAdminLink
+      ? ([
+          { href: "/dashboard/admin" as const, label: "Staff" },
+          { href: "/dashboard/admin/analytics" as const, label: "Audience" },
+        ] as const)
+      : []),
     { href: "/pricing" as const, label: "Pricing" },
   ];
   const pathname = usePathname();

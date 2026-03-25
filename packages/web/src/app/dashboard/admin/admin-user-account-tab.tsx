@@ -19,6 +19,18 @@ export type AdminProfile = {
   app_role: string;
   created_at: string;
   updated_at: string;
+  display_name?: string | null;
+  birth_year?: number | null;
+  country_code?: string | null;
+  locale?: string | null;
+  gender_identity?: string | null;
+  occupation?: string | null;
+  industry?: string | null;
+  work_role?: string | null;
+  company_size?: string | null;
+  primary_use_case?: string | null;
+  referral_source?: string | null;
+  demographics_updated_at?: string | null;
 };
 
 type Props = {

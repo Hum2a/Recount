@@ -7,6 +7,16 @@ import { CheckboxWithHint, FieldWithHint } from "@/components/ui/field-hint";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
+const COMPANY_SIZE_OPTIONS = [
+  { value: "", label: "Skip — no answer (default)" },
+  { value: "1", label: "Just me" },
+  { value: "2-10", label: "2–10 people" },
+  { value: "11-50", label: "11–50" },
+  { value: "51-200", label: "51–200" },
+  { value: "201+", label: "201+" },
+  { value: "prefer_not_say", label: "Prefer not to say" },
+] as const;
+
 const inputClass =
   "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
 
@@ -22,6 +32,18 @@ type ProfileRow = {
   team_slug?: string | null;
   leaderboard_opt_in?: boolean;
   leaderboard_nickname?: string | null;
+  display_name?: string | null;
+  birth_year?: number | null;
+  country_code?: string | null;
+  locale?: string | null;
+  gender_identity?: string | null;
+  occupation?: string | null;
+  industry?: string | null;
+  work_role?: string | null;
+  company_size?: string | null;
+  primary_use_case?: string | null;
+  referral_source?: string | null;
+  demographics_updated_at?: string | null;
 };
 
 export default function SettingsPage() {
@@ -34,6 +56,17 @@ export default function SettingsPage() {
   const [teamSlug, setTeamSlug] = useState("");
   const [leaderOptIn, setLeaderOptIn] = useState(false);
   const [nickname, setNickname] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [countryCode, setCountryCode] = useState("");
+  const [locale, setLocale] = useState("");
+  const [genderIdentity, setGenderIdentity] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [workRole, setWorkRole] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [primaryUseCase, setPrimaryUseCase] = useState("");
+  const [referralSource, setReferralSource] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [licensed, setLicensed] = useState(false);
   const [appRole, setAppRole] = useState<string>("user");
@@ -62,6 +95,17 @@ export default function SettingsPage() {
       setTeamSlug(row.team_slug ?? "");
       setLeaderOptIn(Boolean(row.leaderboard_opt_in));
       setNickname(row.leaderboard_nickname ?? "");
+      setDisplayName(row.display_name ?? "");
+      setBirthYear(row.birth_year != null ? String(row.birth_year) : "");
+      setCountryCode(row.country_code ?? "");
+      setLocale(row.locale ?? "");
+      setGenderIdentity(row.gender_identity ?? "");
+      setOccupation(row.occupation ?? "");
+      setIndustry(row.industry ?? "");
+      setWorkRole(row.work_role ?? "");
+      setCompanySize(row.company_size ?? "");
+      setPrimaryUseCase(row.primary_use_case ?? "");
+      setReferralSource(row.referral_source ?? "");
     }
     void load();
     return () => {
@@ -80,6 +124,22 @@ export default function SettingsPage() {
     const token = await getToken();
     if (!token) {
       setMsg("Sign in again.");
+      return;
+    }
+    const y = birthYear.trim();
+    let birth_year: number | null = null;
+    if (y) {
+      const n = Number.parseInt(y, 10);
+      const maxY = new Date().getFullYear();
+      if (Number.isNaN(n) || n < 1900 || n > maxY) {
+        setMsg(`Birth year must be between 1900 and ${maxY}.`);
+        return;
+      }
+      birth_year = n;
+    }
+    const cc = countryCode.trim().toUpperCase();
+    if (cc && cc.length !== 2) {
+      setMsg("Country must be a 2-letter ISO code (e.g. GB) or left blank.");
       return;
     }
     const distraction_domains = distractionText
@@ -102,6 +162,17 @@ export default function SettingsPage() {
         team_slug: teamSlug.trim() || null,
         leaderboard_opt_in: leaderOptIn,
         leaderboard_nickname: nickname.trim() || null,
+        display_name: displayName.trim() || null,
+        birth_year,
+        country_code: cc || null,
+        locale: locale.trim() || null,
+        gender_identity: genderIdentity.trim() || null,
+        occupation: occupation.trim() || null,
+        industry: industry.trim() || null,
+        work_role: workRole.trim() || null,
+        company_size: companySize || null,
+        primary_use_case: primaryUseCase.trim() || null,
+        referral_source: referralSource.trim() || null,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -200,6 +271,178 @@ export default function SettingsPage() {
       >
         <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
       </FieldWithHint>
+      <div className="border-t border-white/10 pt-6 space-y-4">
+        <h2 className="text-lg font-medium">About you</h2>
+        <p className="text-sm text-muted">
+          <span className="font-medium text-foreground">Entirely optional.</span> You can ignore this whole block —
+          nothing here is required to use Recount. If you do share details, we aggregate them to improve the product; we
+          don’t sell this data. Clear any field anytime.
+        </p>
+        <FieldWithHint
+          id="settings-display-name"
+          label="Preferred name (optional)"
+          hint="How you’d like to be addressed in the product or future emails. Leave blank if you prefer."
+        >
+          <input
+            id="settings-display-name"
+            className={inputClass}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            maxLength={120}
+            aria-required={false}
+          />
+        </FieldWithHint>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FieldWithHint
+            id="settings-birth-year"
+            label="Birth year (optional)"
+            hint="Year only (for age cohort trends). Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-birth-year"
+              className={inputClass}
+              inputMode="numeric"
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="e.g. 1990"
+              aria-required={false}
+            />
+          </FieldWithHint>
+          <FieldWithHint
+            id="settings-country"
+            label="Country (optional)"
+            hint="Two-letter ISO code, e.g. GB, US, DE. Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-country"
+              className={inputClass}
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
+              maxLength={2}
+              aria-required={false}
+            />
+          </FieldWithHint>
+          <FieldWithHint
+            id="settings-locale"
+            label="Locale (optional)"
+            hint="BCP-47 tag, e.g. en-GB. Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-locale"
+              className={inputClass}
+              value={locale}
+              onChange={(e) => setLocale(e.target.value)}
+              maxLength={35}
+              aria-required={false}
+            />
+          </FieldWithHint>
+          <FieldWithHint
+            id="settings-company-size"
+            label="Company or team size (optional)"
+            hint="Rough headcount. Choose “Skip” at the top of the list to leave this unset."
+          >
+            <select
+              id="settings-company-size"
+              className={inputClass}
+              value={companySize}
+              onChange={(e) => setCompanySize(e.target.value)}
+            >
+              {COMPANY_SIZE_OPTIONS.map((o) => (
+                <option key={o.value || "na"} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FieldWithHint>
+        </div>
+        <FieldWithHint
+          id="settings-gender"
+          label="Gender identity (optional)"
+          hint="Use whatever description fits you best, or leave blank."
+        >
+          <input
+            id="settings-gender"
+            className={inputClass}
+            value={genderIdentity}
+            onChange={(e) => setGenderIdentity(e.target.value)}
+            maxLength={80}
+            aria-required={false}
+          />
+        </FieldWithHint>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FieldWithHint
+            id="settings-occupation"
+            label="Occupation (optional)"
+            hint="Job title or how you describe your work. Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-occupation"
+              className={inputClass}
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value)}
+              maxLength={100}
+              aria-required={false}
+            />
+          </FieldWithHint>
+          <FieldWithHint
+            id="settings-industry"
+            label="Industry (optional)"
+            hint="Sector you work in. Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-industry"
+              className={inputClass}
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              maxLength={100}
+              aria-required={false}
+            />
+          </FieldWithHint>
+          <FieldWithHint
+            id="settings-work-role"
+            label="Role type (optional)"
+            hint="e.g. individual contributor, manager, founder. Leave blank if you prefer not to say."
+          >
+            <input
+              id="settings-work-role"
+              className={inputClass}
+              value={workRole}
+              onChange={(e) => setWorkRole(e.target.value)}
+              maxLength={80}
+              aria-required={false}
+            />
+          </FieldWithHint>
+        </div>
+        <FieldWithHint
+          id="settings-use-case"
+          label="What will you use Recount for? (optional)"
+          hint="Helps us prioritize features. Leave blank if you prefer not to say."
+        >
+          <textarea
+            id="settings-use-case"
+            className={`${inputClass} min-h-[72px]`}
+            value={primaryUseCase}
+            onChange={(e) => setPrimaryUseCase(e.target.value)}
+            maxLength={200}
+            rows={3}
+            aria-required={false}
+          />
+        </FieldWithHint>
+        <FieldWithHint
+          id="settings-referral"
+          label="How did you hear about us? (optional)"
+          hint="Search, friend, podcast, etc. Leave blank if you prefer not to say."
+        >
+          <input
+            id="settings-referral"
+            className={inputClass}
+            value={referralSource}
+            onChange={(e) => setReferralSource(e.target.value)}
+            maxLength={100}
+            aria-required={false}
+          />
+        </FieldWithHint>
+      </div>
       <div className="border-t border-white/10 pt-6 space-y-4">
         <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
         <p className="text-sm text-muted">

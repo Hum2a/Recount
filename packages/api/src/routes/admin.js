@@ -24,6 +24,20 @@ const nullableShortText = z
   .optional()
   .transform((v) => (v === "" ? null : v));
 
+const adminCompanySizeEnum = z.enum(["1", "2-10", "11-50", "51-200", "201+", "prefer_not_say"]);
+
+function adminNullableTrimmed(max) {
+  return z
+    .union([z.string().max(max), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => {
+      if (v === undefined) return undefined;
+      if (v === null) return null;
+      const t = String(v).trim();
+      return t === "" ? null : t;
+    });
+}
+
 const adminPatchProfileBody = z
   .object({
     email: z.string().email().optional(),
@@ -40,8 +54,53 @@ const adminPatchProfileBody = z
     team_slug: nullableShortText,
     leaderboard_opt_in: z.boolean().optional(),
     leaderboard_nickname: z.union([z.string().max(80), z.literal(""), z.null()]).optional(),
+    display_name: adminNullableTrimmed(120),
+    birth_year: z
+      .union([z.coerce.number().int().min(1900).max(new Date().getFullYear()), z.null()])
+      .optional(),
+    country_code: z
+      .union([
+        z.string().length(2).regex(/^[A-Za-z]{2}$/),
+        z.literal(""),
+        z.null(),
+      ])
+      .optional()
+      .transform((v) => {
+        if (v === undefined) return undefined;
+        if (v === null || v === "") return null;
+        return String(v).toUpperCase();
+      }),
+    locale: adminNullableTrimmed(35),
+    gender_identity: adminNullableTrimmed(80),
+    occupation: adminNullableTrimmed(100),
+    industry: adminNullableTrimmed(100),
+    work_role: adminNullableTrimmed(80),
+    company_size: z
+      .union([adminCompanySizeEnum, z.literal(""), z.null()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined) return undefined;
+        if (v === "" || v === null) return null;
+        return v;
+      }),
+    primary_use_case: adminNullableTrimmed(200),
+    referral_source: adminNullableTrimmed(100),
   })
   .refine((d) => Object.keys(d).length > 0, { message: "Provide at least one field" });
+
+const ADMIN_DEMO_KEYS = new Set([
+  "display_name",
+  "birth_year",
+  "country_code",
+  "locale",
+  "gender_identity",
+  "occupation",
+  "industry",
+  "work_role",
+  "company_size",
+  "primary_use_case",
+  "referral_source",
+]);
 
 const patchIntentionBody = z
   .object({
@@ -104,7 +163,7 @@ router.get("/users", requireAuth, requireElevatedStaff, async (req, res, next) =
 
     let qb = supabaseAdmin
       .from("profiles")
-      .select("id, email, app_role, license_active, created_at", { count: "exact" })
+      .select("id, email, display_name, country_code, app_role, license_active, created_at", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -120,6 +179,19 @@ router.get("/users", requireAuth, requireElevatedStaff, async (req, res, next) =
         offset,
       },
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * Aggregate audience, survey breakdowns, logins, domain trends (last 30d UTC). **Elevated staff**
+ */
+router.get("/analytics/audience", requireAuth, requireElevatedStaff, async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("admin_audience_dashboard");
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ data: data ?? {} });
   } catch (e) {
     next(e);
   }
@@ -152,6 +224,37 @@ router.get("/users/:userId", requireAuth, requireElevatedStaff, async (req, res,
           reports: reports.count ?? 0,
           payments: payments.count ?? 0,
         },
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * Login / signup audit trail for a user. **Elevated staff**
+ */
+router.get("/users/:userId/login-events", requireAuth, requireElevatedStaff, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (!isUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
+    if (!(await ensureProfileExists(res, userId))) return;
+
+    const { limit, offset } = parsePagination(req.query, 50, 200);
+    const { data, error, count } = await supabaseAdmin
+      .from("login_events")
+      .select("id, occurred_at, event_type, provider, user_agent, ip_hash", { count: "exact" })
+      .eq("user_id", userId)
+      .order("occurred_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({
+      data: {
+        events: data ?? [],
+        total: count ?? 0,
+        limit,
+        offset,
       },
     });
   } catch (e) {
@@ -197,6 +300,20 @@ router.patch("/users/:userId", requireAuth, requireElevatedStaff, async (req, re
           ? String(b.leaderboard_nickname).trim().slice(0, 80)
           : null;
     }
+    if (b.display_name !== undefined) patch.display_name = b.display_name;
+    if (b.birth_year !== undefined) patch.birth_year = b.birth_year;
+    if (b.country_code !== undefined) patch.country_code = b.country_code;
+    if (b.locale !== undefined) patch.locale = b.locale;
+    if (b.gender_identity !== undefined) patch.gender_identity = b.gender_identity;
+    if (b.occupation !== undefined) patch.occupation = b.occupation;
+    if (b.industry !== undefined) patch.industry = b.industry;
+    if (b.work_role !== undefined) patch.work_role = b.work_role;
+    if (b.company_size !== undefined) patch.company_size = b.company_size;
+    if (b.primary_use_case !== undefined) patch.primary_use_case = b.primary_use_case;
+    if (b.referral_source !== undefined) patch.referral_source = b.referral_source;
+
+    const demoTouched = Object.keys(parsed.data).some((k) => ADMIN_DEMO_KEYS.has(k));
+    if (demoTouched) patch.demographics_updated_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId).select("*").single();
     if (error) return res.status(400).json({ error: error.message });

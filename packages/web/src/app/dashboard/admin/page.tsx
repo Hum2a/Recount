@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getVerifiedStaffAccess, staffHasFullManageAccess } from "@/lib/auth/staff-access";
 import { AnimatedCard } from "@/components/motion/animated-card";
@@ -17,7 +18,12 @@ export default async function AdminPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Browse everyone with a Recount account. Open <strong className="text-foreground">Manage</strong> to see or
           edit their profile, daily intentions, activity, generated reports, and payment history. Staff with the
-          Administrator or Developer role can change data from here.
+          Administrator or Developer role can change data from here. For aggregate survey, logins, and cross-user
+          domain trends, open{" "}
+          <Link href="/dashboard/admin/analytics" className="font-medium text-accent underline-offset-4 hover:underline">
+            Audience analytics
+          </Link>
+          .
         </p>
         <p className="mt-4 text-sm text-muted">
           Signed in as <span className="font-medium text-foreground">{staff.user.email}</span>

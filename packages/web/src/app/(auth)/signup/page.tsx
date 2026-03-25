@@ -21,12 +21,32 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.signUp({ email, password });
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+    const res = await fetch(`${apiUrl}/api/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      data?: { session?: { access_token: string; refresh_token: string } | null };
+    };
     setLoading(false);
-    if (err) {
-      setError(err.message);
+    if (!res.ok) {
+      setError(typeof body.error === "string" ? body.error : "Sign-up failed.");
       return;
+    }
+    const session = body.data?.session;
+    if (session?.access_token && session?.refresh_token) {
+      const supabase = createClient();
+      const { error: sErr } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+      if (sErr) {
+        setError(sErr.message);
+        return;
+      }
     }
     router.push("/dashboard");
     router.refresh();

@@ -8,6 +8,8 @@ import { AdminUserIntentionsTab } from "./admin-user-intentions-tab";
 import { AdminUserActivityTab } from "./admin-user-activity-tab";
 import { AdminUserReportsTab } from "./admin-user-reports-tab";
 import { AdminUserPaymentsTab } from "./admin-user-payments-tab";
+import { AdminUserLoginsTab } from "./admin-user-logins-tab";
+import { AdminUserSurveyTab } from "./admin-user-survey-tab";
 import { cn } from "@/lib/utils";
 
 type Counts = {
@@ -17,7 +19,7 @@ type Counts = {
   payments: number;
 };
 
-type TabId = "account" | "intentions" | "activity" | "reports" | "payments";
+type TabId = "account" | "demographics" | "logins" | "intentions" | "activity" | "reports" | "payments";
 
 type Props = {
   userId: string;
@@ -27,6 +29,8 @@ type Props = {
 
 const tabs: { id: TabId; label: string }[] = [
   { id: "account", label: "Account" },
+  { id: "demographics", label: "Survey" },
+  { id: "logins", label: "Logins" },
   { id: "intentions", label: "Intentions" },
   { id: "activity", label: "Activity" },
   { id: "reports", label: "Reports" },
@@ -82,6 +86,9 @@ export function AdminUserDetail({ userId, canManage, currentUserId }: Props) {
         return counts.reports;
       case "payments":
         return counts.payments;
+      case "demographics":
+      case "logins":
+      case "account":
       default:
         return null;
     }
@@ -102,6 +109,11 @@ export function AdminUserDetail({ userId, canManage, currentUserId }: Props) {
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-foreground">{profile.email}</h1>
+                {profile.display_name && (
+                  <p className="text-sm text-muted">
+                    <span className="font-medium text-foreground">{profile.display_name}</span>
+                  </p>
+                )}
                 {isYou && (
                   <span className="mt-1 inline-block rounded bg-white/10 px-2 py-0.5 text-xs text-muted">You</span>
                 )}
@@ -133,7 +145,7 @@ export function AdminUserDetail({ userId, canManage, currentUserId }: Props) {
                   )}
                 >
                   {t.label}
-                  {n != null && t.id !== "account" && (
+                  {n != null && t.id !== "account" && t.id !== "demographics" && t.id !== "logins" && (
                     <span className="ml-1.5 text-xs opacity-80">({n})</span>
                   )}
                 </button>
@@ -153,6 +165,15 @@ export function AdminUserDetail({ userId, canManage, currentUserId }: Props) {
                 onProfileSaved={(p) => setProfile(p)}
               />
             )}
+            {tab === "demographics" && (
+              <AdminUserSurveyTab
+                userId={userId}
+                profile={profile}
+                canManage={canManage}
+                onProfileSaved={(p) => setProfile(p)}
+              />
+            )}
+            {tab === "logins" && <AdminUserLoginsTab userId={userId} />}
             {tab === "intentions" && (
               <AdminUserIntentionsTab userId={userId} canManage={canManage} onDataChanged={reloadSummary} />
             )}

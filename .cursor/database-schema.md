@@ -1,6 +1,6 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `007`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `008`).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
@@ -13,6 +13,7 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 | `tab_events` | On | No policies → no access | Full |
 | `reports` | On | No policies → no access | Full |
 | `payments` | On | No policies → no access | Full |
+| `login_events` | On | No policies → no access | Full |
 
 **Classification:** `profiles` = **S1** (user read own); other app tables = **S0** (service only). See `.cursor/rules/supabase-security.mdc` when adding tables.
 
@@ -46,8 +47,44 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 | `team_slug`         | TEXT        | nullable  | Shared team id for leaderboard (lowercase slug). |
 | `leaderboard_opt_in` | BOOLEAN    | `false`   | Show on team leaderboard. |
 | `leaderboard_nickname` | TEXT     | nullable  | Display name on leaderboard (max 80 in app). |
+| `display_name` | TEXT | nullable | Preferred name (`008`). |
+| `birth_year` | SMALLINT | nullable | Cohort analytics; `CHECK` 1900–2100 (`008`). |
+| `country_code` | CHAR(2) | nullable | ISO 3166-1 alpha-2, uppercase in app (`008`). |
+| `locale` | TEXT | nullable | BCP-47, e.g. `en-GB` (`008`). |
+| `gender_identity` | TEXT | nullable | Free text (`008`). |
+| `occupation` | TEXT | nullable | Job title / label (`008`). |
+| `industry` | TEXT | nullable | Sector (`008`). |
+| `work_role` | TEXT | nullable | e.g. IC, manager (`008`). |
+| `company_size` | TEXT | nullable | `1`, `2-10`, `11-50`, `51-200`, `201+`, `prefer_not_say` (`008`). |
+| `primary_use_case` | TEXT | nullable | Why they use the product (`008`). |
+| `referral_source` | TEXT | nullable | Attribution (`008`). |
+| `demographics_updated_at` | TIMESTAMPTZ | nullable | Set when any survey field changes via API (`008`). |
+
+All **`008`** survey columns are **voluntary**: no signup or in-app step requires them; defaults are null / empty.
 
 **RLS:** enabled. **Policy (after `004`):** `profiles_select_own` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id)` only. **`GRANT` (after `005`):** `REVOKE`d from `PUBLIC`; `GRANT SELECT` to `authenticated`; `service_role` has full privileges. Clients cannot `UPDATE` their own row via PostgREST; profile updates go through the API.
+
+---
+
+## `public.login_events`
+
+Password (API) login and signup audit rows (`008`).
+
+| Column | Type | Notes |
+|--------|------|--------|
+| `id` | UUID | PK, `uuid_generate_v4()` |
+| `user_id` | UUID | FK → `profiles(id)` `ON DELETE CASCADE` |
+| `occurred_at` | TIMESTAMPTZ | Default `now()` |
+| `event_type` | TEXT | `login` \| `signup` |
+| `provider` | TEXT | e.g. `password` |
+| `user_agent` | TEXT | Truncated client UA |
+| `ip_hash` | TEXT | Optional SHA-256 when `LOGIN_AUDIT_SALT` is set |
+
+**RLS:** enabled. **S0** — no JWT policies; `REVOKE ALL` from `PUBLIC`; `GRANT ALL` to `service_role`.
+
+**Indexes:** `idx_login_events_user_occurred`, `idx_login_events_occurred`.
+
+**RPC (`008`):** `public.admin_audience_dashboard()` → JSON aggregates (profile totals, survey breakdowns, login counts, top domains by duration last 30 UTC days). **`REVOKE` from `PUBLIC`**, **`GRANT EXECUTE` to `service_role`** only.
 
 ---
 

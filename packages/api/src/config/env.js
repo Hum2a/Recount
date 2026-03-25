@@ -43,6 +43,11 @@ const schema = z.object({
     if (val === undefined || val === null || String(val).trim() === "") return undefined;
     return val;
   }, z.string().min(16).optional()),
+  /** Optional. When set, `login_events.ip_hash` stores SHA-256(salt|client_ip) instead of leaving IP empty. */
+  LOGIN_AUDIT_SALT: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return undefined;
+    return val;
+  }, z.string().min(16).optional()),
 });
 
 function isEmpty(v) {
