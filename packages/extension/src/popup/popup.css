@@ -35,6 +35,19 @@ h1 {
   text-transform: uppercase;
   color: #71717a;
 }
+.tracking-permission {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+}
+.tracking-permission .muted {
+  margin: 0 0 8px;
+}
+.tracking-permission button {
+  margin-top: 0;
+}
 label {
   display: block;
   margin-bottom: 8px;

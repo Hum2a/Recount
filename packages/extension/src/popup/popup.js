@@ -5,6 +5,7 @@ import { installChannelLabel, syncInstallMetadata } from "../utils/install-conte
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
 import { getLocal } from "../utils/storage.js";
+import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
@@ -75,7 +76,14 @@ async function refreshInstallBadge() {
   }
 }
 
+async function updateTrackingPromptVisibility() {
+  const section = /** @type {HTMLElement | null} */ (document.getElementById("tracking-permission-section"));
+  if (!section) return;
+  section.hidden = await hasTrackingHostAccess();
+}
+
 async function refreshUI() {
+  await updateTrackingPromptVisibility();
   await refreshInstallBadge();
   const session = await getSession();
   const auth = $("auth-section");
@@ -100,6 +108,22 @@ async function refreshUI() {
     app.hidden = true;
   }
 }
+
+$("grant-tracking-btn")?.addEventListener("click", async () => {
+  setMsg("");
+  try {
+    const granted = await chrome.permissions.request(trackingHostPermissions());
+    if (!granted) {
+      setMsg("Site access wasn’t granted — tab time won’t be recorded.");
+      return;
+    }
+    setMsg("Site access enabled — tab tracking is on.", true);
+  } catch {
+    setMsg("Could not request permission.");
+    return;
+  }
+  await updateTrackingPromptVisibility();
+});
 
 $("open-web-login-btn")?.addEventListener("click", () => {
   void openWebPath("/login");
