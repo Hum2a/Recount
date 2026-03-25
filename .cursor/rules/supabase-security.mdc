@@ -40,4 +40,4 @@ Use these labels in migration comments and update `.cursor/database-schema.md`.
 
 ## Reference migrations
 
-Apply SQL in order: `001` → `008`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments**, **`login_events`** are **S0** (API-only for JWT clients). **`006`** adds optional RPC `admin_tab_event_summary`. **`007`** adds profile prefs and `tab_events.focus_session_id`. **`008`** adds optional profile survey columns, **`login_events`**, and RPC **`admin_audience_dashboard`** (staff analytics).
+Apply SQL in order: `001` → `009`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments**, **`login_events`** are **S0** (API-only for JWT clients). **`006`** adds optional RPC `admin_tab_event_summary`. **`007`** adds profile prefs and `tab_events.focus_session_id`. **`008`** adds optional profile survey columns, **`login_events`**, and RPC **`admin_audience_dashboard`**. **`009`** adds RPC **`admin_analytics_timeseries`** (daily staff chart data).

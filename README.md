@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`** (RLS + **`GRANT`**s), optional **`006`** (activity RPC), **`007`** (focus/team prefs), optional **`008_profile_demographics_login_audience.sql`** (survey fields on `profiles`, **`login_events`** table, **`admin_audience_dashboard`** RPC for staff analytics).
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`**, optional **`006`**, **`007`**, optional **`008`** (survey + **`login_events`** + **`admin_audience_dashboard`**), optional **`009_admin_analytics_timeseries.sql`** (**`admin_analytics_timeseries`** RPC for staff trend charts).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 

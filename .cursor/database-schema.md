@@ -1,6 +1,6 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `008`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `009`).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
@@ -85,6 +85,10 @@ Password (API) login and signup audit rows (`008`).
 **Indexes:** `idx_login_events_user_occurred`, `idx_login_events_occurred`.
 
 **RPC (`008`):** `public.admin_audience_dashboard()` → JSON aggregates (profile totals, survey breakdowns, login counts, top domains by duration last 30 UTC days). **`REVOKE` from `PUBLIC`**, **`GRANT EXECUTE` to `service_role`** only.
+
+**RPC (`009`):** `public.admin_analytics_timeseries(p_days integer default 90)` → JSON with `days`, `start`, `end`, and `daily` array (per UTC day: `signups`, `login_events`, `login_only`, `signup_events_logged`, `tracked_minutes`, `tab_segments`, `active_users`, `reports`, `intentions`). Clamped `p_days` 7–366. **`REVOKE` from `PUBLIC`**, **`GRANT EXECUTE` to `service_role`** only.
+
+**API:** `GET /api/admin/analytics/audience` (snapshot), `GET /api/admin/analytics/trends?days=…` (time series for charts).
 
 ---
 

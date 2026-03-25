@@ -198,6 +198,21 @@ router.get("/analytics/audience", requireAuth, requireElevatedStaff, async (req,
 });
 
 /**
+ * Daily time series for charts (signups, logins, tab minutes, etc.). Query: `days` 7–366 (default 90). **Elevated staff**
+ */
+router.get("/analytics/trends", requireAuth, requireElevatedStaff, async (req, res, next) => {
+  try {
+    const raw = Number.parseInt(String(req.query.days ?? "90"), 10);
+    const days = Number.isFinite(raw) ? Math.min(366, Math.max(7, raw)) : 90;
+    const { data, error } = await supabaseAdmin.rpc("admin_analytics_timeseries", { p_days: days });
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ data: data ?? {} });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
  * Full profile + row counts per table. **Elevated staff**
  */
 router.get("/users/:userId", requireAuth, requireElevatedStaff, async (req, res, next) => {
