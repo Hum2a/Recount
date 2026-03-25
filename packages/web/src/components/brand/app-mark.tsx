@@ -16,7 +16,7 @@ export function AppMark({
       href={href}
       className={`group flex items-center gap-2.5 outline-none transition-opacity duration-200 hover:opacity-90 focus-visible:opacity-100 ${className}`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- SVG app icon from /icon.svg metadata route */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- SVG served from /public/icon.svg for reliable <img> loads */}
       <img
         src="/icon.svg"
         width={32}
