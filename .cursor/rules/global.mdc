@@ -12,6 +12,9 @@ globs: ["**/*"]
 - Extension: Manifest V3, Vanilla JS, no framework
 - DB: PostgreSQL via Supabase
 
+## Database
+- **Schema reference:** `.cursor/database-schema.md` (tables, columns, RLS, triggers). Update it when migrations change.
+
 ## Naming Conventions
 - Files: kebab-case (e.g. api-client.js, tab-events.ts)
 - React components: PascalCase (e.g. ReportCard.tsx)
