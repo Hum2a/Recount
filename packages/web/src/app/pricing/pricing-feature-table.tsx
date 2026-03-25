@@ -8,6 +8,18 @@ import { PRICING_FEATURES, type PricingFeatureDetail } from "./pricing-features-
 
 export function PricingFeatureTable() {
   const [open, setOpen] = useState<PricingFeatureDetail | null>(null);
+  /** Dedicated root avoids portaling into `document.body` beside Next’s `<nextjs-portal>` nodes (devtools / focus quirks). */
+  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = document.createElement("div");
+    el.setAttribute("data-pricing-modal-host", "");
+    document.body.appendChild(el);
+    setPortalHost(el);
+    return () => {
+      el.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -88,13 +100,14 @@ export function PricingFeatureTable() {
         </table>
       </div>
 
-      {typeof document !== "undefined" &&
-        createPortal(
-          <AnimatePresence>
-            {open ? <FeatureDetailModal key={open.id} feature={open} onClose={() => setOpen(null)} /> : null}
-          </AnimatePresence>,
-          document.body
-        )}
+      {portalHost
+        ? createPortal(
+            <AnimatePresence mode="sync">
+              {open ? <FeatureDetailModal key={open.id} feature={open} onClose={() => setOpen(null)} /> : null}
+            </AnimatePresence>,
+            portalHost
+          )
+        : null}
     </>
   );
 }

@@ -27,7 +27,7 @@ body {
     @apply transition-colors duration-200 ease-out;
   }
 
-  :where(input:not([type="checkbox"]):not([type="radio"])), textarea, select) {
+  :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
     @apply transition-[border-color,box-shadow,background-color,color] duration-200 ease-out;
   }
 

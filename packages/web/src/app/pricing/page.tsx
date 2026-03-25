@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { AppMark } from "@/components/brand/app-mark";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Button } from "@/components/ui/button";
 import { AnimatedCard } from "@/components/motion/animated-card";
+import { MarketingHeader } from "@/components/layout/marketing-header";
 import { createClient } from "@/lib/supabase/server";
 import { PricingCheckout } from "./pricing-checkout";
 import { PricingFeatureTable } from "./pricing-feature-table";
@@ -20,26 +19,9 @@ export default async function PricingPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <AppMark href="/" />
-        {user ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-            <SignOutButton />
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            <Link href="/login?next=%2Fpricing">
-              <Button variant="ghost">Sign in</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get started</Button>
-            </Link>
-          </div>
-        )}
-      </header>
+      <div className="mb-8">
+        <MarketingHeader user={user} loginHref="/login?next=%2Fpricing" showPricingNav={false} />
+      </div>
 
       {cancelled && (
         <AnimatedCard className="mt-6">
