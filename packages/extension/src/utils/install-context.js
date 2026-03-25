@@ -2,9 +2,9 @@ import { getLocal, setLocal } from "./storage.js";
 import { STORAGE_INSTALL_META } from "./constants.js";
 
 /**
- * How this build was installed (Chromium `management.getSelf().installType`).
+ * How this build was installed.
  * - **local** — Load unpacked / developer mode (Chrome, Edge, Opera, etc.).
- * - **store** — Normal install from Chrome Web Store, Opera Add-ons, Edge Add-ons, …
+ * - **store** — Installed via a browser extension marketplace/update URL.
  * - **other** — Enterprise, sideload, or unknown; API default matches **local** unless you set Options.
  */
 export const InstallChannel = {
@@ -13,38 +13,30 @@ export const InstallChannel = {
   OTHER: "other",
 };
 
-/** @param {{ installType?: string } | null | undefined} info */
-function channelFromManagementInfo(info) {
-  if (!info) return InstallChannel.OTHER;
-  if (info.installType === "development") return InstallChannel.LOCAL;
-  if (info.installType === "normal") return InstallChannel.STORE;
-  return InstallChannel.OTHER;
+function channelFromManifest() {
+  try {
+    const manifest = chrome?.runtime?.getManifest?.();
+    const updateUrl = typeof manifest?.update_url === "string" ? manifest.update_url.toLowerCase() : "";
+    if (!updateUrl) return InstallChannel.LOCAL;
+    if (
+      updateUrl.includes("clients2.google.com/service/update2/crx") ||
+      updateUrl.includes("addons.opera.com") ||
+      updateUrl.includes("edge.microsoft.com")
+    ) {
+      return InstallChannel.STORE;
+    }
+    return InstallChannel.OTHER;
+  } catch {
+    return InstallChannel.OTHER;
+  }
 }
 
 /**
  * @returns {Promise<{ channel: keyof typeof InstallChannel, installType: string | null }>}
  */
 export function readInstallContext() {
-  return new Promise((resolve) => {
-    try {
-      if (typeof chrome === "undefined" || !chrome.management?.getSelf) {
-        resolve({ channel: InstallChannel.OTHER, installType: null });
-        return;
-      }
-      chrome.management.getSelf((info) => {
-        if (chrome.runtime.lastError || !info) {
-          resolve({ channel: InstallChannel.OTHER, installType: null });
-          return;
-        }
-        resolve({
-          channel: channelFromManagementInfo(info),
-          installType: info.installType ?? null,
-        });
-      });
-    } catch {
-      resolve({ channel: InstallChannel.OTHER, installType: null });
-    }
-  });
+  const channel = channelFromManifest();
+  return Promise.resolve({ channel, installType: null });
 }
 
 export async function detectInstallChannel() {

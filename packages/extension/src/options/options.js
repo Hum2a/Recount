@@ -10,17 +10,28 @@ import { installChannelLabel, syncInstallMetadata } from "../utils/install-conte
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
 import { getLocal, setLocal } from "../utils/storage.js";
+import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
 
 const apiUrl = /** @type {HTMLInputElement} */ (document.getElementById("apiUrl"));
 const webUrl = /** @type {HTMLInputElement} */ (document.getElementById("webUrl"));
 const blocked = /** @type {HTMLTextAreaElement} */ (document.getElementById("blocked"));
 const status = document.getElementById("status");
 const installRow = document.getElementById("install-row");
+const trackingStatus = document.getElementById("tracking-status");
+
+async function refreshTrackingStatus() {
+  if (!trackingStatus) return;
+  const ok = await hasTrackingHostAccess();
+  trackingStatus.textContent = ok
+    ? "Site access granted — tab time is recorded on HTTP/HTTPS pages."
+    : "Site access not granted — use the button below or the same control in the extension popup.";
+}
 
 async function load() {
   await syncInstallMetadata();
   const meta = await getLocal(STORAGE_INSTALL_META, {});
   const resolved = await getResolvedApiBase();
+  const resolvedWeb = await getResolvedWebBase();
 
   if (installRow) {
     installRow.textContent = `${installChannelLabel(meta.channel)}${
@@ -40,6 +51,7 @@ async function load() {
     }
   }
   blocked.value = Array.isArray(s.blockedDomains) ? s.blockedDomains.join("\n") : "";
+  await refreshTrackingStatus();
 }
 
 document.getElementById("save").addEventListener("click", async () => {
@@ -77,6 +89,16 @@ document.getElementById("use-local-web-default")?.addEventListener("click", () =
 document.getElementById("use-store-web-default")?.addEventListener("click", () => {
   if (webUrl) webUrl.value = DEFAULT_WEB_URL_STORE;
   status.textContent = `Web URL: ${DEFAULT_WEB_URL_STORE}`;
+});
+
+document.getElementById("grant-tracking-options-btn")?.addEventListener("click", async () => {
+  try {
+    const granted = await chrome.permissions.request(trackingHostPermissions());
+    status.textContent = granted ? "Site access enabled." : "Permission not granted.";
+  } catch {
+    status.textContent = "Could not request permission.";
+  }
+  await refreshTrackingStatus();
 });
 
 load();
