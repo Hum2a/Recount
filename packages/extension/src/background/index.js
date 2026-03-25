@@ -3,6 +3,7 @@ import { classifyDomain } from "../utils/domain-classify.js";
 import { getLocal, setLocal } from "../utils/storage.js";
 import { syncInstallMetadata } from "../utils/install-context.js";
 import { apiFetch } from "../utils/api-client.js";
+import { hasTrackingHostAccess } from "../utils/tracking-permissions.js";
 
 const FLUSH_ALARM = "recount_flush";
 const EOD_ALARM = "recount_eod";
@@ -71,6 +72,7 @@ async function closeCurrent(endIso = new Date().toISOString()) {
 }
 
 async function startFromTab(tabId) {
+  if (!(await hasTrackingHostAccess())) return;
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab?.url || shouldSkipUrl(tab.url)) return;
   const settings = await loadSettings();
@@ -124,6 +126,16 @@ function scheduleEodAlarm() {
 
 async function eodNudge() {
   scheduleEodAlarm();
+  if (!(await hasTrackingHostAccess())) {
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/128.png",
+      title: "Recount",
+      message:
+        "End of day — open Recount and allow site access to enable tab tracking and in-page reminders.",
+    });
+    return;
+  }
   const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   const tab = tabs[0];
   if (tab?.id && tab.url && !shouldSkipUrl(tab.url)) {
@@ -150,11 +162,17 @@ async function eodNudge() {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   scheduleFlushAlarm();
   scheduleEodAlarm();
   chrome.idle.setDetectionInterval(180);
   void syncInstallMetadata();
+
+  if (details.reason === "install") {
+    chrome.runtime.openOptionsPage(() => {
+      void chrome.runtime.lastError;
+    });
+  }
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -189,6 +207,12 @@ chrome.windows.onFocusChanged.addListener(async (winId) => {
 
 chrome.idle.onStateChanged.addListener(async (state) => {
   if (state === "idle" || state === "locked") {
+    await closeCurrent();
+  }
+});
+
+chrome.permissions.onRemoved.addListener(async () => {
+  if (!(await hasTrackingHostAccess())) {
     await closeCurrent();
   }
 });
