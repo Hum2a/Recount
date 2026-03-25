@@ -11,6 +11,46 @@ const patchRoleBody = z.object({
   app_role: z.enum([...APP_ROLES]),
 });
 
+function parseListQuery(query) {
+  const rawQ = typeof query.q === "string" ? query.q.trim().slice(0, 120) : "";
+  const q = rawQ.replace(/[%_\\]/g, "");
+  const limitRaw = Number.parseInt(String(query.limit ?? "50"), 10);
+  const offsetRaw = Number.parseInt(String(query.offset ?? "0"), 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, limitRaw)) : 50;
+  const offset = Number.isFinite(offsetRaw) ? Math.max(0, offsetRaw) : 0;
+  return { q, limit, offset };
+}
+
+/**
+ * Paginated profile list for staff. **Admin or developer** (read-only use for developers on the web UI).
+ */
+router.get("/users", requireAuth, requireAppRole("admin", "developer"), async (req, res, next) => {
+  try {
+    const { q, limit, offset } = parseListQuery(req.query);
+
+    let qb = supabaseAdmin
+      .from("profiles")
+      .select("id, email, app_role, license_active, created_at", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (q) qb = qb.ilike("email", `%${q}%`);
+
+    const { data, error, count } = await qb;
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({
+      data: {
+        users: data ?? [],
+        total: count ?? 0,
+        limit,
+        offset,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 /**
  * Change another user’s `app_role`. **Admin only.** Billing is unchanged (`license_active`).
  */
