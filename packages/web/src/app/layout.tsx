@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${GeistSans.className} ${GeistMono.variable} min-h-screen bg-background bg-mesh text-foreground`}
       >
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );
