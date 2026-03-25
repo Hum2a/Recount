@@ -1,21 +1,23 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `009`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `010`).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
-### PostgREST security model (after `005`)
+### PostgREST security model (after `010`)
 
 | Table | RLS | JWT client (`authenticated`) | API (`service_role`) |
 |-------|-----|------------------------------|----------------------|
-| `profiles` | On | `SELECT` own row only (`profiles_select_own` + `GRANT SELECT`) | Full |
-| `intentions` | On | No policies → no access | Full |
-| `tab_events` | On | No policies → no access | Full |
-| `reports` | On | No policies → no access | Full |
-| `payments` | On | No policies → no access | Full |
-| `login_events` | On | No policies → no access | Full |
+| `profiles` | On | `SELECT` own row **or** all rows if `app_role` ∈ `admin`,`developer` (`profiles_select_own_or_staff`) | Full |
+| `intentions` | On | `SELECT` own rows **or** all if elevated staff (`intentions_select_own_or_staff` + `GRANT SELECT`) | Full |
+| `tab_events` | On | Same pattern (`tab_events_select_own_or_staff`) | Full |
+| `reports` | On | Same (`reports_select_own_or_staff`) | Full |
+| `payments` | On | Same (`payments_select_own_or_staff`) | Full |
+| `login_events` | On | Same (`login_events_select_own_or_staff`) | Full |
 
-**Classification:** `profiles` = **S1** (user read own); other app tables = **S0** (service only). See `.cursor/rules/supabase-security.mdc` when adding tables.
+**Helper (`010`):** `public.current_user_is_elevated_staff()` — `SECURITY DEFINER`, reads only `profiles` where `id = auth.uid()` to test `app_role`; avoids RLS recursion. **`EXECUTE`** granted to `authenticated` and `service_role`; revoked from `PUBLIC`.
+
+**Writes:** No `INSERT`/`UPDATE`/`DELETE` policies for `authenticated` on these tables — mutations stay on the **Express API** (service role). See `.cursor/rules/supabase-security.mdc` when adding tables.
 
 ---
 
@@ -62,7 +64,7 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 
 All **`008`** survey columns are **voluntary**: no signup or in-app step requires them; defaults are null / empty.
 
-**RLS:** enabled. **Policy (after `004`):** `profiles_select_own` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id)` only. **`GRANT` (after `005`):** `REVOKE`d from `PUBLIC`; `GRANT SELECT` to `authenticated`; `service_role` has full privileges. Clients cannot `UPDATE` their own row via PostgREST; profile updates go through the API.
+**RLS:** enabled. **Policy (after `010`):** `profiles_select_own_or_staff` — `FOR SELECT` `TO authenticated` `USING (auth.uid() = id OR current_user_is_elevated_staff())`. **`GRANT` (after `005`/`010`):** `REVOKE`d from `PUBLIC`; `GRANT SELECT` to `authenticated`; `service_role` has full privileges. No client `UPDATE`/`INSERT`/`DELETE` via PostgREST; profile updates go through the API.
 
 ---
 
@@ -80,7 +82,7 @@ Password (API) login and signup audit rows (`008`).
 | `user_agent` | TEXT | Truncated client UA |
 | `ip_hash` | TEXT | Optional SHA-256 when `LOGIN_AUDIT_SALT` is set |
 
-**RLS:** enabled. **S0** — no JWT policies; `REVOKE ALL` from `PUBLIC`; `GRANT ALL` to `service_role`.
+**RLS:** enabled. **`authenticated`:** `login_events_select_own_or_staff` (`SELECT` own or all if elevated staff); `GRANT SELECT` (`010`). **`service_role`:** full from `008`.
 
 **Indexes:** `idx_login_events_user_occurred`, `idx_login_events_occurred`.
 
@@ -106,7 +108,7 @@ Daily goals per user.
 
 **Constraints:** `UNIQUE(user_id, date)`.
 
-**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
+**RLS:** enabled. **`authenticated`:** `intentions_select_own_or_staff` (`SELECT`); `GRANT SELECT` (`010`). **`GRANT`:** `service_role` full from `005`.
 
 **Index:** `idx_intentions_user_date (user_id, date)`.
 
@@ -132,7 +134,7 @@ Browser activity segments. `date` and `duration_sec` are set by trigger (not gen
 
 **Trigger:** `tab_events_derive_fields` `BEFORE INSERT OR UPDATE` → sets `date` (UTC date of `start_time`) and `duration_sec` from `start_time`/`end_time`.
 
-**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
+**RLS:** enabled. **`authenticated`:** `tab_events_select_own_or_staff` (`SELECT`); `GRANT SELECT` (`010`).
 
 **Indexes:** `idx_tab_events_user_date (user_id, date)`, `idx_tab_events_domain (domain)`.
 
@@ -158,7 +160,7 @@ Per-user daily AI report.
 
 **Constraints:** `UNIQUE(user_id, date)`.
 
-**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
+**RLS:** enabled. **`authenticated`:** `reports_select_own_or_staff` (`SELECT`); `GRANT SELECT` (`010`).
 
 **Index:** `idx_reports_user_date (user_id, date)`.
 
@@ -178,7 +180,7 @@ Stripe payment records.
 | `status`            | TEXT        | —       | NOT NULL |
 | `created_at`        | TIMESTAMPTZ | `now()` | |
 
-**RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
+**RLS:** enabled. **`authenticated`:** `payments_select_own_or_staff` (`SELECT`); `GRANT SELECT` (`010`).
 
 ---
 

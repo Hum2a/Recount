@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`**, optional **`006`**, **`007`**, optional **`008`** (survey + **`login_events`** + **`admin_audience_dashboard`**), optional **`009_admin_analytics_timeseries.sql`** (**`admin_analytics_timeseries`** RPC for staff trend charts).
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`** (JWT **`SELECT`** own rows + admin/developer **`SELECT`** all on core tables; writes still via API).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 

@@ -21,6 +21,7 @@ Use these labels in migration comments and update `.cursor/database-schema.md`.
 |-------|---------|---------------------|
 | **S0 — service_only** | No direct client access; API (and triggers/`SECURITY DEFINER`) only | `ENABLE ROW LEVEL SECURITY`, **no** policies for `authenticated` / `anon`; `REVOKE ALL … FROM PUBLIC`; `GRANT ALL … TO service_role` |
 | **S1 — user_select_own** | User may read own rows only (e.g. nav, profile preview) | RLS `SELECT` with `auth.uid() = user_id` (or `= id` for profiles); `GRANT SELECT` to `authenticated` only; no client `INSERT`/`UPDATE`/`DELETE` unless product requires it |
+| **S1b — user_select_own_staff_select_all** | Same as S1, plus **`admin` / `developer`** may `SELECT` all rows (staff tools, Supabase client) | `USING (auth.uid() = user_id OR current_user_is_elevated_staff())` — implement staff branch via **`SECURITY DEFINER`** helper that reads only `profiles` for `auth.uid()` (see `010_rls_select_own_or_staff.sql`); never trust JWT custom claims alone |
 | **S2 — user_crud_own** | User may CRUD own rows (rare if API owns writes) | Split policies per command (`SELECT` / `INSERT` / `UPDATE` / `DELETE`) with `USING` and `WITH CHECK`; **avoid** a single `FOR ALL` on tables with sensitive columns |
 | **S3 — staff** | Admin/developer sees other users’ data | Prefer **API + service role** (current admin routes), not broad `authenticated` RLS. If you must use RLS for staff, use a secure role claim pattern and document it; never trust client-supplied role without server verification |
 
@@ -40,4 +41,4 @@ Use these labels in migration comments and update `.cursor/database-schema.md`.
 
 ## Reference migrations
 
-Apply SQL in order: `001` → `009`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments**, **`login_events`** are **S0** (API-only for JWT clients). **`006`** adds optional RPC `admin_tab_event_summary`. **`007`** adds profile prefs and `tab_events.focus_session_id`. **`008`** adds optional profile survey columns, **`login_events`**, and RPC **`admin_audience_dashboard`**. **`009`** adds RPC **`admin_analytics_timeseries`** (daily staff chart data).
+Apply SQL in order: `001` → `010`. **`010`** adds **`current_user_is_elevated_staff()`** and **`SELECT`** RLS **S1b** on `profiles`, `intentions`, `tab_events`, `reports`, `payments`, **`login_events`** (own row or staff sees all; writes still API-only). Earlier: **`004`/`005`** profiles `SELECT` + revokes; **`006`**–**`009`** per `database-schema.md`.
