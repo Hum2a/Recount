@@ -1,6 +1,6 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `005`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `006`).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
@@ -86,6 +86,8 @@ Browser activity segments. `date` and `duration_sec` are set by trigger (not gen
 **RLS:** enabled. **Policies for `authenticated`:** none after `005` (API-only). **`GRANT`:** `REVOKE`d from `PUBLIC`; `service_role` has full privileges.
 
 **Indexes:** `idx_tab_events_user_date (user_id, date)`, `idx_tab_events_domain (domain)`.
+
+**RPC (optional, `006_admin_tab_event_summary.sql`):** `public.admin_tab_event_summary(...)` — filtered aggregates for the admin Activity tab (counts, total duration, distinct days, top domains, category list). Called by the API with the **service role**; if not deployed, the API falls back to a sampled aggregate.
 
 ---
 

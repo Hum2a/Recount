@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { adminApi } from "./admin-fetch";
 
@@ -15,6 +15,17 @@ type TabEvent = {
   date: string;
 };
 
+type ActivitySummary = {
+  event_count: number;
+  total_duration_sec: number;
+  completed_duration_rows: number;
+  distinct_days: number;
+  avg_duration_sec: number | null;
+  top_domains: { domain: string; duration_sec: number }[];
+  categories: string[];
+  stats_incomplete?: boolean;
+};
+
 type Props = {
   userId: string;
   canManage: boolean;
@@ -26,6 +37,17 @@ const inputClass =
 
 const limit = 40;
 
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "start_time_desc", label: "Start time · newest first" },
+  { value: "start_time_asc", label: "Start time · oldest first" },
+  { value: "duration_desc", label: "Duration · longest first" },
+  { value: "duration_asc", label: "Duration · shortest first" },
+  { value: "domain_asc", label: "Domain · A → Z" },
+  { value: "domain_desc", label: "Domain · Z → A" },
+  { value: "date_desc", label: "Calendar day · newest first" },
+  { value: "date_asc", label: "Calendar day · oldest first" },
+];
+
 function fmtTime(iso: string) {
   try {
     return new Date(iso).toLocaleString();
@@ -34,21 +56,88 @@ function fmtTime(iso: string) {
   }
 }
 
+function formatDuration(sec: number) {
+  if (!Number.isFinite(sec) || sec <= 0) return "0 min";
+  if (sec < 60) return `${Math.round(sec)}s`;
+  const m = Math.floor(sec / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return `${h}h ${rm}m`;
+}
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [d, setD] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setD(value), ms);
+    return () => window.clearTimeout(t);
+  }, [value, ms]);
+  return d;
+}
+
 export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props) {
   const [rows, setRows] = useState<TabEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [domainInput, setDomainInput] = useState("");
+  const debouncedDomain = useDebounced(domainInput, 320);
+  const [category, setCategory] = useState("");
+  const [minMinutes, setMinMinutes] = useState("");
+  const [sort, setSort] = useState("start_time_desc");
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ActivitySummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  const filterParams = useMemo(() => {
+    const p = new URLSearchParams();
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
+    if (debouncedDomain.trim()) p.set("domain", debouncedDomain.trim());
+    if (category) p.set("category", category);
+    const mm = minMinutes.trim();
+    if (mm !== "") {
+      const n = Number.parseInt(mm, 10);
+      if (Number.isFinite(n) && n > 0) p.set("min_duration_sec", String(n * 60));
+    }
+    return p;
+  }, [from, to, debouncedDomain, category, minMinutes]);
+
+  const listParamsBase = useMemo(() => {
+    const p = new URLSearchParams(filterParams);
+    p.set("sort", sort);
+    return p;
+  }, [filterParams, sort]);
+
+  const fetchSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const res = await adminApi(`/api/admin/users/${userId}/tab-events/summary?${filterParams}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSummaryError(typeof body.error === "string" ? body.error : "Could not load analytics.");
+        setSummary(null);
+        return;
+      }
+      const data = body.data as ActivitySummary | undefined;
+      setSummary(data ?? null);
+    } catch {
+      setSummaryError("Could not load analytics.");
+      setSummary(null);
+    }
+    setSummaryLoading(false);
+  }, [userId, filterParams]);
 
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {
-      const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-      if (from) params.set("from", from);
-      if (to) params.set("to", to);
-      const res = await adminApi(`/api/admin/users/${userId}/tab-events?${params}`);
+      const p = new URLSearchParams(listParamsBase);
+      p.set("limit", String(limit));
+      p.set("offset", String(offset));
+      const res = await adminApi(`/api/admin/users/${userId}/tab-events?${p}`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(typeof body.error === "string" ? body.error : "Could not load activity.");
@@ -61,8 +150,12 @@ export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props
       if (append) setRows((prev) => [...prev, ...list]);
       else setRows(list);
     },
-    [userId, from, to]
+    [userId, listParamsBase]
   );
+
+  useEffect(() => {
+    void fetchSummary();
+  }, [fetchSummary]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +167,7 @@ export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props
     return () => {
       cancelled = true;
     };
-  }, [userId, from, to, fetchPage]);
+  }, [userId, fetchPage]);
 
   async function loadMore() {
     if (rows.length >= total || loadingMore) return;
@@ -94,7 +187,7 @@ export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props
       }
       onDataChanged();
       setLoading(true);
-      await fetchPage(0, false);
+      await Promise.all([fetchPage(0, false), fetchSummary()]);
       setLoading(false);
     } catch {
       setError("Could not delete.");
@@ -102,12 +195,27 @@ export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props
   }
 
   const hasMore = rows.length < total;
+  const maxTopSec = useMemo(() => {
+    const t = summary?.top_domains ?? [];
+    return t.reduce((m, x) => Math.max(m, x.duration_sec), 0);
+  }, [summary]);
+
+  function clearFilters() {
+    setFrom("");
+    setTo("");
+    setDomainInput("");
+    setCategory("");
+    setMinMinutes("");
+    setSort("start_time_desc");
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <p className="text-sm text-muted">
-        Raw browser time segments from the extension. Usually you only need this for corrections or privacy requests.
+        Raw browser time segments from the extension. Use filters and analytics to spot patterns; edit or delete rows for
+        corrections or privacy requests.
       </p>
+
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm text-muted">
           From
@@ -117,12 +225,151 @@ export function AdminUserActivityTab({ userId, canManage, onDataChanged }: Props
           To
           <input type="date" className={inputClass} value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
+        <label className="text-sm text-muted min-w-[140px] flex-1">
+          Domain contains
+          <input
+            className={inputClass}
+            value={domainInput}
+            onChange={(e) => setDomainInput(e.target.value)}
+            placeholder="e.g. github"
+          />
+        </label>
+        <label className="text-sm text-muted min-w-[160px]">
+          Category
+          <select
+            className={inputClass}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            disabled={summaryLoading && !summary}
+          >
+            <option value="">All categories</option>
+            {(summary?.categories ?? []).map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-muted w-[120px]">
+          Min minutes
+          <input
+            type="number"
+            min={1}
+            max={1440}
+            className={inputClass}
+            value={minMinutes}
+            onChange={(e) => setMinMinutes(e.target.value)}
+            placeholder="Any"
+          />
+        </label>
+        <label className="text-sm text-muted min-w-[220px] flex-1">
+          Sort table by
+          <select className={inputClass} value={sort} onChange={(e) => setSort(e.target.value)}>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button type="button" variant="secondary" className="mt-6 shrink-0" onClick={clearFilters}>
+          Clear filters
+        </Button>
       </div>
 
-      {loading && <p className="text-sm text-muted">Loading…</p>}
+      {summaryError && (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          {summaryError}
+        </p>
+      )}
+
+      {summaryLoading && !summary && (
+        <p className="text-sm text-muted">Loading analytics for this range…</p>
+      )}
+
+      {summary && (
+        <>
+          {summary.stats_incomplete && (
+            <p className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
+              Analytics are from a sample of events (run migration{" "}
+              <code className="text-foreground/90">006_admin_tab_event_summary.sql</code> in Supabase for full accuracy on
+              very large accounts).
+            </p>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Tracked time</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {formatDuration(summary.total_duration_sec)}
+              </p>
+              <p className="mt-1 text-xs text-muted">Sum of completed segment lengths in this filter</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Segments</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {summary.event_count.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-muted">Rows matching filters</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Active days</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{summary.distinct_days}</p>
+              <p className="mt-1 text-xs text-muted">Distinct calendar days with activity</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Avg segment</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {summary.avg_duration_sec != null ? formatDuration(summary.avg_duration_sec) : "—"}
+              </p>
+              <p className="mt-1 text-xs text-muted">Among rows with a duration</p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-sm font-medium text-foreground">Top domains by time</h3>
+              <span className="text-xs text-muted">Share of tracked time in this range</span>
+            </div>
+            {summary.top_domains.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No completed segments with duration in this range.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {summary.top_domains.map((t) => {
+                  const pct = maxTopSec > 0 ? Math.min(100, Math.round((t.duration_sec / maxTopSec) * 100)) : 0;
+                  const share =
+                    summary.total_duration_sec > 0
+                      ? Math.round((t.duration_sec / summary.total_duration_sec) * 100)
+                      : 0;
+                  return (
+                    <li key={t.domain}>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="truncate font-medium text-foreground">{t.domain || "(empty)"}</span>
+                        <span className="shrink-0 text-muted">
+                          {formatDuration(t.duration_sec)}
+                          {share > 0 && <span className="text-muted/80"> · {share}% of total</span>}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-accent/85 transition-[width] duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+
+      {loading && <p className="text-sm text-muted">Loading table…</p>}
       {error && <p className="text-sm text-red-300">{error}</p>}
 
-      {!loading && rows.length === 0 && !error && <p className="text-sm text-muted">No activity in this range.</p>}
+      {!loading && rows.length === 0 && !error && (
+        <p className="text-sm text-muted">No activity rows match these filters.</p>
+      )}
 
       {rows.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-white/10">

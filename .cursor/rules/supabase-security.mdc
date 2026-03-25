@@ -40,4 +40,4 @@ Use these labels in migration comments and update `.cursor/database-schema.md`.
 
 ## Reference migrations
 
-Apply SQL in order: `001` → `005`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments** are **S0** after `005`.
+Apply SQL in order: `001` → `006`. **Profiles** client access is **`profiles_select_own`** (`004`) plus **`GRANT SELECT`** only (`005`). **intentions**, **tab_events**, **reports**, **payments** are **S0** after `005`. **`006`** adds optional RPC `admin_tab_event_summary` for admin analytics.

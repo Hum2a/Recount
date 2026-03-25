@@ -68,7 +68,7 @@ Promote your first admin in Supabase → SQL:
 
 `UPDATE public.profiles SET app_role = 'admin' WHERE email = 'you@example.com';`
 
-The **`developer`** role is reserved for future staff-only tools; only **`admin`** can change others’ roles via the API today.
+The **`developer`** role matches **`admin`** for staff API and portal access; pick either for operators vs engineering.
 
 ### Staff dashboard (web)
 
