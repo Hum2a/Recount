@@ -14,7 +14,7 @@
 ## Setup
 
 1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`** … **`004_profiles_rls_select_only.sql`** (JWT **SELECT**-only on `profiles`), then **`005_rls_least_privilege_grants.sql`** (app data tables **service-only** for JWTs; table **`GRANT`**s aligned with RLS).
+2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: **`001_init.sql`** … **`004_profiles_rls_select_only.sql`** (JWT **SELECT**-only on `profiles`), then **`005_rls_least_privilege_grants.sql`** (app data tables **service-only** for JWTs; table **`GRANT`**s aligned with RLS), then optional **`006_admin_tab_event_summary.sql`** (exact activity aggregates for large accounts).
 3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
 4. `npm install`
 
@@ -51,6 +51,7 @@ If the build fails with **`ENOSPC`**, free disk space (and delete `packages/web/
 - `GET /health`
 - `POST /api/auth/signup|login|refresh`
 - `POST /api/events/batch`, `GET /api/events/summary`
+- `GET /api/events/me/activity/summary`, `GET /api/events/me/activity/segments`, `DELETE /api/events/me/activity/segments/:eventId` — **your own** tab events; **free plan**: date range clamped to **last 7 UTC days** (like `GET /api/events/summary`)
 - `POST /api/intentions`, `GET /api/intentions/:date`
 - `POST /api/reports/generate`, `GET /api/reports/history`, `GET /api/reports/:date`
 - `GET /api/profiles/me`, `PATCH /api/profiles`

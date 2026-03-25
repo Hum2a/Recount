@@ -4,6 +4,14 @@ import { classifyDomain } from "@recount/shared";
 import { supabaseAdmin } from "../db/client.js";
 import { requireAuth, userHasLicense } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
+import {
+  parseTabEventFilters,
+  parseTabEventSort,
+  buildFilteredTabEventsSelect,
+  parseTabEventPagination,
+  fetchTabEventSummary,
+  applyFreeTierActivityWindow,
+} from "../lib/tab-event-activity.js";
 
 const router = Router();
 
@@ -110,6 +118,67 @@ router.get("/summary", requireAuth, validate(summaryQuery, "query"), async (req,
         domains,
       },
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * Your own activity analytics (same aggregates as staff Activity tab). Free plan: last 7 UTC days only.
+ */
+router.get("/me/activity/summary", requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const licensed = await userHasLicense(userId);
+    let filters = parseTabEventFilters(req.query);
+    filters = applyFreeTierActivityWindow(filters, licensed);
+    const data = await fetchTabEventSummary(userId, filters);
+    return res.json({
+      data,
+      meta: { license_active: licensed, activity_history_days: licensed ? null : 7 },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Paginated tab segments for the signed-in user (filters + sort). Free plan: last 7 UTC days only. */
+router.get("/me/activity/segments", requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const licensed = await userHasLicense(userId);
+    let filters = parseTabEventFilters(req.query);
+    filters = applyFreeTierActivityWindow(filters, licensed);
+    const { limit, offset } = parseTabEventPagination(req.query, 40, 150);
+    const sort = parseTabEventSort(req.query);
+
+    const { data, error, count } = await buildFilteredTabEventsSelect(userId, filters, "*", { count: "exact" })
+      .order(sort.column, { ascending: sort.ascending })
+      .range(offset, offset + limit - 1);
+
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ data: { tab_events: data ?? [], total: count ?? 0, limit, offset } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Delete one of your own tab events (e.g. privacy cleanup). */
+router.delete("/me/activity/segments/:eventId", requireAuth, async (req, res, next) => {
+  try {
+    const eventId = req.params.eventId;
+    if (!z.string().uuid().safeParse(eventId).success) {
+      return res.status(400).json({ error: "Invalid event id" });
+    }
+    const { data, error } = await supabaseAdmin
+      .from("tab_events")
+      .delete()
+      .eq("id", eventId)
+      .eq("user_id", req.user.id)
+      .select("id");
+    if (error) return res.status(400).json({ error: error.message });
+    if (!data?.length) return res.status(404).json({ error: "Not found" });
+    return res.status(204).send();
   } catch (e) {
     next(e);
   }

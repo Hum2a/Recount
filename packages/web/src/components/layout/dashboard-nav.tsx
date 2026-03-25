@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const baseLinks = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/activity", label: "Activity" },
   { href: "/dashboard/reports", label: "Reports" },
   { href: "/dashboard/history", label: "History" },
   { href: "/dashboard/settings", label: "Settings" },
