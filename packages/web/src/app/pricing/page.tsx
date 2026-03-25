@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { AppMark } from "@/components/brand/app-mark";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Button } from "@/components/ui/button";
 import { AnimatedCard } from "@/components/motion/animated-card";
+import { createClient } from "@/lib/supabase/server";
 import { PricingCheckout } from "./pricing-checkout";
 import { PricingFeatureTable } from "./pricing-feature-table";
 
@@ -9,21 +11,34 @@ type Props = {
   searchParams: Record<string, string | string[] | undefined>;
 };
 
-export default function PricingPage({ searchParams }: Props) {
+export default async function PricingPage({ searchParams }: Props) {
   const cancelled = searchParams.payment === "cancelled";
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <AppMark href="/" />
-        <div className="flex flex-wrap gap-3">
-          <Link href="/login">
-            <Button variant="ghost">Sign in</Button>
-          </Link>
-          <Link href="/signup">
-            <Button>Get started</Button>
-          </Link>
-        </div>
+        {user ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="ghost">Dashboard</Button>
+            </Link>
+            <SignOutButton />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            <Link href="/login?next=%2Fpricing">
+              <Button variant="ghost">Sign in</Button>
+            </Link>
+            <Link href="/signup">
+              <Button>Get started</Button>
+            </Link>
+          </div>
+        )}
       </header>
 
       {cancelled && (
@@ -51,9 +66,9 @@ export default function PricingPage({ searchParams }: Props) {
             Core tracking and dashboard access. Activity and exports are limited to a rolling <strong className="text-foreground/90">7 UTC-day</strong> window (see table below).
           </p>
           <div className="mt-8">
-            <Link href="/signup">
+            <Link href={user ? "/dashboard" : "/signup"}>
               <Button variant="secondary" className="w-full">
-                Start free
+                {user ? "Open dashboard" : "Start free"}
               </Button>
             </Link>
           </div>
