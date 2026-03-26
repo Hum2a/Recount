@@ -4,9 +4,13 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "dev:api": "npm run dev -w @recount/api",
+    "dev:api:worker": "npm run dev -w @recount/api-worker",
     "dev:web": "npm run dev -w @recount/web",
     "build": "npm run build --workspaces --if-present",
-    "build:extension": "npm run build -w @recount/extension"
+    "build:extension": "npm run build -w @recount/extension",
+    "deploy:web:cf": "npm run deploy -w @recount/web",
+    "deploy:api:cf": "npm run deploy -w @recount/api-worker",
+    "deploy:cf": "npm run deploy:api:cf && npm run deploy:web:cf"
   },
   "engines": {
     "node": ">=20"
