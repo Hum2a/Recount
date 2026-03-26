@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Recount",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Honest productivity tracking with AI accountability reports.",
   "permissions": [
     "tabs",

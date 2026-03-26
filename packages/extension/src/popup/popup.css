@@ -324,6 +324,21 @@ button.ghost:hover {
 .msg.msg--ok.msg--flash {
   filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.35));
 }
+
+.app-version {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: rgba(161, 161, 170, 0.75);
+  user-select: none;
+}
+
+.app-version:empty {
+  display: none;
+}
+
 hr {
   border: none;
   border-top: 1px solid #27272a;

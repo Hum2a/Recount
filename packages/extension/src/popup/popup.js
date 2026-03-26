@@ -19,6 +19,16 @@ let lastPaymentsExtras = null;
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
+(() => {
+  const el = $("app-version");
+  if (!el) return;
+  try {
+    el.textContent = `v${chrome.runtime.getManifest().version}`;
+  } catch {
+    el.textContent = "";
+  }
+})();
+
 function persistActiveTab(tabId) {
   void chrome.storage.session.set({ [SESSION_POPUP_LAST_TAB]: tabId });
 }

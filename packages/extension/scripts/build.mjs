@@ -45,7 +45,9 @@ cpSync(join(root, "src/popup/popup.css"), join(dist, "popup/popup.css"));
 cpSync(join(root, "content/eod-nudge.js"), join(dist, "content/eod-nudge.js"));
 cpSync(join(root, "icons"), join(dist, "icons"), { recursive: true });
 
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const manifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
+if (typeof pkg.version === "string") manifest.version = pkg.version;
 manifest.background = { service_worker: "background.js", type: "module" };
 manifest.action.default_popup = "popup/index.html";
 manifest.options_page = "options/index.html";

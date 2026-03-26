@@ -52,6 +52,15 @@ async function load() {
   }
   blocked.value = Array.isArray(s.blockedDomains) ? s.blockedDomains.join("\n") : "";
   await refreshTrackingStatus();
+
+  const verEl = document.getElementById("options-version");
+  if (verEl) {
+    try {
+      verEl.textContent = `v${chrome.runtime.getManifest().version}`;
+    } catch {
+      verEl.textContent = "";
+    }
+  }
 }
 
 document.getElementById("save").addEventListener("click", async () => {

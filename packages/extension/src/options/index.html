@@ -69,6 +69,17 @@
         display: block;
         margin-bottom: 4px;
       }
+      .options-version {
+        margin: 20px 0 0;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.03em;
+        color: #a1a1aa;
+        user-select: none;
+      }
+      .options-version:empty {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -117,6 +128,7 @@
     </p>
     <button type="button" id="save">Save</button>
     <p id="status"></p>
+    <p id="options-version" class="options-version" aria-hidden="true"></p>
     <script type="module" src="options.js"></script>
   </body>
 </html>
