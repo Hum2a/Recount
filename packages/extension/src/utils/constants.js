@@ -24,5 +24,14 @@ export const PREFS_ALARM = "recount_prefs_sync";
 /** { channel, installType, updatedAt } — see install-context.js */
 export const STORAGE_INSTALL_META = "recount_install_meta";
 
+/** Last batch upload outcome for popup trust UI: { lastFlushOk, lastError?, lastAt? } */
+export const STORAGE_SYNC_STATUS = "recount_sync_status";
+
+/** Popup-only prefs: { dateMode?: 'profile'|'local'|'utc' } */
+export const STORAGE_POPUP_PREFS = "recount_popup_prefs";
+
+/** Remember last popup tab between opens (MV3 session storage key in popup). */
+export const SESSION_POPUP_LAST_TAB = "recount_popup_last_tab";
+
 /** @deprecated use DEFAULT_API_URL_LOCAL */
 export const DEFAULT_API_URL = DEFAULT_API_URL_LOCAL;

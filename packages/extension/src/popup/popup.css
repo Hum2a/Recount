@@ -276,6 +276,123 @@ button.inline-link {
 .tight-top {
   margin-top: 8px;
 }
+
+.team-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  font-size: 12px;
+}
+.upgrade-hint {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(147, 51, 234, 0.08);
+  border: 1px solid rgba(147, 51, 234, 0.28);
+}
+.upgrade-hint-copy {
+  margin: 0;
+  line-height: 1.45;
+}
+.current-tab-card {
+  margin-bottom: 10px;
+}
+.current-tab-summary {
+  margin: 0;
+  min-height: 2.8em;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+.status-recording {
+  color: #86efac;
+}
+.status-blocked {
+  color: #fca5a5;
+}
+.status-skipped {
+  color: #fde047;
+}
+.your-day-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.your-day-line {
+  margin: 0;
+  line-height: 1.4;
+}
+.date-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.date-mode-label select {
+  flex: 1;
+  max-width: 140px;
+  margin: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  color: #fafafa;
+}
+.intentions-preview-block {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+.intentions-preview {
+  margin: 4px 0 0;
+}
+.sync-hint {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  line-height: 1.35;
+}
+.pom-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.pom-custom-row input {
+  width: 64px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.pom-control-row {
+  margin-top: 6px;
+}
+.kb-hint {
+  margin: -4px 0 8px;
+  font-size: 10px;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+.kb-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+}
 .preview-hint {
   margin: 8px 0 6px;
 }

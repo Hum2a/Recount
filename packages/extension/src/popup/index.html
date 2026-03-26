@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="wrap">
+    <main class="wrap" tabindex="-1">
       <div class="brand-row">
         <img src="../icons/48.png" width="40" height="40" alt="" class="brand-icon" />
         <h1>Recount</h1>
@@ -46,9 +46,41 @@
             Dev
           </button>
         </nav>
+        <p class="muted kb-hint">Tabs: <kbd>←</kbd> <kbd>→</kbd> or number keys <kbd>1</kbd>–<kbd>5</kbd> (when focus isn’t in a field).</p>
 
         <div class="tab-panels">
           <section class="tab-panel" data-tab-panel="today" role="tabpanel">
+            <div id="team-strip" class="team-strip" hidden>
+              <span id="team-strip-label" class="muted"></span>
+              <button type="button" id="open-team-btn" class="inline">Leaderboard</button>
+            </div>
+            <div id="free-upgrade-hint" class="upgrade-hint" hidden>
+              <p class="muted upgrade-hint-copy">
+                AI reports and full history are on the web — unlock when you’re ready.
+              </p>
+              <button type="button" id="unlock-inline-btn" class="secondary tight-top">Unlock full access</button>
+            </div>
+            <div class="settings-card current-tab-card">
+              <p class="settings-card-title">Active tab</p>
+              <p id="current-tab-summary" class="current-tab-summary mono-lines">—</p>
+            </div>
+            <div class="your-day-row">
+              <p id="your-day-line" class="muted your-day-line"></p>
+              <label class="date-mode-label muted">
+                Day label
+                <select id="date-display-mode" title="Which timezone to use for ‘your day’">
+                  <option value="profile">Profile</option>
+                  <option value="local">This PC</option>
+                  <option value="utc">UTC</option>
+                </select>
+              </label>
+            </div>
+            <div id="intentions-preview-block" class="intentions-preview-block" hidden>
+              <p class="settings-card-title">Today’s intentions</p>
+              <p id="intentions-preview" class="intentions-preview mono-lines"></p>
+            </div>
+            <p id="sync-hint" class="sync-hint muted" hidden></p>
+
             <div class="popup-actions" role="group" aria-label="Open web app">
               <button type="button" id="open-dashboard-btn" class="half">Dashboard</button>
               <button type="button" id="open-reports-btn" class="half">Reports</button>
@@ -87,7 +119,16 @@
                 <button type="button" class="tiny" data-pom-min="25">25m</button>
                 <button type="button" class="tiny" data-pom-min="50">50m</button>
               </div>
-              <button type="button" id="pomodoro-stop" class="secondary">Stop timer</button>
+              <label class="pom-custom-row muted">
+                Custom (minutes)
+                <input type="number" id="pom-custom-min" min="1" max="180" value="25" />
+              </label>
+              <button type="button" id="pomodoro-start-custom" class="secondary">Start custom</button>
+              <div class="pomodoro-btns pom-control-row">
+                <button type="button" id="pomodoro-pause" class="tiny secondary" hidden>Pause</button>
+                <button type="button" id="pomodoro-resume" class="tiny secondary" hidden>Resume</button>
+              </div>
+              <button type="button" id="pomodoro-stop" class="ghost">Stop timer</button>
             </div>
           </section>
 

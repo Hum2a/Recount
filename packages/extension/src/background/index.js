@@ -5,6 +5,7 @@ import {
   STORAGE_INTENT_CACHE,
   STORAGE_INTENT_NUDGES,
   PREFS_ALARM,
+  STORAGE_SYNC_STATUS,
 } from "../utils/constants.js";
 import { classifyDomain } from "../utils/domain-classify.js";
 import { getLocal, setLocal } from "../utils/storage.js";
@@ -215,9 +216,26 @@ async function flushEvents(events) {
     body: JSON.stringify({ events }),
   });
   if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    await setLocal({
+      [STORAGE_SYNC_STATUS]: {
+        lastFlushOk: false,
+        lastError: errText.trim().slice(0, 300) || `HTTP ${res.status}`,
+        lastAt: Date.now(),
+      },
+    });
     const prev = (await getLocal(STORAGE_BUFFER)) ?? [];
     await setLocal({ [STORAGE_BUFFER]: prev.concat(events) });
+    return;
   }
+  const rest = (await getLocal(STORAGE_BUFFER)) ?? [];
+  await setLocal({
+    [STORAGE_SYNC_STATUS]: {
+      lastFlushOk: true,
+      lastAt: Date.now(),
+      queuedCount: Array.isArray(rest) ? rest.length : 0,
+    },
+  });
 }
 
 function scheduleFlushAlarm() {
@@ -303,6 +321,7 @@ chrome.runtime.onStartup.addListener(() => {
   chrome.idle.setDetectionInterval(180);
   void syncInstallMetadata();
   void syncProfilePrefs();
+  void bootstrapActiveTab();
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -329,6 +348,41 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       await chrome.alarms.clear(POMODORO_ALARM);
       chrome.alarms.create(POMODORO_ALARM, { when: endMs });
       sendResponse({ ok: true, sessionId, endMs });
+    })();
+    return true;
+  }
+  if (msg?.type === "pomodoro-pause") {
+    void (async () => {
+      const p = await getLocal(STORAGE_POMODORO, {});
+      if (!p.sessionId || p.pausedRemainingSec != null) {
+        sendResponse({ ok: false });
+        return;
+      }
+      if (!p.endMs || Date.now() >= Number(p.endMs)) {
+        sendResponse({ ok: false });
+        return;
+      }
+      const remainingMs = Number(p.endMs) - Date.now();
+      const pausedRemainingSec = Math.max(1, Math.ceil(remainingMs / 1000));
+      await setLocal({ [STORAGE_POMODORO]: { sessionId: p.sessionId, pausedRemainingSec } });
+      await chrome.alarms.clear(POMODORO_ALARM);
+      sendResponse({ ok: true, pausedRemainingSec });
+    })();
+    return true;
+  }
+  if (msg?.type === "pomodoro-resume") {
+    void (async () => {
+      const p = await getLocal(STORAGE_POMODORO, {});
+      if (!p.sessionId || p.pausedRemainingSec == null) {
+        sendResponse({ ok: false });
+        return;
+      }
+      const sec = Number(p.pausedRemainingSec);
+      const endMs = Date.now() + Math.max(1, sec) * 1000;
+      await setLocal({ [STORAGE_POMODORO]: { sessionId: p.sessionId, endMs } });
+      await chrome.alarms.clear(POMODORO_ALARM);
+      chrome.alarms.create(POMODORO_ALARM, { when: endMs });
+      sendResponse({ ok: true, endMs });
     })();
     return true;
   }

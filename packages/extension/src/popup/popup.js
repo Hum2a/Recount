@@ -1,10 +1,17 @@
 import { saveSession, clearSession, getSession } from "../utils/auth.js";
 import { apiFetch } from "../utils/api-client.js";
-import { STORAGE_BUFFER, STORAGE_INSTALL_META, STORAGE_SETTINGS } from "../utils/constants.js";
+import {
+  STORAGE_BUFFER,
+  STORAGE_INSTALL_META,
+  STORAGE_SETTINGS,
+  STORAGE_SYNC_STATUS,
+  STORAGE_POPUP_PREFS,
+  SESSION_POPUP_LAST_TAB,
+} from "../utils/constants.js";
 import { installChannelLabel, syncInstallMetadata } from "../utils/install-context.js";
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
-import { getLocal } from "../utils/storage.js";
+import { getLocal, setLocal } from "../utils/storage.js";
 import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
 
 /** @type {Record<string, unknown> | null} */
@@ -12,7 +19,27 @@ let lastPaymentsExtras = null;
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
-function setActiveTab(tabId) {
+function persistActiveTab(tabId) {
+  void chrome.storage.session.set({ [SESSION_POPUP_LAST_TAB]: tabId });
+}
+
+async function getPersistedTab() {
+  try {
+    const o = await chrome.storage.session.get(SESSION_POPUP_LAST_TAB);
+    const v = o[SESSION_POPUP_LAST_TAB];
+    return typeof v === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function orderedVisibleTabs() {
+  return [...document.querySelectorAll(".tab-btn:not([hidden])")]
+    .map((b) => b.getAttribute("data-tab"))
+    .filter(Boolean);
+}
+
+function activateTab(tabId) {
   for (const btn of document.querySelectorAll(".tab-btn")) {
     const active = btn.getAttribute("data-tab") === tabId;
     btn.classList.toggle("is-active", active);
@@ -22,6 +49,193 @@ function setActiveTab(tabId) {
     const active = panel.getAttribute("data-tab-panel") === tabId;
     /** @type {HTMLElement} */ (panel).hidden = !active;
   }
+  persistActiveTab(tabId);
+}
+
+function setActiveTab(tabId) {
+  activateTab(tabId);
+}
+
+function tabUrlForPopup(tab) {
+  if (!tab) return null;
+  return tab.pendingUrl || tab.url || null;
+}
+
+function shouldSkipUrlPopup(url) {
+  if (!url) return true;
+  if (url.startsWith("chrome://") || url.startsWith("chrome-extension://") || url.startsWith("about:")) return true;
+  try {
+    const u = new URL(url);
+    return u.protocol !== "http:" && u.protocol !== "https:";
+  } catch {
+    return true;
+  }
+}
+
+function domainFromUrlPopup(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./i, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+function isBlockedPopup(hostname, blocked) {
+  const h = (hostname || "").toLowerCase();
+  return blocked.some((b) => h === b || h.endsWith(`.${b}`));
+}
+
+async function getDateDisplayMode() {
+  const p = await getLocal(STORAGE_POPUP_PREFS, {});
+  const m = p.dateMode;
+  if (m === "local" || m === "utc" || m === "profile") return m;
+  return "profile";
+}
+
+async function saveDateDisplayMode(/** @type {'profile'|'local'|'utc'} */ mode) {
+  const prev = await getLocal(STORAGE_POPUP_PREFS, {});
+  await setLocal({ [STORAGE_POPUP_PREFS]: { ...prev, dateMode: mode } });
+}
+
+async function updateYourDayLine(profileTz) {
+  const line = $("your-day-line");
+  if (!line) return;
+  const mode = await getDateDisplayMode();
+  const select = /** @type {HTMLSelectElement | null} */ ($("date-display-mode"));
+  if (select) select.value = mode;
+  const now = new Date();
+  const tz =
+    mode === "utc"
+      ? "UTC"
+      : mode === "local"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : profileTz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  let formatted;
+  try {
+    formatted = new Intl.DateTimeFormat(undefined, {
+      timeZone: tz === "UTC" ? "UTC" : tz,
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(now);
+  } catch {
+    formatted = new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(now);
+  }
+  line.textContent = `Your day: ${formatted} · Summaries use UTC date ${todayUtc()}`;
+}
+
+async function refreshCurrentTabSummary() {
+  const el = $("current-tab-summary");
+  if (!el) return;
+  if (!(await hasTrackingHostAccess())) {
+    el.textContent = "Skipped — allow site access (above) to record tab time.";
+    el.className = "current-tab-summary mono-lines status-skipped";
+    return;
+  }
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const tab = tabs[0];
+  const url = tabUrlForPopup(tab);
+  if (!url) {
+    el.textContent = "No page URL yet (new tab, loading, or restricted).";
+    el.className = "current-tab-summary mono-lines status-skipped";
+    return;
+  }
+  if (shouldSkipUrlPopup(url)) {
+    const short = url.length > 56 ? `${url.slice(0, 56)}…` : url;
+    el.textContent = `Skipped — not an http(s) page.\n${short}`;
+    el.className = "current-tab-summary mono-lines status-skipped";
+    return;
+  }
+  const settings = await getLocal(STORAGE_SETTINGS, {});
+  const blocked = Array.isArray(settings.blockedDomains) ? settings.blockedDomains.map(String) : [];
+  const domain = domainFromUrlPopup(url);
+  if (!domain) {
+    el.textContent = "Could not read domain.";
+    el.className = "current-tab-summary mono-lines status-skipped";
+    return;
+  }
+  if (isBlockedPopup(domain, blocked)) {
+    el.textContent = `Blocked — ${domain} is in your extension block list.`;
+    el.className = "current-tab-summary mono-lines status-blocked";
+    return;
+  }
+  const sendTitles = settings.sendTabTitles !== false;
+  const rawTitle = tab?.title ? String(tab.title).trim() : "";
+  const titlePart = sendTitles && rawTitle ? `\n${rawTitle.slice(0, 100)}${rawTitle.length > 100 ? "…" : ""}` : "\nTitles hidden (Account → privacy).";
+  el.textContent = `Recording · ${domain}${titlePart}`;
+  el.className = "current-tab-summary mono-lines status-recording";
+}
+
+async function loadIntentionsPreview() {
+  const block = $("intentions-preview-block");
+  const pre = $("intentions-preview");
+  if (!block || !pre) return;
+  const res = await apiFetch(`/api/intentions/${todayUtc()}`);
+  const body = await res.json().catch(() => ({}));
+  const goals = body.data?.goals;
+  if (!Array.isArray(goals) || goals.length === 0) {
+    block.hidden = true;
+    return;
+  }
+  const lines = [];
+  for (const g of goals) {
+    const s = String(g).trim();
+    if (s) lines.push(`· ${s}`);
+  }
+  if (lines.length === 0) {
+    block.hidden = true;
+    return;
+  }
+  let text = lines.slice(0, 6).join("\n");
+  if (lines.length > 6) text += `\n… +${lines.length - 6} more`;
+  pre.textContent = text;
+  block.hidden = false;
+}
+
+async function updateSyncHint() {
+  const el = $("sync-hint");
+  if (!el) return;
+  const rawBuf = await getLocal(STORAGE_BUFFER);
+  const buf = Array.isArray(rawBuf) ? rawBuf : [];
+  const st = await getLocal(STORAGE_SYNC_STATUS, {});
+  const parts = [];
+  if (buf.length > 0) {
+    parts.push(`Queued: ${buf.length} event(s) — use “Upload queued tab time”.`);
+  }
+  if (st.lastFlushOk === false && st.lastError) {
+    parts.push(`Last upload failed: ${String(st.lastError).slice(0, 140)}`);
+  }
+  if (parts.length === 0) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.textContent = parts.join(" ");
+}
+
+function updateTeamStrip(teamSlug) {
+  const strip = $("team-strip");
+  if (!strip) return;
+  const label = $("team-strip-label");
+  if (!teamSlug) {
+    strip.hidden = true;
+    return;
+  }
+  strip.hidden = false;
+  if (label) label.textContent = `Team · ${teamSlug}`;
+}
+
+function updateFreeUpgradeHint(licensed) {
+  const el = $("free-upgrade-hint");
+  if (el) el.hidden = licensed;
 }
 
 function todayUtc() {
@@ -130,20 +344,37 @@ function clearPomodoroTick() {
 
 function updatePomodoroDisplay() {
   const status = $("pomodoro-status");
+  const pauseBtn = /** @type {HTMLButtonElement | null} */ ($("pomodoro-pause"));
+  const resumeBtn = /** @type {HTMLButtonElement | null} */ ($("pomodoro-resume"));
   if (!status) return;
   chrome.runtime.sendMessage({ type: "pomodoro-state" }, (p) => {
     if (chrome.runtime.lastError) {
       status.textContent = "—";
+      if (pauseBtn) pauseBtn.hidden = true;
+      if (resumeBtn) resumeBtn.hidden = true;
+      return;
+    }
+    const pausedSec = p?.pausedRemainingSec != null ? Number(p.pausedRemainingSec) : null;
+    if (pausedSec != null && Number.isFinite(pausedSec)) {
+      const mm = Math.floor(pausedSec / 60);
+      const ss = pausedSec % 60;
+      status.textContent = `Paused · ${mm}:${String(ss).padStart(2, "0")} left`;
+      if (pauseBtn) pauseBtn.hidden = true;
+      if (resumeBtn) resumeBtn.hidden = false;
       return;
     }
     if (!p?.endMs || Date.now() >= Number(p.endMs)) {
       status.textContent = "No active timer.";
+      if (pauseBtn) pauseBtn.hidden = true;
+      if (resumeBtn) resumeBtn.hidden = true;
       return;
     }
     const left = Math.max(0, Math.ceil((Number(p.endMs) - Date.now()) / 1000));
     const mm = Math.floor(left / 60);
     const ss = left % 60;
     status.textContent = `Focus: ${mm}:${String(ss).padStart(2, "0")}`;
+    if (pauseBtn) pauseBtn.hidden = false;
+    if (resumeBtn) resumeBtn.hidden = true;
   });
 }
 
@@ -171,6 +402,9 @@ function openExtensionOptions() {
   chrome.runtime.openOptionsPage(() => void chrome.runtime.lastError);
 }
 
+/**
+ * @returns {Promise<{ profileTimezone: string | null; teamSlug: string | null }>}
+ */
 async function loadAccountPanel() {
   const api = await getResolvedApiBase();
   const web = await getResolvedWebBase();
@@ -202,7 +436,7 @@ async function loadAccountPanel() {
     if (emailEl) emailEl.textContent = "—";
     const dc = $("acct-distraction-count");
     if (dc) dc.textContent = "—";
-    return;
+    return { profileTimezone: null, teamSlug: null };
   }
   const p = body.data;
   if (emailEl) emailEl.textContent = p.email ?? "—";
@@ -217,6 +451,13 @@ async function loadAccountPanel() {
   const dist = Array.isArray(p.distraction_domains) ? p.distraction_domains.length : 0;
   const dc = $("acct-distraction-count");
   if (dc) dc.textContent = String(dist);
+
+  const profileTimezone =
+    typeof p.timezone === "string" && p.timezone.trim() ? String(p.timezone).trim() : null;
+  const rawSlug = typeof p.team_slug === "string" ? p.team_slug.trim().toLowerCase() : "";
+  const teamSlug = rawSlug.length >= 2 ? rawSlug : null;
+
+  return { profileTimezone, teamSlug };
 }
 
 /**
@@ -237,6 +478,7 @@ async function patchProfileField(partial) {
   chrome.runtime.sendMessage({ type: "prefs-sync-now" }, () => void chrome.runtime.lastError);
   setMsg("Saved.", true);
   await loadAccountPanel();
+  void refreshCurrentTabSummary();
   return true;
 }
 
@@ -323,7 +565,6 @@ async function refreshUI() {
   if (session?.access_token) {
     auth.hidden = true;
     app.hidden = false;
-    setActiveTab("today");
     const res = await apiFetch("/api/payments/status");
     const body = await res.json().catch(() => ({}));
     lastPaymentsExtras = body.data && typeof body.data === "object" ? body.data : null;
@@ -354,11 +595,24 @@ async function refreshUI() {
     }
     const unlockBtn = $("unlock-btn");
     if (unlockBtn) unlockBtn.hidden = licensed;
-    await loadAccountPanel();
+    updateFreeUpgradeHint(licensed);
+    const { profileTimezone, teamSlug } = await loadAccountPanel();
+    await updateYourDayLine(profileTimezone);
+    updateTeamStrip(teamSlug);
+    const remembered = await getPersistedTab();
+    const visible = orderedVisibleTabs();
+    let initial = "today";
+    if (remembered && visible.includes(remembered)) initial = /** @type {string} */ (remembered);
+    activateTab(initial);
+    if (initial === "dev") void refreshDevPanelStats();
     await loadTodayActivityPreview();
     await loadStreaks();
     if (licensed) await loadTodayReportPreview();
+    await loadIntentionsPreview();
+    await refreshCurrentTabSummary();
+    await updateSyncHint();
     startPomodoroTick();
+    /** @type {HTMLElement | null} */ (document.querySelector(".wrap"))?.focus();
   } else {
     lastPaymentsExtras = null;
     clearPomodoroTick();
@@ -381,6 +635,7 @@ $("grant-tracking-btn")?.addEventListener("click", async () => {
     return;
   }
   await updateTrackingPromptVisibility();
+  await refreshCurrentTabSummary();
 });
 
 $("open-web-login-btn")?.addEventListener("click", () => {
@@ -397,6 +652,8 @@ $("open-reports-btn")?.addEventListener("click", () => {
 
 $("refresh-activity-btn")?.addEventListener("click", async () => {
   await loadTodayActivityPreview();
+  await refreshCurrentTabSummary();
+  await updateSyncHint();
 });
 
 $("generate-report-btn")?.addEventListener("click", async () => {
@@ -426,6 +683,7 @@ $("flush-now-btn")?.addEventListener("click", () => {
       return;
     }
     setMsg(r?.ok ? "Uploaded." : "Upload failed.", Boolean(r?.ok));
+    void updateSyncHint();
   });
 });
 
@@ -544,7 +802,8 @@ $("save-goals").addEventListener("click", async () => {
     setMsg(body.error || "Could not save");
     return;
   }
-  setMsg("Intentions saved.", true);
+  setMsg(`Saved · ${goals.length} goal(s).`, true);
+  await loadIntentionsPreview();
 });
 
 $("goals")?.addEventListener("focus", async () => {
@@ -554,9 +813,10 @@ $("goals")?.addEventListener("focus", async () => {
   const intBody = await intRes.json().catch(() => ({}));
   const goals = intBody.data?.goals;
   t.value = Array.isArray(goals) ? goals.join("\n") : "";
+  await loadIntentionsPreview();
 });
 
-$("unlock-btn").addEventListener("click", async () => {
+async function startUnlockCheckout() {
   setMsg("");
   const res = await apiFetch("/api/payments/create-session", {
     method: "POST",
@@ -569,6 +829,16 @@ $("unlock-btn").addEventListener("click", async () => {
     return;
   }
   chrome.tabs.create({ url });
+}
+
+$("unlock-btn").addEventListener("click", () => {
+  void startUnlockCheckout();
+});
+$("unlock-inline-btn")?.addEventListener("click", () => {
+  void startUnlockCheckout();
+});
+$("open-team-btn")?.addEventListener("click", () => {
+  void openWebPath("/dashboard/team");
 });
 
 $("logout-btn").addEventListener("click", async () => {
@@ -597,10 +867,51 @@ $("pomodoro-stop")?.addEventListener("click", () => {
 for (const btn of document.querySelectorAll(".tab-btn")) {
   btn.addEventListener("click", () => {
     const tab = btn.getAttribute("data-tab") || "today";
-    setActiveTab(tab);
+    activateTab(tab);
     if (tab === "dev") void refreshDevPanelStats();
   });
 }
+
+$("date-display-mode")?.addEventListener("change", async (e) => {
+  const sel = /** @type {HTMLSelectElement} */ (e.target);
+  const v = sel.value;
+  if (v === "profile" || v === "local" || v === "utc") {
+    await saveDateDisplayMode(v);
+    const { profileTimezone } = await loadAccountPanel();
+    await updateYourDayLine(profileTimezone);
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
+  const tabs = orderedVisibleTabs();
+  if (tabs.length === 0) return;
+  const currentBtn = document.querySelector(".tab-btn.is-active");
+  const current = currentBtn?.getAttribute("data-tab");
+  const idx = current ? tabs.indexOf(current) : 0;
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    const next = tabs[(idx + 1) % tabs.length];
+    activateTab(next);
+    if (next === "dev") void refreshDevPanelStats();
+    return;
+  }
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    const next = tabs[(idx - 1 + tabs.length) % tabs.length];
+    activateTab(next);
+    if (next === "dev") void refreshDevPanelStats();
+    return;
+  }
+  const num = Number(e.key);
+  if (num >= 1 && num <= Math.min(5, tabs.length)) {
+    e.preventDefault();
+    const next = tabs[num - 1];
+    activateTab(next);
+    if (next === "dev") void refreshDevPanelStats();
+  }
+});
 
 $("dev-refresh-stats")?.addEventListener("click", () => {
   void refreshDevPanelStats();
