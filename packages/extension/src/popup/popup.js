@@ -333,6 +333,8 @@ async function refreshUI() {
     const licensed = hasLicense || privileged;
     const devTabBtn = $("tab-btn-dev");
     if (devTabBtn) devTabBtn.hidden = !privileged;
+    const connectionCard = $("acct-connection-card");
+    if (connectionCard) connectionCard.hidden = role !== "developer";
     $("welcome").textContent = licensed
       ? "Signed in — full access."
       : "Signed in — free plan (7-day history, no AI reports).";
