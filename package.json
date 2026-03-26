@@ -8,8 +8,9 @@
     "dev:web": "npm run dev -w @recount/web",
     "build": "npm run build --workspaces --if-present",
     "build:extension": "npm run build -w @recount/extension",
-    "deploy:web:cf": "npm run deploy -w @recount/web",
-    "deploy:api:cf": "npm run deploy -w @recount/api-worker",
+    "sync:cf:env": "node scripts/sync-cf-env.mjs",
+    "deploy:web:cf": "node scripts/deploy-web-cf.mjs",
+    "deploy:api:cf": "node scripts/deploy-api-cf.mjs",
     "deploy:cf": "node scripts/deploy-cf.mjs"
   },
   "engines": {

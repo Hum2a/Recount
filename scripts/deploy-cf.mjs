@@ -15,6 +15,13 @@ function run(command, args, opts = {}) {
 }
 
 async function main() {
+  const shouldSync = process.env.SKIP_CF_ENV_SYNC !== "1";
+  if (shouldSync) {
+    await run("npm", ["run", "sync:cf:env"]);
+  } else {
+    console.log("Skipping Cloudflare env sync (SKIP_CF_ENV_SYNC=1).");
+  }
+
   await run("npm", ["run", "deploy:api:cf"]);
 
   const forceWindowsWebDeploy = process.env.FORCE_WINDOWS_WEB_DEPLOY === "1";

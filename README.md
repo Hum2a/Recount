@@ -32,6 +32,7 @@ npm run dev:api     # default :3001 — requires valid API .env
 npm run dev:api:worker   # Cloudflare Worker API local dev
 npm run dev:web     # :3000
 npm run build:extension   # output: packages/extension/dist
+npm run sync:cf:env
 npm run deploy:web:cf
 npm run deploy:api:cf
 npm run deploy:cf   # API worker, then web worker (web auto-skipped on Windows unless forced)

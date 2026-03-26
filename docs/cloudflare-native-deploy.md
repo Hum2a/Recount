@@ -40,6 +40,7 @@ npm run deploy:web:cf
 npm run dev:api:worker
 npm run deploy:api:cf
 
+npm run sync:cf:env
 npm run deploy:cf
 ```
 
@@ -47,7 +48,13 @@ What they call:
 
 - `deploy:web:cf` -> `@recount/web` script `deploy` (`opennext build` + `wrangler deploy`)
 - `deploy:api:cf` -> `@recount/api-worker` script `deploy` (`wrangler deploy`)
-- `deploy:cf` -> deploy API Worker, then deploy web when runtime supports it
+- `sync:cf:env` -> push env values from local `.env` files to Cloudflare Worker secrets
+- `deploy:cf` -> sync env, deploy API Worker, then deploy web when runtime supports it
+
+`deploy:cf` behavior toggles:
+
+- `SKIP_CF_ENV_SYNC=1` -> skip secret sync step
+- `FORCE_WINDOWS_WEB_DEPLOY=1` -> attempt web deploy on Windows anyway (normally blocked)
 
 ## 2.1) GitHub Actions deploy (recommended for Windows users)
 
@@ -86,6 +93,8 @@ The web package is wired for OpenNext Cloudflare:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_API_URL` (your API worker URL, e.g. `https://api.yourdomain.com`)
 
+Local sync source for these keys: `packages/web/.env.local` (`npm run sync:cf:env`).
+
 ---
 
 ## 4) Configure API worker (`packages/api-worker`)
@@ -108,6 +117,8 @@ Set as secrets/vars for `recount-api`:
 - `WEB_URL` (web origin)
 - `ALLOWED_ORIGINS` (comma-separated, include web origin and extension origin when needed)
 - `DIGEST_JOB_SECRET` (optional, secret)
+
+Local sync source for these keys: `packages/api/.env` (`npm run sync:cf:env`).
 
 Example secret set:
 
