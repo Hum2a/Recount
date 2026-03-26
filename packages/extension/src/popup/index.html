@@ -29,35 +29,71 @@
       </section>
       <section id="app-section" hidden>
         <p class="muted" id="welcome"></p>
-        <div class="popup-actions" role="group" aria-label="Open web app">
-          <button type="button" id="open-dashboard-btn" class="half">Dashboard</button>
-          <button type="button" id="open-reports-btn" class="half">Reports</button>
+        <nav class="tabs" role="tablist" aria-label="Recount popup tabs">
+          <button type="button" class="tab-btn is-active" data-tab="today" role="tab" aria-selected="true">
+            Today
+          </button>
+          <button type="button" class="tab-btn" data-tab="intentions" role="tab" aria-selected="false">
+            Intentions
+          </button>
+          <button type="button" class="tab-btn" data-tab="timer" role="tab" aria-selected="false">
+            Timer
+          </button>
+          <button type="button" class="tab-btn" data-tab="account" role="tab" aria-selected="false">
+            Account
+          </button>
+        </nav>
+
+        <div class="tab-panels">
+          <section class="tab-panel" data-tab-panel="today" role="tabpanel">
+            <div class="popup-actions" role="group" aria-label="Open web app">
+              <button type="button" id="open-dashboard-btn" class="half">Dashboard</button>
+              <button type="button" id="open-reports-btn" class="half">Reports</button>
+            </div>
+            <p class="muted preview-hint">Full history, charts, and AI reports open in your browser (same account).</p>
+            <div id="activity-preview" class="activity-preview">
+              <div class="activity-preview-head">
+                <span>Today (UTC)</span>
+                <button type="button" id="refresh-activity-btn" class="inline">Refresh</button>
+              </div>
+              <pre id="activity-preview-body" class="activity-preview-body"></pre>
+            </div>
+            <p id="streak-row" class="streak-row muted" hidden></p>
+            <div class="report-preview">
+              <div class="activity-preview-head">
+                <span>AI report</span>
+                <button type="button" id="generate-report-btn" class="inline">Generate</button>
+              </div>
+              <pre id="report-preview-body" class="activity-preview-body"></pre>
+            </div>
+            <button type="button" id="flush-now-btn" class="secondary">Upload queued tab time now</button>
+          </section>
+
+          <section class="tab-panel" data-tab-panel="intentions" role="tabpanel" hidden>
+            <label>Today’s goals (one per line)</label>
+            <textarea id="goals" rows="6" placeholder="Ship the API&#10;Deep work block"></textarea>
+            <button type="button" id="save-goals">Save intentions</button>
+          </section>
+
+          <section class="tab-panel" data-tab-panel="timer" role="tabpanel" hidden>
+            <div class="pomodoro-block">
+              <p class="muted pomodoro-label">Focus timer (tags tab events while running)</p>
+              <p id="pomodoro-status" class="pomodoro-status muted">—</p>
+              <div class="pomodoro-btns">
+                <button type="button" class="tiny" data-pom-min="5">5m</button>
+                <button type="button" class="tiny" data-pom-min="25">25m</button>
+                <button type="button" class="tiny" data-pom-min="50">50m</button>
+              </div>
+              <button type="button" id="pomodoro-stop" class="secondary">Stop timer</button>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-tab-panel="account" role="tabpanel" hidden>
+            <button type="button" id="sync-prefs-btn" class="secondary">Sync settings from server</button>
+            <button type="button" id="unlock-btn" class="secondary">Unlock full access (Stripe)</button>
+            <button type="button" id="logout-btn" class="ghost">Sign out</button>
+          </section>
         </div>
-        <p class="muted preview-hint">Full history, charts, and AI reports open in your browser (same account).</p>
-        <div id="activity-preview" class="activity-preview">
-          <div class="activity-preview-head">
-            <span>Today (UTC)</span>
-            <button type="button" id="refresh-activity-btn" class="inline">Refresh</button>
-          </div>
-          <pre id="activity-preview-body" class="activity-preview-body"></pre>
-        </div>
-        <p id="streak-row" class="streak-row muted" hidden></p>
-        <div class="pomodoro-block">
-          <p class="muted pomodoro-label">Focus timer (tags tab events while running)</p>
-          <p id="pomodoro-status" class="pomodoro-status muted">—</p>
-          <div class="pomodoro-btns">
-            <button type="button" class="tiny" data-pom-min="5">5m</button>
-            <button type="button" class="tiny" data-pom-min="25">25m</button>
-            <button type="button" class="tiny" data-pom-min="50">50m</button>
-          </div>
-          <button type="button" id="pomodoro-stop" class="secondary">Stop timer</button>
-        </div>
-        <label>Today’s goals (one per line)</label>
-        <textarea id="goals" rows="4" placeholder="Ship the API&#10;Deep work block"></textarea>
-        <button type="button" id="save-goals">Save intentions</button>
-        <hr />
-        <button type="button" id="unlock-btn" class="secondary">Unlock full access (Stripe)</button>
-        <button type="button" id="logout-btn" class="ghost">Sign out</button>
       </section>
       <p id="msg" class="msg" role="status"></p>
     </main>

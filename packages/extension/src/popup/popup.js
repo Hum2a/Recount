@@ -9,6 +9,18 @@ import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/trackin
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
+function setActiveTab(tabId) {
+  for (const btn of document.querySelectorAll(".tab-btn")) {
+    const active = btn.getAttribute("data-tab") === tabId;
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+  for (const panel of document.querySelectorAll("[data-tab-panel]")) {
+    const active = panel.getAttribute("data-tab-panel") === tabId;
+    /** @type {HTMLElement} */ (panel).hidden = !active;
+  }
+}
+
 function todayUtc() {
   const d = new Date();
   return d.toISOString().slice(0, 10);
@@ -58,6 +70,27 @@ async function loadTodayActivityPreview() {
     if (domains.length > 8) lines.push(`  … +${domains.length - 8} more`);
   }
   pre.textContent = lines.join("\n");
+}
+
+async function loadTodayReportPreview() {
+  const pre = /** @type {HTMLPreElement} */ ($("report-preview-body"));
+  if (!pre) return;
+  pre.textContent = "Open Reports on the web, or generate here.";
+  const date = todayUtc();
+  const res = await apiFetch(`/api/reports/${encodeURIComponent(date)}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    pre.textContent = body?.error || "Could not load report.";
+    return;
+  }
+  const d = body.data;
+  if (!d) {
+    pre.textContent = "No report yet for today.";
+    return;
+  }
+  const score = typeof d.score === "number" ? `Score: ${d.score}/100` : "Score: —";
+  const summary = String(d.ai_summary ?? "").trim();
+  pre.textContent = summary ? `${score}\n\n${summary}` : score;
 }
 
 function setMsg(text, ok = false) {
@@ -140,19 +173,18 @@ async function refreshUI() {
   if (session?.access_token) {
     auth.hidden = true;
     app.hidden = false;
+    setActiveTab("today");
     const res = await apiFetch("/api/payments/status");
     const body = await res.json().catch(() => ({}));
     const licensed = body.data?.license_active;
     $("welcome").textContent = licensed
       ? "Signed in — full access."
       : "Signed in — free plan (7-day history, no AI reports).";
-
-    const intRes = await apiFetch(`/api/intentions/${todayUtc()}`);
-    const intBody = await intRes.json().catch(() => ({}));
-    const goals = intBody.data?.goals;
-    $("goals").value = Array.isArray(goals) ? goals.join("\n") : "";
+    const genBtn = $("generate-report-btn");
+    if (genBtn) genBtn.hidden = !licensed;
     await loadTodayActivityPreview();
     await loadStreaks();
+    if (licensed) await loadTodayReportPreview();
     startPomodoroTick();
   } else {
     clearPomodoroTick();
@@ -191,6 +223,47 @@ $("open-reports-btn")?.addEventListener("click", () => {
 
 $("refresh-activity-btn")?.addEventListener("click", async () => {
   await loadTodayActivityPreview();
+});
+
+$("generate-report-btn")?.addEventListener("click", async () => {
+  setMsg("");
+  const pre = /** @type {HTMLPreElement} */ ($("report-preview-body"));
+  if (pre) pre.textContent = "Generating… (this can take ~10–30s)";
+  const date = todayUtc();
+  const res = await apiFetch("/api/reports/generate", {
+    method: "POST",
+    body: JSON.stringify({ date }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (pre) pre.textContent = body?.error || "Could not generate.";
+    setMsg(body?.error || "Could not generate report.");
+    return;
+  }
+  setMsg("Report generated.", true);
+  await loadTodayReportPreview();
+});
+
+$("flush-now-btn")?.addEventListener("click", () => {
+  setMsg("");
+  chrome.runtime.sendMessage({ type: "flush-now" }, (r) => {
+    if (chrome.runtime.lastError) {
+      setMsg("Could not upload right now.");
+      return;
+    }
+    setMsg(r?.ok ? "Uploaded." : "Upload failed.", Boolean(r?.ok));
+  });
+});
+
+$("sync-prefs-btn")?.addEventListener("click", () => {
+  setMsg("");
+  chrome.runtime.sendMessage({ type: "prefs-sync-now" }, (r) => {
+    if (chrome.runtime.lastError) {
+      setMsg("Could not sync settings.");
+      return;
+    }
+    setMsg(r?.ok ? "Settings synced." : "Sync failed.", Boolean(r?.ok));
+  });
 });
 
 $("login-btn").addEventListener("click", async () => {
@@ -278,6 +351,15 @@ $("save-goals").addEventListener("click", async () => {
   setMsg("Intentions saved.", true);
 });
 
+$("goals")?.addEventListener("focus", async () => {
+  const t = /** @type {HTMLTextAreaElement} */ ($("goals"));
+  if (!t || t.value.trim().length) return;
+  const intRes = await apiFetch(`/api/intentions/${todayUtc()}`);
+  const intBody = await intRes.json().catch(() => ({}));
+  const goals = intBody.data?.goals;
+  t.value = Array.isArray(goals) ? goals.join("\n") : "";
+});
+
 $("unlock-btn").addEventListener("click", async () => {
   setMsg("");
   const res = await apiFetch("/api/payments/create-session", {
@@ -315,5 +397,12 @@ $("pomodoro-stop")?.addEventListener("click", () => {
     updatePomodoroDisplay();
   });
 });
+
+for (const btn of document.querySelectorAll(".tab-btn")) {
+  btn.addEventListener("click", () => {
+    const tab = btn.getAttribute("data-tab") || "today";
+    setActiveTab(tab);
+  });
+}
 
 void refreshUI();

@@ -282,6 +282,20 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === "prefs-sync-now") {
+    void (async () => {
+      await syncProfilePrefs();
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+  if (msg?.type === "flush-now") {
+    void (async () => {
+      await flushPending();
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
   if (msg?.type === "pomodoro-start") {
     const minutes = Math.min(180, Math.max(1, Number(msg.minutes) || 25));
     const sessionId = crypto.randomUUID();

@@ -1,5 +1,5 @@
 /** Unpacked / developer load — default API (override in Options). */
-export const DEFAULT_API_URL_LOCAL = "http://localhost:3001";
+export const DEFAULT_API_URL_LOCAL = "https://recount-api.humzab1711.workers.dev";
 
 /**
  * Production default when installed from the store (Opera/Chrome Web Store).
@@ -8,7 +8,7 @@ export const DEFAULT_API_URL_LOCAL = "http://localhost:3001";
 export const DEFAULT_API_URL_STORE = "https://api.recount.app";
 
 /** Next.js app — open dashboard / reports in the browser (override in Options). */
-export const DEFAULT_WEB_URL_LOCAL = "http://localhost:3000";
+export const DEFAULT_WEB_URL_LOCAL = "https://recount-web.humzab1711.workers.dev";
 
 /** Production web app origin (set to your real site before store publish). */
 export const DEFAULT_WEB_URL_STORE = "https://recount.app";

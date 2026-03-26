@@ -6,7 +6,7 @@ body {
   font: 14px system-ui, sans-serif;
   background: #09090b;
   color: #fafafa;
-  width: 320px;
+  width: 360px;
 }
 .wrap {
   padding: 12px;
@@ -109,6 +109,38 @@ button.half {
   flex: 1;
   margin-top: 0;
 }
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 10px;
+  padding: 6px;
+  border-radius: 10px;
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+.tab-btn {
+  width: auto;
+  flex: 1;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  color: #a1a1aa;
+  font-weight: 700;
+  font-size: 12px;
+}
+.tab-btn.is-active {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.28), rgba(59, 130, 246, 0.14));
+  color: #e5e7eb;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+.tab-panels {
+  min-height: 120px;
+}
+.tab-panel[hidden] {
+  display: none;
+}
 .preview-hint {
   margin: 8px 0 6px;
 }
@@ -118,6 +150,13 @@ button.half {
   border-radius: 8px;
   background: #18181b;
   border: 1px solid #27272a;
+}
+.report-preview {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(147, 51, 234, 0.12), rgba(24, 24, 27, 0.8));
+  border: 1px solid rgba(147, 51, 234, 0.35);
 }
 .activity-preview-head {
   display: flex;
