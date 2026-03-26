@@ -42,6 +42,9 @@
           <button type="button" class="tab-btn" data-tab="account" role="tab" aria-selected="false">
             Account
           </button>
+          <button type="button" class="tab-btn tab-dev" id="tab-btn-dev" data-tab="dev" role="tab" aria-selected="false" hidden>
+            Dev
+          </button>
         </nav>
 
         <div class="tab-panels">
@@ -94,11 +97,69 @@
                 <span class="chip" id="role-chip">Role: —</span>
                 <span class="chip" id="plan-chip">Plan: —</span>
               </div>
+              <p class="muted acct-email-line">Signed in as <strong id="acct-email">—</strong></p>
+              <p class="muted" id="acct-license" hidden></p>
               <p class="muted" id="account-hint"></p>
             </div>
+
+            <div class="settings-card">
+              <p class="settings-card-title">Tracking &amp; privacy</p>
+              <label class="toggle-row">
+                <span>Send page titles with tab events</span>
+                <input type="checkbox" id="acct-send-titles" />
+              </label>
+              <label class="toggle-row">
+                <span>Intent lock (nudge on distraction sites)</span>
+                <input type="checkbox" id="acct-intent-lock" />
+              </label>
+              <p class="muted settings-foot">
+                Distraction sites (server): <span id="acct-distraction-count">—</span>
+                · Blocked (extension): <span id="acct-blocked-count">0</span>
+                ·
+                <button type="button" id="acct-open-options" class="inline-link">Extension options</button>
+              </p>
+            </div>
+
+            <div class="settings-card">
+              <p class="settings-card-title">Email</p>
+              <label class="toggle-row">
+                <span>Weekly digest</span>
+                <input type="checkbox" id="acct-weekly-digest" />
+              </label>
+            </div>
+
+            <div class="settings-card">
+              <p class="settings-card-title">Connection</p>
+              <p class="mono-lines muted"><span id="acct-api-url"></span></p>
+              <p class="mono-lines muted"><span id="acct-web-url"></span></p>
+              <div class="popup-actions">
+                <button type="button" id="open-web-settings-btn" class="half secondary">Web settings</button>
+                <button type="button" id="open-ext-options-btn" class="half secondary">Extension options</button>
+              </div>
+            </div>
+
             <button type="button" id="sync-prefs-btn" class="secondary">Sync settings from server</button>
             <button type="button" id="unlock-btn" class="secondary">Unlock full access (Stripe)</button>
             <button type="button" id="logout-btn" class="ghost">Sign out</button>
+          </section>
+
+          <section class="tab-panel" data-tab-panel="dev" role="tabpanel" hidden>
+            <p class="muted dev-intro">Staff-only: ping integrations and inspect local telemetry.</p>
+            <pre id="dev-stats" class="dev-pre"></pre>
+            <button type="button" id="dev-refresh-stats" class="secondary tight-top">Refresh stats</button>
+            <p class="muted dev-label">Endpoint checks</p>
+            <div class="dev-grid">
+              <button type="button" class="tiny secondary" id="dev-ping-health">Health</button>
+              <button type="button" class="tiny secondary" id="dev-ping-profile">Profile</button>
+              <button type="button" class="tiny secondary" id="dev-ping-payments">Payments</button>
+              <button type="button" class="tiny secondary" id="dev-ping-events">Events</button>
+              <button type="button" class="tiny secondary" id="dev-ping-intentions">Intentions</button>
+              <button type="button" class="tiny secondary" id="dev-ping-reports">Reports</button>
+              <button type="button" class="tiny secondary" id="dev-ping-team">Team</button>
+              <button type="button" class="tiny secondary" id="dev-ping-admin">Admin list</button>
+            </div>
+            <pre id="dev-log" class="dev-pre dev-log"></pre>
+            <button type="button" id="dev-clear-log" class="ghost tight-top">Clear log</button>
           </section>
         </div>
       </section>

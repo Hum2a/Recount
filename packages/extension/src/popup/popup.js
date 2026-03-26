@@ -1,11 +1,14 @@
 import { saveSession, clearSession, getSession } from "../utils/auth.js";
 import { apiFetch } from "../utils/api-client.js";
-import { STORAGE_INSTALL_META } from "../utils/constants.js";
+import { STORAGE_BUFFER, STORAGE_INSTALL_META, STORAGE_SETTINGS } from "../utils/constants.js";
 import { installChannelLabel, syncInstallMetadata } from "../utils/install-context.js";
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
 import { getLocal } from "../utils/storage.js";
 import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
+
+/** @type {Record<string, unknown> | null} */
+let lastPaymentsExtras = null;
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
@@ -164,6 +167,153 @@ async function loadStreaks() {
   row.hidden = false;
 }
 
+function openExtensionOptions() {
+  chrome.runtime.openOptionsPage(() => void chrome.runtime.lastError);
+}
+
+async function loadAccountPanel() {
+  const api = await getResolvedApiBase();
+  const web = await getResolvedWebBase();
+  const apiEl = $("acct-api-url");
+  const webEl = $("acct-web-url");
+  if (apiEl) apiEl.textContent = `API · ${api}`;
+  if (webEl) webEl.textContent = `Web · ${web}`;
+
+  const settings = await getLocal(STORAGE_SETTINGS, {});
+  const blocked = Array.isArray(settings.blockedDomains) ? settings.blockedDomains.length : 0;
+  const bc = $("acct-blocked-count");
+  if (bc) bc.textContent = String(blocked);
+
+  const licEl = $("acct-license");
+  const key = lastPaymentsExtras && typeof lastPaymentsExtras.license_key === "string" ? lastPaymentsExtras.license_key : null;
+  if (licEl) {
+    if (key) {
+      licEl.hidden = false;
+      licEl.textContent = `License key: …${String(key).slice(-10)}`;
+    } else {
+      licEl.hidden = true;
+    }
+  }
+
+  const res = await apiFetch("/api/profiles/me");
+  const body = await res.json().catch(() => ({}));
+  const emailEl = $("acct-email");
+  if (!res.ok || !body.data) {
+    if (emailEl) emailEl.textContent = "—";
+    const dc = $("acct-distraction-count");
+    if (dc) dc.textContent = "—";
+    return;
+  }
+  const p = body.data;
+  if (emailEl) emailEl.textContent = p.email ?? "—";
+
+  const st = /** @type {HTMLInputElement | null} */ ($("acct-send-titles"));
+  if (st) st.checked = p.send_tab_titles !== false;
+  const il = /** @type {HTMLInputElement | null} */ ($("acct-intent-lock"));
+  if (il) il.checked = Boolean(p.intent_lock_enabled);
+  const wd = /** @type {HTMLInputElement | null} */ ($("acct-weekly-digest"));
+  if (wd) wd.checked = Boolean(p.weekly_digest_enabled);
+
+  const dist = Array.isArray(p.distraction_domains) ? p.distraction_domains.length : 0;
+  const dc = $("acct-distraction-count");
+  if (dc) dc.textContent = String(dist);
+}
+
+/**
+ * @param {Record<string, unknown>} partial
+ * @returns {Promise<boolean>}
+ */
+async function patchProfileField(partial) {
+  const res = await apiFetch("/api/profiles", {
+    method: "PATCH",
+    body: JSON.stringify(partial),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setMsg(typeof body.error === "string" ? body.error : "Could not save.");
+    await loadAccountPanel();
+    return false;
+  }
+  chrome.runtime.sendMessage({ type: "prefs-sync-now" }, () => void chrome.runtime.lastError);
+  setMsg("Saved.", true);
+  await loadAccountPanel();
+  return true;
+}
+
+function logDev(message, detail) {
+  const el = $("dev-log");
+  if (!el) return;
+  const tail = detail !== undefined ? `\n${typeof detail === "string" ? detail : JSON.stringify(detail, null, 2)}` : "";
+  const line = `[${new Date().toISOString().slice(11, 19)}] ${message}${tail}\n\n`;
+  el.textContent = (line + el.textContent).slice(0, 6000);
+}
+
+async function refreshDevPanelStats() {
+  const pre = $("dev-stats");
+  if (!pre) return;
+  try {
+    const rawBuf = await getLocal(STORAGE_BUFFER);
+    const buf = Array.isArray(rawBuf) ? rawBuf : [];
+    const tabs = await chrome.tabs.query({});
+    const session = await getSession();
+    const localSettings = await getLocal(STORAGE_SETTINGS, {});
+    const blocked = Array.isArray(localSettings.blockedDomains) ? localSettings.blockedDomains.length : 0;
+    const pom = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "pomodoro-state" }, (p) => resolve(p && typeof p === "object" ? p : {}));
+    });
+    const tracking = await hasTrackingHostAccess();
+    let expiresLine = "Session: no expiry metadata";
+    if (session?.expires_at != null) {
+      const raw = session.expires_at;
+      const expMs = typeof raw === "number" && raw < 1e12 ? raw * 1000 : Number(raw);
+      expiresLine = Number.isFinite(expMs) ? `Session expiry (UTC): ${new Date(expMs).toISOString()}` : "Session: (unparsed expiry)";
+    }
+    const endMs = pom && "endMs" in pom ? Number(pom.endMs) : 0;
+    const pomLine =
+      endMs && Date.now() < endMs ? `Pomodoro ends (UTC): ${new Date(endMs).toISOString()}` : "Pomodoro: inactive";
+    pre.textContent = [
+      `Local event buffer: ${buf.length} queued`,
+      `Open tabs (all windows): ${tabs.length}`,
+      `Blocked domains (extension options): ${blocked}`,
+      `Site access (http/https): ${tracking ? "yes" : "no"}`,
+      expiresLine,
+      pomLine,
+    ].join("\n");
+  } catch (e) {
+    pre.textContent = e instanceof Error ? e.message : "Could not read stats.";
+  }
+}
+
+async function pingHealth() {
+  const base = await getResolvedApiBase();
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${base}/health`);
+    const ms = Math.round(performance.now() - t0);
+    const text = await res.text();
+    logDev(`GET /health → ${res.status} (${ms}ms)`, text.slice(0, 800));
+  } catch (e) {
+    logDev("GET /health failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/**
+ * @param {string} label
+ * @param {string} path
+ * @param {RequestInit} [init]
+ */
+async function pingApiPath(label, path, init) {
+  const t0 = performance.now();
+  try {
+    const res = await apiFetch(path, init ?? { method: "GET" });
+    const ms = Math.round(performance.now() - t0);
+    const text = await res.text();
+    logDev(`${label} → ${res.status} (${ms}ms)`, text.slice(0, 1200));
+  } catch (e) {
+    logDev(`${label} failed`, e instanceof Error ? e.message : String(e));
+  }
+}
+
 async function refreshUI() {
   await updateTrackingPromptVisibility();
   await refreshInstallBadge();
@@ -176,10 +326,13 @@ async function refreshUI() {
     setActiveTab("today");
     const res = await apiFetch("/api/payments/status");
     const body = await res.json().catch(() => ({}));
+    lastPaymentsExtras = body.data && typeof body.data === "object" ? body.data : null;
     const role = String(body.data?.app_role ?? "user");
     const hasLicense = Boolean(body.data?.license_active);
     const privileged = role === "admin" || role === "developer";
     const licensed = hasLicense || privileged;
+    const devTabBtn = $("tab-btn-dev");
+    if (devTabBtn) devTabBtn.hidden = !privileged;
     $("welcome").textContent = licensed
       ? "Signed in — full access."
       : "Signed in — free plan (7-day history, no AI reports).";
@@ -199,11 +352,13 @@ async function refreshUI() {
     }
     const unlockBtn = $("unlock-btn");
     if (unlockBtn) unlockBtn.hidden = licensed;
+    await loadAccountPanel();
     await loadTodayActivityPreview();
     await loadStreaks();
     if (licensed) await loadTodayReportPreview();
     startPomodoroTick();
   } else {
+    lastPaymentsExtras = null;
     clearPomodoroTick();
     auth.hidden = false;
     app.hidden = true;
@@ -280,7 +435,29 @@ $("sync-prefs-btn")?.addEventListener("click", () => {
       return;
     }
     setMsg(r?.ok ? "Settings synced." : "Sync failed.", Boolean(r?.ok));
+    if (r?.ok) void loadAccountPanel();
   });
+});
+
+$("acct-send-titles")?.addEventListener("change", async (e) => {
+  const t = /** @type {HTMLInputElement} */ (e.target);
+  await patchProfileField({ send_tab_titles: t.checked });
+});
+
+$("acct-intent-lock")?.addEventListener("change", async (e) => {
+  const t = /** @type {HTMLInputElement} */ (e.target);
+  await patchProfileField({ intent_lock_enabled: t.checked });
+});
+
+$("acct-weekly-digest")?.addEventListener("change", async (e) => {
+  const t = /** @type {HTMLInputElement} */ (e.target);
+  await patchProfileField({ weekly_digest_enabled: t.checked });
+});
+
+$("acct-open-options")?.addEventListener("click", () => openExtensionOptions());
+$("open-ext-options-btn")?.addEventListener("click", () => openExtensionOptions());
+$("open-web-settings-btn")?.addEventListener("click", () => {
+  void openWebPath("/dashboard/settings");
 });
 
 $("login-btn").addEventListener("click", async () => {
@@ -419,7 +596,40 @@ for (const btn of document.querySelectorAll(".tab-btn")) {
   btn.addEventListener("click", () => {
     const tab = btn.getAttribute("data-tab") || "today";
     setActiveTab(tab);
+    if (tab === "dev") void refreshDevPanelStats();
   });
 }
+
+$("dev-refresh-stats")?.addEventListener("click", () => {
+  void refreshDevPanelStats();
+});
+$("dev-clear-log")?.addEventListener("click", () => {
+  const el = $("dev-log");
+  if (el) el.textContent = "";
+});
+$("dev-ping-health")?.addEventListener("click", () => {
+  void pingHealth();
+});
+$("dev-ping-profile")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/profiles/me", "/api/profiles/me");
+});
+$("dev-ping-payments")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/payments/status", "/api/payments/status");
+});
+$("dev-ping-events")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/events/summary", `/api/events/summary?date=${encodeURIComponent(todayUtc())}`);
+});
+$("dev-ping-intentions")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/intentions", `/api/intentions/${encodeURIComponent(todayUtc())}`);
+});
+$("dev-ping-reports")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/reports/:today", `/api/reports/${encodeURIComponent(todayUtc())}`);
+});
+$("dev-ping-team")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/team/leaderboard", "/api/team/leaderboard");
+});
+$("dev-ping-admin")?.addEventListener("click", () => {
+  void pingApiPath("GET /api/admin/users", "/api/admin/users?limit=3&offset=0");
+});
 
 void refreshUI();
