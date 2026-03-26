@@ -184,69 +184,74 @@ update_release_links_fallback() {
   fi
 }
 
-# Function to generate fallback changelog entry
+# Append git commit bullets for this release (no Python); used by fallback entry
+append_fallback_git_commits() {
+  local previous_tag=$1
+
+  echo "### Changes"
+  if [[ -n "$previous_tag" && "$previous_tag" != "none" ]] && git rev-parse "$previous_tag" >/dev/null 2>&1; then
+    local count
+    count=$(git rev-list --count "${previous_tag}..HEAD" 2>/dev/null || echo 0)
+    if [[ "${count:-0}" -gt 0 ]]; then
+      git log "${previous_tag}..HEAD" --pretty=format:"- %s" --no-merges
+    else
+      echo "- _No commits since ${previous_tag}._"
+    fi
+  else
+    local count
+    count=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+    if [[ "${count:-0}" -gt 0 ]]; then
+      git log --pretty=format:"- %s" --no-merges -n 100
+    else
+      echo "- _No commits found to list._"
+    fi
+  fi
+  echo ""
+  echo "---"
+}
+
+# Function to generate fallback changelog entry (git-backed bullets; no checklist placeholders)
 generate_fallback_changelog_entry() {
   local version=$1
   local date=$2
   local name=$3
-  
+  local previous_tag=$4
+
   # Determine release type and emoji
   local release_type=""
   local emoji=""
-  
-  if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    # Regular version
-    if [[ "$version" =~ ^v[0-9]+\.0\.0$ ]]; then
+
+  if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    # Regular version (suffix like -beta allowed for pre-release block below — keep simple)
+    if [[ "$version" =~ ^v[0-9]+\.0\.0([^0-9].*)?$ ]]; then
       release_type="Major Release"
       emoji="🚀"
-    elif [[ "$version" =~ ^v[0-9]+\.[0-9]+\.0$ ]]; then
+    elif [[ "$version" =~ ^v[0-9]+\.[0-9]+\.0([^0-9].*)?$ ]]; then
       release_type="Minor Release"
       emoji="✨"
-    else
+    elif [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       release_type="Patch Release"
       emoji="🐛"
+    else
+      release_type="Pre-release"
+      emoji="🔧"
     fi
   else
-    # Pre-release version
     release_type="Pre-release"
     emoji="🔧"
   fi
-  
-  # Generate changelog entry
-  cat << EOF
 
-## [$version] - $date
+  echo ""
+  echo "## [$version] - $date"
+  echo ""
+  echo "### $emoji $release_type"
 
-### $emoji $release_type
-EOF
-  
   if [[ -n "$name" ]]; then
-    echo "**Release Name:** $name"
     echo ""
+    echo "**Codename:** $name"
   fi
-  
-  echo "### ✨ Added"
-  echo "- [ ] New features and enhancements"
   echo ""
-  echo "### 🔧 Changed"
-  echo "- [ ] Modified functionality"
-  echo ""
-  echo "### 🐛 Fixed"
-  echo "- [ ] Bug fixes and improvements"
-  echo ""
-  echo "### 🗑️ Removed"
-  echo "- [ ] Deprecated features and cleanup"
-  echo ""
-  echo "### 📚 Documentation"
-  echo "- [ ] Documentation updates"
-  echo ""
-  echo "### 🛡️ Security"
-  echo "- [ ] Security improvements"
-  echo ""
-  echo "### 🚀 Performance"
-  echo "- [ ] Performance optimizations"
-  echo ""
-  echo "---"
+  append_fallback_git_commits "$previous_tag"
 }
 
 # Function to update changelog
@@ -326,14 +331,21 @@ EOF
         rm -f "$smart_changelog_file"
         
         echo "✅ Updated CHANGELOG.md with smart changelog entry at the top"
+        echo "🔗 Updating release links for $version..."
+        if update_release_links_fallback "$version"; then
+          echo "✅ Release links updated successfully"
+        else
+          echo "⚠️  Warning: Could not update release links"
+        fi
         return 0
       fi
     fi
   fi
   
-  # Fallback to template generation if smart changelog fails
-  echo "📝 Using fallback changelog template generation..."
-  local new_entry=$(generate_fallback_changelog_entry "$version" "$date" "$name")
+  # Fallback when smart script fails or did not produce a file
+  echo "📝 Using fallback changelog generation (git log)…"
+  local new_entry
+  new_entry=$(generate_fallback_changelog_entry "$version" "$date" "$name" "$previous_tag")
   
   # Insert the new entry at the top (after the header)
   if [[ -f "$changelog_file" ]]; then
