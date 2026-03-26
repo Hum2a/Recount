@@ -46,6 +46,15 @@ async function main() {
   const apiEnv = parseEnvFile(apiEnvPath);
   const webEnv = parseEnvFile(webEnvPath);
 
+  /** Prefer local files; in CI there is often no .env on disk — use process.env from the runner (e.g. GitHub Actions secrets mapped to env). */
+  function pickEnv(local, key) {
+    const fromFile = local[key];
+    if (fromFile != null && String(fromFile).length > 0) return String(fromFile);
+    const fromProc = process.env[key];
+    if (fromProc != null && String(fromProc).length > 0) return String(fromProc);
+    return null;
+  }
+
   const apiKeys = [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -64,16 +73,18 @@ async function main() {
 
   const webKeys = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_API_URL"];
 
-  console.log("Syncing API worker secrets from packages/api/.env ...");
+  console.log("Syncing API worker secrets (packages/api/.env + process.env) ...");
   for (const key of apiKeys) {
-    if (!apiEnv[key]) continue;
-    await runSecretPut({ configPath: apiWorkerConfig, key, value: apiEnv[key] });
+    const value = pickEnv(apiEnv, key);
+    if (!value) continue;
+    await runSecretPut({ configPath: apiWorkerConfig, key, value });
   }
 
-  console.log("Syncing web worker secrets from packages/web/.env.local ...");
+  console.log("Syncing web worker secrets (packages/web/.env.local + process.env) ...");
   for (const key of webKeys) {
-    if (!webEnv[key]) continue;
-    await runSecretPut({ configPath: webWorkerConfig, key, value: webEnv[key] });
+    const value = pickEnv(webEnv, key);
+    if (!value) continue;
+    await runSecretPut({ configPath: webWorkerConfig, key, value });
   }
 
   console.log("Cloudflare secret sync complete.");
