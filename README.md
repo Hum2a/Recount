@@ -34,6 +34,7 @@ npm run dev:web     # :3000
 npm run build:extension   # output: packages/extension/dist
 npm run sync:cf:env
 npm run deploy:web:cf
+npm run deploy:web:cf:wsl
 npm run deploy:api:cf
 npm run deploy:cf   # API worker, then web worker (web auto-skipped on Windows unless forced)
 ```

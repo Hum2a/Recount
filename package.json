@@ -10,6 +10,7 @@
     "build:extension": "npm run build -w @recount/extension",
     "sync:cf:env": "node scripts/sync-cf-env.mjs",
     "deploy:web:cf": "node scripts/deploy-web-cf.mjs",
+    "deploy:web:cf:wsl": "node scripts/deploy-web-cf-wsl.mjs",
     "deploy:api:cf": "node scripts/deploy-api-cf.mjs",
     "deploy:cf": "node scripts/deploy-cf.mjs"
   },

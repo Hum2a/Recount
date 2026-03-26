@@ -36,6 +36,7 @@ From repo root:
 ```bash
 npm run dev:web
 npm run deploy:web:cf
+npm run deploy:web:cf:wsl
 
 npm run dev:api:worker
 npm run deploy:api:cf
@@ -47,6 +48,7 @@ npm run deploy:cf
 What they call:
 
 - `deploy:web:cf` -> `@recount/web` script `deploy` (`opennext build` + `wrangler deploy`)
+- `deploy:web:cf:wsl` -> run `deploy:web:cf` inside WSL (Windows helper)
 - `deploy:api:cf` -> `@recount/api-worker` script `deploy` (`wrangler deploy`)
 - `sync:cf:env` -> push env values from local `.env` files to Cloudflare Worker secrets
 - `deploy:cf` -> sync env, deploy API Worker, then deploy web when runtime supports it
@@ -55,6 +57,13 @@ What they call:
 
 - `SKIP_CF_ENV_SYNC=1` -> skip secret sync step
 - `FORCE_WINDOWS_WEB_DEPLOY=1` -> attempt web deploy on Windows anyway (normally blocked)
+
+For PowerShell, set env vars like:
+
+```powershell
+$env:FORCE_WINDOWS_WEB_DEPLOY = "1"
+$env:SKIP_CF_ENV_SYNC = "1"
+```
 
 ## 2.1) GitHub Actions deploy (recommended for Windows users)
 
