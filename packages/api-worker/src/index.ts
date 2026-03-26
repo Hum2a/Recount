@@ -12,6 +12,12 @@ import jobsRoutes from "./routes/jobs";
 import adminRoutes from "./routes/admin";
 import type { AppVars } from "./types";
 
+/** Browser `Origin` has no trailing slash; secrets often accidentally include one. */
+function normalizeOrigin(url: string) {
+  const t = url.trim();
+  return t.endsWith("/") ? t.slice(0, -1) : t;
+}
+
 const app = new Hono<{ Bindings: WorkerEnv; Variables: AppVars }>();
 
 app.use("*", async (c, next) => {
@@ -32,9 +38,12 @@ app.use(
   "*",
   cors({
     origin: (origin, c) => {
-      const allow = c.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+      const allow = new Set(
+        c.env.ALLOWED_ORIGINS.split(",").map((o) => normalizeOrigin(o)).filter(Boolean)
+      );
       if (!origin) return "";
-      if (allow.includes(origin)) return origin;
+      const o = normalizeOrigin(origin);
+      if (allow.has(o)) return origin;
       return "";
     },
     allowHeaders: ["Authorization", "Content-Type", "X-Recount-Job-Secret", "Stripe-Signature"],
