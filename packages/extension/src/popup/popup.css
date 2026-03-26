@@ -141,6 +141,32 @@ button.half {
 .tab-panel[hidden] {
   display: none;
 }
+
+.account-meta {
+  margin: 8px 0 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+.account-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #e4e4e7;
+  background: rgba(59, 130, 246, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
 .preview-hint {
   margin: 8px 0 6px;
 }

@@ -89,6 +89,13 @@
           </section>
 
           <section class="tab-panel" data-tab-panel="account" role="tabpanel" hidden>
+            <div class="account-meta">
+              <div class="account-chip-row">
+                <span class="chip" id="role-chip">Role: —</span>
+                <span class="chip" id="plan-chip">Plan: —</span>
+              </div>
+              <p class="muted" id="account-hint"></p>
+            </div>
             <button type="button" id="sync-prefs-btn" class="secondary">Sync settings from server</button>
             <button type="button" id="unlock-btn" class="secondary">Unlock full access (Stripe)</button>
             <button type="button" id="logout-btn" class="ghost">Sign out</button>

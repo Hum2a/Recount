@@ -176,12 +176,29 @@ async function refreshUI() {
     setActiveTab("today");
     const res = await apiFetch("/api/payments/status");
     const body = await res.json().catch(() => ({}));
-    const licensed = body.data?.license_active;
+    const role = String(body.data?.app_role ?? "user");
+    const hasLicense = Boolean(body.data?.license_active);
+    const privileged = role === "admin" || role === "developer";
+    const licensed = hasLicense || privileged;
     $("welcome").textContent = licensed
       ? "Signed in — full access."
       : "Signed in — free plan (7-day history, no AI reports).";
     const genBtn = $("generate-report-btn");
     if (genBtn) genBtn.hidden = !licensed;
+    const roleChip = $("role-chip");
+    if (roleChip) roleChip.textContent = `Role: ${role}`;
+    const planChip = $("plan-chip");
+    if (planChip) planChip.textContent = `Plan: ${licensed ? "full" : "free"}`;
+    const hint = $("account-hint");
+    if (hint) {
+      hint.textContent = privileged
+        ? "Staff access enabled (admin/developer). Some features may be available even without a paid license."
+        : hasLicense
+          ? "License active."
+          : "No active license on this profile.";
+    }
+    const unlockBtn = $("unlock-btn");
+    if (unlockBtn) unlockBtn.hidden = licensed;
     await loadTodayActivityPreview();
     await loadStreaks();
     if (licensed) await loadTodayReportPreview();
