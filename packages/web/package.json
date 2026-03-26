@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cf:build": "opennextjs-cloudflare build",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -22,6 +25,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "0.6.6",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
@@ -30,6 +34,7 @@
     "eslint-config-next": "14.2.28",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "wrangler": "^4.38.0"
   }
 }
