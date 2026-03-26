@@ -18,6 +18,9 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      # OpenNext / Wrangler: resolve package "exports" like Node (avoids wrong subpath builds → runtime fs misses)
+      WRANGLER_BUILD_PLATFORM: node
+      WRANGLER_BUILD_CONDITIONS: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
