@@ -20,6 +20,34 @@ function normalizeOrigin(url: string) {
 
 const app = new Hono<{ Bindings: WorkerEnv; Variables: AppVars }>();
 
+function allowedOriginSet(c: { env: WorkerEnv }) {
+  const fromSecret = (c.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((o) => normalizeOrigin(o))
+    .filter(Boolean);
+  const web = c.env.WEB_URL ? normalizeOrigin(c.env.WEB_URL) : "";
+  return new Set<string>([...fromSecret, ...(web ? [web] : [])]);
+}
+
+/** CORS must run before env validation: otherwise failed validation returns 500 with no ACAO and the browser reports a bogus "CORS" preflight error. */
+app.use(
+  "*",
+  cors({
+    origin: (origin, c) => {
+      const allow = allowedOriginSet(c);
+      if (!origin) return "";
+      const o = normalizeOrigin(origin);
+      if (allow.has(o)) return origin;
+      return "";
+    },
+    allowHeaders: ["Authorization", "Content-Type", "X-Recount-Job-Secret", "Stripe-Signature"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Content-Type"],
+    maxAge: 86400,
+    credentials: true,
+  })
+);
+
 app.use("*", async (c, next) => {
   const parsed = envSchema.safeParse(c.env);
   if (!parsed.success) {
@@ -33,26 +61,6 @@ app.use("*", async (c, next) => {
   }
   await next();
 });
-
-app.use(
-  "*",
-  cors({
-    origin: (origin, c) => {
-      const allow = new Set(
-        c.env.ALLOWED_ORIGINS.split(",").map((o) => normalizeOrigin(o)).filter(Boolean)
-      );
-      if (!origin) return "";
-      const o = normalizeOrigin(origin);
-      if (allow.has(o)) return origin;
-      return "";
-    },
-    allowHeaders: ["Authorization", "Content-Type", "X-Recount-Job-Secret", "Stripe-Signature"],
-    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length", "Content-Type"],
-    maxAge: 86400,
-    credentials: true,
-  })
-);
 
 app.get("/health", (c) => c.json({ status: "ok", runtime: "cloudflare-worker" }));
 app.route("/api/auth", authRoutes);
