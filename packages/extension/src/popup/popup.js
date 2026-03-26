@@ -312,8 +312,14 @@ async function loadTodayReportPreview() {
 
 function setMsg(text, ok = false) {
   const m = $("msg");
+  if (!m) return;
   m.textContent = text;
   m.style.color = ok ? "#4ade80" : "#f87171";
+  m.classList.toggle("msg--ok", ok);
+  m.classList.remove("msg--flash");
+  requestAnimationFrame(() => {
+    m.classList.add("msg--flash");
+  });
 }
 
 async function refreshInstallBadge() {
@@ -946,3 +952,9 @@ $("dev-ping-admin")?.addEventListener("click", () => {
 });
 
 void refreshUI();
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.documentElement.classList.add("popup-motion-ready");
+  });
+});
