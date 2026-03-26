@@ -1,5 +1,7 @@
 # Recount
 
+[![Release](https://img.shields.io/badge/release-v0.1.0-brightgreen.svg?style=for-the-badge)](https://github.com/Hum2a/Recount/releases/tag/v0.1.0)
+
 **Recount** implements the FocusTrack-style spec: a Chrome extension passively tracks time by domain, morning intentions, a **Node + Express API**, **Next.js 14** dashboard, **Supabase** auth/DB, **OpenAI** reports, and **Stripe** one-time licensing.
 
 ## Monorepo
