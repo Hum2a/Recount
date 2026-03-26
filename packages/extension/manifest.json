@@ -5,6 +5,7 @@
   "description": "Honest productivity tracking with AI accountability reports.",
   "permissions": [
     "tabs",
+    "webNavigation",
     "storage",
     "alarms",
     "activeTab",

@@ -42,7 +42,8 @@ function shouldSkipUrl(url) {
   }
   try {
     const u = new URL(url);
-    if (u.hostname === "localhost" || u.hostname.endsWith(".localhost")) return true;
+    const proto = u.protocol;
+    if (proto !== "http:" && proto !== "https:") return true;
     return false;
   } catch {
     return true;
@@ -161,22 +162,44 @@ async function closeCurrent(endIso = new Date().toISOString()) {
   await pushBuffer(ev);
 }
 
+function tabUrlForTracking(tab) {
+  if (!tab) return null;
+  /** @type {string | undefined} */
+  const p = tab.pendingUrl;
+  const u = tab.url;
+  return p || u || null;
+}
+
 async function startFromTab(tabId) {
   if (!(await hasTrackingHostAccess())) return;
   const tab = await chrome.tabs.get(tabId).catch(() => null);
-  if (!tab?.url || shouldSkipUrl(tab.url)) return;
+  const url = tabUrlForTracking(tab);
+  if (!url || shouldSkipUrl(url)) return;
   const settings = await loadSettings();
-  const domain = domainFromUrl(tab.url);
+  const domain = domainFromUrl(url);
   if (!domain || isBlocked(domain, settings.blockedDomains)) return;
+
+  if (current && current.tabId === tabId && current.domain === domain) {
+    if (typeof tab?.title === "string") current.title = tab.title;
+    return;
+  }
 
   await closeCurrent();
   current = {
     domain,
-    title: tab.title ?? null,
+    title: tab?.title ?? null,
     startIso: new Date().toISOString(),
     tabId,
   };
   void maybeIntentLockNudge(domain, tabId);
+}
+
+/** Start / resume tracking for the user’s actual focused tab (fixes cold start + missed events). */
+async function bootstrapActiveTab() {
+  if (!(await hasTrackingHostAccess())) return;
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const t = tabs[0];
+  if (t?.id != null) await startFromTab(t.id);
 }
 
 async function flushPending(extra = []) {
@@ -264,6 +287,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.idle.setDetectionInterval(180);
   void syncInstallMetadata();
   void syncProfilePrefs();
+  void bootstrapActiveTab();
 
   if (details.reason === "install") {
     chrome.runtime.openOptionsPage(() => {
@@ -328,12 +352,37 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
-  if (info.status === "complete" && tab.active) {
+  if (tab.active && (info.url != null || info.status === "complete")) {
     await startFromTab(tabId);
   }
   if (current && tabId === current.tabId && typeof info.title === "string") {
     current.title = info.title;
   }
+});
+
+function isTrackableWebUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Main-frame navigations (incl. redirects) — complements tabs.onUpdated. */
+chrome.webNavigation.onCommitted.addListener(async (details) => {
+  if (details.frameId !== 0) return;
+  if (!isTrackableWebUrl(details.url)) return;
+  const tab = await chrome.tabs.get(details.tabId).catch(() => null);
+  if (tab?.active) await startFromTab(details.tabId);
+});
+
+/** SPAs (pushState / replaceState) often never reach tabs.onUpdated "complete". */
+chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
+  if (details.frameId !== 0) return;
+  if (!isTrackableWebUrl(details.url)) return;
+  const tab = await chrome.tabs.get(details.tabId).catch(() => null);
+  if (tab?.active) await startFromTab(details.tabId);
 });
 
 chrome.windows.onFocusChanged.addListener(async (winId) => {
@@ -356,6 +405,10 @@ chrome.permissions.onRemoved.addListener(async () => {
   if (!(await hasTrackingHostAccess())) {
     await closeCurrent();
   }
+});
+
+chrome.permissions.onAdded.addListener(() => {
+  void bootstrapActiveTab();
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
