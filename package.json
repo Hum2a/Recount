@@ -10,7 +10,7 @@
     "build:extension": "npm run build -w @recount/extension",
     "deploy:web:cf": "npm run deploy -w @recount/web",
     "deploy:api:cf": "npm run deploy -w @recount/api-worker",
-    "deploy:cf": "npm run deploy:api:cf && npm run deploy:web:cf"
+    "deploy:cf": "node scripts/deploy-cf.mjs"
   },
   "engines": {
     "node": ">=20"

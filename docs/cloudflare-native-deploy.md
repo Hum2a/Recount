@@ -2,11 +2,11 @@
 
 This guide sets up:
 
-- **Web app** (`packages/web`) on **Cloudflare Workers** (OpenNext Cloudflare adapter).
+- **Web app** (`packages/web`) on **Cloudflare Workers** (OpenNext).
 - **API** (`packages/api-worker`) on **Cloudflare Workers**.
 - **Deploys via npm commands** from the repo root.
 
-> Current status in this repo: worker infrastructure and deploy commands are ready. The API Worker currently includes `/health` plus explicit `501 Not migrated yet` placeholders for `/api/*` routes until route migration from `packages/api/src/routes` is completed.
+> Current status in this repo: API Worker routes are fully migrated. On Windows, `npm run deploy:cf` deploys API and intentionally skips web deploy unless forced (`FORCE_WINDOWS_WEB_DEPLOY=1`) because OpenNext has a known path-resolution issue on Windows.
 
 ---
 
@@ -47,7 +47,7 @@ What they call:
 
 - `deploy:web:cf` -> `@recount/web` script `deploy` (`opennext build` + `wrangler deploy`)
 - `deploy:api:cf` -> `@recount/api-worker` script `deploy` (`wrangler deploy`)
-- `deploy:cf` -> deploy API Worker, then web Worker
+- `deploy:cf` -> deploy API Worker, then deploy web when runtime supports it
 
 ---
 
@@ -57,7 +57,7 @@ The web package is wired for OpenNext Cloudflare:
 
 - `npm run -w @recount/web cf:build` runs `opennextjs-cloudflare build`
 - `npm run -w @recount/web deploy` builds + deploys via Wrangler
-- `packages/web/wrangler.toml` points to `.open-next/worker.js`
+- `packages/web/wrangler.toml` and `packages/web/open-next.config.ts` are required when deploying web
 
 ### Required web environment variables (Cloudflare dashboard or Wrangler)
 
@@ -114,34 +114,25 @@ Then set:
 
 ---
 
-## 6) Route migration checklist (Express -> Worker)
+## 6) API migration status
 
-Source routes to port:
+The following are now implemented in `packages/api-worker`:
 
-- `packages/api/src/routes/auth.js`
-- `packages/api/src/routes/events.js`
-- `packages/api/src/routes/intentions.js`
-- `packages/api/src/routes/reports.js`
-- `packages/api/src/routes/payments.js`
-- `packages/api/src/routes/profiles.js`
-- `packages/api/src/routes/admin.js`
-- `packages/api/src/routes/team.js`
-- `packages/api/src/routes/jobs.js`
+- `/api/auth/*`
+- `/api/events/*`
+- `/api/intentions/*`
+- `/api/reports/*`
+- `/api/payments/*`
+- `/api/profiles/*`
+- `/api/admin/*`
+- `/api/team/*`
+- `/api/jobs/*`
 
-Recommended order:
-
-1. `auth`, `profiles`, `intentions`
-2. `events`, `reports`
-3. `payments` (Stripe checkout + raw webhook verification)
-4. `team`, `jobs`
-5. `admin`
-
-Keep behavior parity for:
+Parity checks still recommended before production cutover:
 
 - auth middleware (`Authorization: Bearer`)
-- rate limit semantics
-- JSON/error shapes used by web app and extension
 - Stripe signature validation for webhook
+- JSON/status code consistency for client error handling
 - CORS (`ALLOWED_ORIGINS`)
 
 ---
