@@ -49,6 +49,27 @@ What they call:
 - `deploy:api:cf` -> `@recount/api-worker` script `deploy` (`wrangler deploy`)
 - `deploy:cf` -> deploy API Worker, then deploy web when runtime supports it
 
+## 2.1) GitHub Actions deploy (recommended for Windows users)
+
+This repo includes `.github/workflows/deploy-cloudflare.yml`.
+
+- Triggers on:
+  - push to `main`
+  - manual run (`workflow_dispatch`)
+- Runs on `ubuntu-latest` and executes:
+  - `npm ci`
+  - `npm run deploy:cf` (API worker + web worker)
+
+### Required GitHub repository secrets
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_API_URL`
+
+The `NEXT_PUBLIC_*` values are used during the Next.js build in CI.
+
 ---
 
 ## 3) Configure web worker (`packages/web`)

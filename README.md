@@ -20,7 +20,8 @@
 4. `npm install`
 
 **Third-party integrations (Stripe, OpenAI, Resend, extension store, feature matrix):** see [`docs/integrations-setup.md`](docs/integrations-setup.md).
-**Cloudflare-native deployment (Pages + Workers + npm deploy commands):** see [`docs/cloudflare-native-deploy.md`](docs/cloudflare-native-deploy.md).
+**Cloudflare-native deployment (Workers + npm deploy commands):** see [`docs/cloudflare-native-deploy.md`](docs/cloudflare-native-deploy.md).
+CI deploy workflow: `.github/workflows/deploy-cloudflare.yml` (push to `main` or manual run).
 
 **API env (local):** With `NODE_ENV=development` (default), missing variables in `packages/api/.env` are filled with **dev placeholders** so `npm run dev:api` starts anyway — fine for working on the web UI. Auth, Stripe, OpenAI, and Resend stay broken until you add real keys. To require a full `.env` locally, set `RELAXED_ENV=0`.
 
