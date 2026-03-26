@@ -8,6 +8,7 @@
 |--------|------|
 | `packages/shared` | Domain classification helpers |
 | `packages/api` | Express API |
+| `packages/api-worker` | Cloudflare Worker API (migration target) |
 | `packages/extension` | Chrome MV3 extension |
 | `packages/web` | Next.js App Router (marketing + dashboard) |
 
@@ -19,6 +20,7 @@
 4. `npm install`
 
 **Third-party integrations (Stripe, OpenAI, Resend, extension store, feature matrix):** see [`docs/integrations-setup.md`](docs/integrations-setup.md).
+**Cloudflare-native deployment (Workers + npm deploy commands):** see [`docs/cloudflare-native-deploy.md`](docs/cloudflare-native-deploy.md).
 
 **API env (local):** With `NODE_ENV=development` (default), missing variables in `packages/api/.env` are filled with **dev placeholders** so `npm run dev:api` starts anyway — fine for working on the web UI. Auth, Stripe, OpenAI, and Resend stay broken until you add real keys. To require a full `.env` locally, set `RELAXED_ENV=0`.
 
@@ -26,8 +28,12 @@
 
 ```bash
 npm run dev:api     # default :3001 — requires valid API .env
+npm run dev:api:worker   # Cloudflare Worker API local dev
 npm run dev:web     # :3000
 npm run build:extension   # output: packages/extension/dist
+npm run deploy:web:cf
+npm run deploy:api:cf
+npm run deploy:cf   # API worker, then web worker
 ```
 
 If `next build` hits OOM on Windows:
