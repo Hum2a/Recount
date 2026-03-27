@@ -8,6 +8,15 @@ vi.mock("../../db/client.js", () => ({
   },
 }));
 
+const signUpMock = vi.fn();
+vi.mock("../../db/client-auth.js", () => ({
+  supabaseAuth: {
+    auth: {
+      signUp: (...args) => signUpMock(...args),
+    },
+  },
+}));
+
 vi.mock("../../middleware/auth.js", () => ({
   requireAuth: (req, _res, next) => {
     req.user = { id: "user-a" };
@@ -29,6 +38,10 @@ vi.mock("../../services/openai.js", () => ({
     goals_met: [],
     goals_missed: [],
   })),
+}));
+
+vi.mock("../../lib/login-events.js", () => ({
+  recordLoginEvent: vi.fn(async () => {}),
 }));
 
 const { supabaseAdmin } = await import("../../db/client.js");
@@ -165,5 +178,57 @@ describe("Authorization guard regressions", () => {
     expect(res.status).toBe(200);
     const upsertPayload = chain.upsert.mock.calls[0][0];
     expect(upsertPayload.user_id).toBe("user-a");
+  });
+});
+
+describe("Signup password policy", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rejects weak password missing uppercase character", async () => {
+    const app = buildApp("/api/auth", (await import("../auth.js")).default);
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "test@example.com",
+      password: "lowercase123!",
+    });
+    expect(res.status).toBe(400);
+    expect(String(res.body?.error ?? "")).toContain("uppercase");
+  });
+
+  it("rejects weak password shorter than 12 characters", async () => {
+    const app = buildApp("/api/auth", (await import("../auth.js")).default);
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "test@example.com",
+      password: "Aa1!short",
+    });
+    expect(res.status).toBe(400);
+    expect(String(res.body?.error ?? "")).toContain("at least 12");
+  });
+
+  it("accepts a strong password that meets policy", async () => {
+    signUpMock.mockResolvedValue({
+      data: {
+        user: { id: "new-user", email: "test@example.com" },
+        session: { access_token: "token", refresh_token: "refresh" },
+      },
+      error: null,
+    });
+    const upsert = vi.fn(() => Promise.resolve({ error: null }));
+    supabaseAdmin.from.mockImplementation((table) => {
+      if (table === "profiles") {
+        return { upsert };
+      }
+      return {};
+    });
+
+    const app = buildApp("/api/auth", (await import("../auth.js")).default);
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "test@example.com",
+      password: "VeryStrong#2026",
+    });
+
+    expect(res.status).toBe(200);
+    expect(signUpMock).toHaveBeenCalled();
   });
 });
