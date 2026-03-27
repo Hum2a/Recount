@@ -13,7 +13,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 | **Supabase** | Auth, database, RLS, user profiles | Web: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. API: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
 | **Your API host** | All REST logic, Stripe webhook, AI, email jobs | Deploy `packages/api`; set full `packages/api/.env` (see §3) |
 | **Your web host** | Marketing + dashboard (Next.js) | Deploy `packages/web`; `NEXT_PUBLIC_*` + `NEXT_PUBLIC_API_URL` |
-| **Stripe** | Lifetime checkout, `license_active` | API: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` + dashboard webhook |
+| **Stripe** | Lifetime checkout, `license_active` | API: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` + dashboard webhook (checkout amount is **£14.99** GBP, set in API Worker/Express Stripe service code) |
 | **OpenAI** | AI accountability reports (licensed users) | API: `OPENAI_API_KEY` |
 | **Resend** | Weekly digest email (opt-in users) | API: `RESEND_API_KEY`, `FROM_EMAIL` (verified domain) + optional `DIGEST_JOB_SECRET` + cron |
 | **Google Chrome Web Store** (optional) | Distributing the extension | Publisher account, listing, then extension ID → `ALLOWED_ORIGINS` |
@@ -75,8 +75,8 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 
 ### Steps
 
-1. [Stripe Dashboard](https://dashboard.stripe.com) → create a **one-time Price** (e.g. GBP £14.99) → copy **Price ID** (`price_…`).
-2. API env: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`.
+1. [Stripe Dashboard](https://dashboard.stripe.com) → no **Price** object is required for checkout: the API creates sessions with **£14.99 GBP** via Stripe `price_data` (see `packages/api/src/services/stripe.js` and `packages/api-worker/src/services/stripe.ts`).
+2. API env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
 3. **Webhook:** Developers → Webhooks → add endpoint  
    `https://<your-api-host>/api/payments/webhook`  
    - Event: **`checkout.session.completed`**  
@@ -85,7 +85,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 5. **Dedupe table:** run migration **`011_stripe_webhook_events.sql`** so Stripe retries use a stable `event.id` ledger (Express and Worker webhooks both rely on it).
 6. **Verify:** After `011` is applied, trigger a test **`checkout.session.completed`** (Stripe CLI `stripe trigger checkout.session.completed` with CLI forwarding, or Dashboard → Webhooks → resend). Confirm a row appears in **`stripe_webhook_events`** and the test user’s profile gets **`license_active`** (and one license email on first success).
 
-**Test mode:** use `sk_test_…`, test price, and Stripe CLI or test webhook secret for local webhook testing.
+**Test mode:** use `sk_test_…` and Stripe CLI or test webhook secret for local webhook testing.
 
 ---
 

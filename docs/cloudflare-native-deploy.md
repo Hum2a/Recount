@@ -120,7 +120,6 @@ Set as secrets/vars for `recount-api`:
 - `OPENAI_API_KEY` (**secret**)
 - `STRIPE_SECRET_KEY` (**secret**)
 - `STRIPE_WEBHOOK_SECRET` (**secret**)
-- `STRIPE_PRICE_ID`
 - `RESEND_API_KEY` (**secret**)
 - `FROM_EMAIL`
 - `WEB_URL` (web origin)
