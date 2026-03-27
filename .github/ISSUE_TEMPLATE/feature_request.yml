@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an idea or improvement
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What user or developer pain does this address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? APIs, UI, extension behavior?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional — other approaches you thought about
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web (Next.js)
+        - API (Express)
+        - Chrome extension
+        - All / monorepo
+        - Documentation
+    validations:
+      required: true

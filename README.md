@@ -1,126 +1,314 @@
+<div align="center">
+
 # Recount
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-brightgreen.svg?style=for-the-badge)](https://github.com/Hum2a/Recount/releases/tag/v0.1.0)
+### Honest productivity tracking with intentions, tab time, and AI accountability
 
-**Recount** implements the FocusTrack-style spec: a Chrome extension passively tracks time by domain, morning intentions, a **Node + Express API**, **Next.js 14** dashboard, **Supabase** auth/DB, **OpenAI** reports, and **Stripe** one-time licensing.
+<sub>Chrome extension · Next.js dashboard · Express API · Supabase · Stripe · OpenAI</sub>
 
-## Monorepo
+[![Release](https://img.shields.io/github/v/release/Hum2a/Recount?style=flat-square&logo=github&label=release)](https://github.com/Hum2a/Recount/releases)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Workspaces](https://img.shields.io/badge/monorepo-npm_workspaces-CB3837?style=flat-square&logo=npm)](./package.json)
+[![CI Security](https://img.shields.io/github/actions/workflow/status/Hum2a/Recount/ci-security.yml?branch=main&label=ci%20security&style=flat-square&logo=githubactions)](./.github/workflows/ci-security.yml)
 
-| Package | Role |
-|--------|------|
-| `packages/shared` | Domain classification helpers |
-| `packages/api` | Express API |
-| `packages/api-worker` | Cloudflare Worker API (migration target) |
-| `packages/extension` | Chrome MV3 extension |
-| `packages/web` | Next.js App Router (marketing + dashboard) |
+| Stack | |
+| :--- | :--- |
+| **Extension** | Chrome MV3 · passive domain tracking |
+| **API** | Node.js · Express · Zod |
+| **Web** | Next.js 14 · App Router |
+| **Data & auth** | Supabase |
+| **Billing & AI** | Stripe · OpenAI · Resend |
 
-## Setup
+[Features](#features) · [Architecture](#architecture) · [Quick start](#quick-start) · [Documentation](#documentation) · [Security](#security) · [Contributing](./CONTRIBUTING.md)
 
-1. **Node 20+**
-2. Run SQL migrations from `packages/api/src/db/migrations/` in order in the Supabase SQL editor: through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`** (JWT **`SELECT`** own rows + admin/developer **`SELECT`** all on core tables; writes still via API).
-3. Copy env files: `packages/api/.env.example` → `.env`, `packages/web/.env.example` → `.env.local`.
-4. `npm install`
+</div>
 
-**Third-party integrations (Stripe, OpenAI, Resend, extension store, feature matrix):** see [`docs/integrations-setup.md`](docs/integrations-setup.md).
-**Cloudflare-native deployment (Workers + npm deploy commands):** see [`docs/cloudflare-native-deploy.md`](docs/cloudflare-native-deploy.md).
-CI deploy workflow: `.github/workflows/deploy-cloudflare.yml` (push to `main` or manual run).
+---
 
-**API env (local):** With `NODE_ENV=development` (default), missing variables in `packages/api/.env` are filled with **dev placeholders** so `npm run dev:api` starts anyway — fine for working on the web UI. Auth, Stripe, OpenAI, and Resend stay broken until you add real keys. To require a full `.env` locally, set `RELAXED_ENV=0`.
+## Table of contents
 
-## Scripts
+<!-- vim-markdown-toc GFM -->
+
+* [TL;DR](#tldr)
+* [Features](#features)
+* [Architecture](#architecture)
+* [Repository layout](#repository-layout)
+* [Quick start](#quick-start)
+* [Development scripts](#development-scripts)
+* [Chrome extension](#chrome-extension)
+* [API overview](#api-overview)
+* [Roles vs premium](#roles-vs-premium)
+* [Production deployment](#production-deployment)
+* [Documentation](#documentation)
+* [Security](#security)
+* [Testing and CI](#testing-and-ci)
+* [Project name](#project-name)
+* [License](#license)
+
+<!-- vim-markdown-toc -->
+
+---
+
+## TL;DR
+
+> **Recount** is a monorepo: a **Chrome extension** records time by domain, a **Next.js** dashboard shows activity and reports, and an **Express API** ties it together with **Supabase**, **Stripe** licensing, and optional **OpenAI** summaries — aligned with a FocusTrack-style workflow (intentions + honest tab data).
 
 ```bash
-npm run dev:api     # default :3001 — requires valid API .env
-npm run dev:api:worker   # Cloudflare Worker API local dev
-npm run dev:web     # :3000
-npm run build:extension   # output: packages/extension/dist
-npm run sync:cf:env
-npm run deploy:web:cf
-npm run deploy:web:cf:wsl
-npm run deploy:api:cf
-npm run deploy:cf   # API worker, then web worker (web auto-skipped on Windows unless forced)
+git clone https://github.com/Hum2a/Recount.git
+cd Recount
+npm install
+# configure env (see Quick start), then:
+npm run dev:api    # :3001
+npm run dev:web    # :3000
 ```
 
-If `next build` hits OOM on Windows:
+---
+
+## Features
+
+| Capability | Notes |
+| :--- | :--- |
+| Passive tab tracking | By domain; optional titles; batch upload to API |
+| Daily intentions | Goals vs. how you actually spent time |
+| Dashboard & history | Next.js app; free tier has a rolling history window |
+| AI accountability reports | Licensed users; OpenAI-backed summaries |
+| Stripe checkout | One-time license; webhook updates profile |
+| Staff / admin tools | Elevated roles for support and analytics |
+| Cloudflare path | Worker deploy targets + scripts in repo |
+
+---
+
+## Architecture
+
+High-level request flow from browser → API → database:
+
+```mermaid
+flowchart LR
+  subgraph clients
+    EXT[Chrome extension]
+    WEB[Next.js web app]
+  end
+  subgraph backend
+    API[Express API]
+    SB[(Supabase)]
+  end
+  EXT -->|Bearer JWT| API
+  WEB -->|Bearer JWT| API
+  API --> SB
+  API -.->|reports| OAI[OpenAI]
+  API -.->|webhook| STR[Stripe]
+```
+
+<details>
+<summary><strong>Expand: package dependency mental model</strong></summary>
+
+```mermaid
+graph TB
+  ext[packages/extension]
+  web[packages/web]
+  api[packages/api]
+  shared[packages/shared]
+  worker[packages/api-worker]
+  ext --> api
+  web --> api
+  api --> shared
+  worker -.-> shared
+```
+
+</details>
+
+---
+
+## Repository layout
+
+| Path | Role |
+| :--- | :--- |
+| [`packages/shared`](./packages/shared) | Shared domain classification & helpers |
+| [`packages/api`](./packages/api) | Primary Express API |
+| [`packages/api-worker`](./packages/api-worker) | Cloudflare Worker API (migration target) |
+| [`packages/extension`](./packages/extension) | Chrome MV3 extension |
+| [`packages/web`](./packages/web) | Next.js marketing + dashboard |
+| [`docs/`](./docs/) | Integrations & Cloudflare deploy guides |
+| [`scripts/`](./scripts/) | Deploy & env sync helpers |
+
+---
+
+## Quick start
+
+### Prerequisites
+
+- **Node.js 20+** (see [`.nvmrc`](./.nvmrc); root `package.json` `engines` requires `>=20`)
+- **Supabase** project (SQL migrations + Auth)
+- **npm** workspaces (root `npm install`)
+
+### 1. Database migrations
+
+Run SQL from [`packages/api/src/db/migrations/`](./packages/api/src/db/migrations/) **in order** in the Supabase SQL editor:
+
+- Through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`**  
+  (JWT **`SELECT`** own rows + admin/developer **`SELECT`** on core tables; writes stay behind the API.)
+
+### 2. Environment files
+
+| File | Copy from |
+| :--- | :--- |
+| `packages/api/.env` | `packages/api/.env.example` |
+| `packages/web/.env.local` | `packages/web/.env.example` |
+
+> **Local API “relaxed” mode:** With `NODE_ENV=development` (default), missing keys in `packages/api/.env` may be replaced by **dev placeholders** so the API boots for UI work. Auth, Stripe, OpenAI, and Resend stay non-functional until you set real values. For strict local validation, set `RELAXED_ENV=0`.
+
+### 3. Install & run
+
+```bash
+npm install
+npm run dev:api     # http://localhost:3001
+npm run dev:web     # http://localhost:3000
+```
+
+**Integrations** (Stripe, OpenAI, Resend, store URLs): [`docs/integrations-setup.md`](./docs/integrations-setup.md)  
+**Cloudflare deploy**: [`docs/cloudflare-native-deploy.md`](./docs/cloudflare-native-deploy.md)
+
+---
+
+## Development scripts
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev:api` | API on default **:3001** |
+| `npm run dev:api:worker` | Cloudflare Worker API (local) |
+| `npm run dev:web` | Next.js on **:3000** |
+| `npm run build` | Build all workspaces that define `build` |
+| `npm run build:extension` | Output → `packages/extension/dist` |
+| `npm run sync:cf:env` | Sync Cloudflare env |
+| `npm run deploy:cf` | API worker then web worker (see script notes for Windows) |
+
+<details>
+<summary><strong>Windows build tips</strong></summary>
+
+If `next build` runs out of memory:
 
 ```bat
 set NODE_OPTIONS=--max-old-space-size=8192
 npm run build -w @recount/web
 ```
 
-If the build fails with **`ENOSPC`**, free disk space (and delete `packages/web/.next` if the cache is huge) before retrying.
+If you see **`ENOSPC`**, free disk space and consider removing `packages/web/.next` before retrying.
 
-## Extension
+</details>
 
-- **Dev**: load unpacked `packages/extension` from `chrome://extensions`.
-- **Prod**: load `packages/extension/dist` after `npm run build:extension`.
-- **Site access (tab tracking)**: host access is **optional** and limited to **`http://*/*`** and **`https://*/*`** (not `<all_urls>`). On **first install** the extension opens the **Options** tab once so you can grant **Allow site access**; you can also use the same control in the **popup**. Until site access is granted, tab time is not recorded.
-- **Local vs store**: install channel is inferred from `manifest.update_url` (no `management` permission needed). Unpacked loads (no update URL) default to local API `http://localhost:3001` and web app `http://localhost:3000`. Store installs (Google/Opera/Edge update URL) default to `DEFAULT_API_URL_STORE` and `DEFAULT_WEB_URL_STORE` in `packages/extension/src/utils/constants.js` (set both before publishing). Override under **Options** (leave blank to use defaults for that install type).
-- **Dashboard / reports**: the popup has **Dashboard** and **Reports** buttons (open the Next.js app in a new tab) plus a **Today** activity preview from the API. Sign in on the web from **Sign in on the web** when logged out. The extension session and the website session are separate; use the same email/password on the dashboard if the site asks you to sign in.
-- Add `chrome-extension://…` to API `ALLOWED_ORIGINS` when calling a deployed API.
+---
 
-## API routes (summary)
+## Chrome extension
 
-- `GET /health`
-- `POST /api/auth/signup|login|refresh`
-- `POST /api/events/batch`, `GET /api/events/summary`
-- `GET /api/events/me/activity/summary`, `GET /api/events/me/activity/segments`, `DELETE /api/events/me/activity/segments/:eventId` — **your own** tab events; **free plan**: date range clamped to **last 7 UTC days** (like `GET /api/events/summary`)
-- `POST /api/intentions`, `GET /api/intentions/:date`
-- `POST /api/reports/generate`, `GET /api/reports/history`, `GET /api/reports/:date`
-- `GET /api/profiles/me`, `PATCH /api/profiles`
-- `PATCH /api/admin/users/:userId/role` — **admin or developer** (elevated staff); body `{ "app_role": "user" | "admin" | "developer" }`
-- `POST /api/payments/create-session`, `GET /api/payments/status`, `POST /api/payments/webhook`
+| Topic | Detail |
+| :--- | :--- |
+| **Dev** | Load unpacked `packages/extension` from `chrome://extensions/` |
+| **Production build** | `npm run build:extension` → load `packages/extension/dist` |
+| **Site access** | Host permissions are **optional** (`http://*/*`, `https://*/*`). First install can open **Options** to grant access; tracking is off until granted |
+| **API / web URLs** | Unpacked builds default to localhost; store builds use constants in `packages/extension/src/utils/constants.js` — set before publishing |
+| **CORS** | Add `chrome-extension://<extension-id>` to API **`ALLOWED_ORIGINS`** for deployed APIs |
 
-### Roles vs premium
+Session note: extension and website sessions are separate; use the same credentials if both prompt for login.
+
+---
+
+## API overview
+
+| Method | Path | Notes |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Liveness |
+| `POST` | `/api/auth/signup` \| `/login` \| `/refresh` | Auth |
+| `POST` | `/api/events/batch` | Batch tab events |
+| `GET` | `/api/events/summary` | Daily summary |
+| `GET` | `/api/events/me/activity/*` | Personal activity (free tier: date window) |
+| `POST` | `/api/intentions` | Save intentions |
+| `GET` | `/api/intentions/:date` | Read intentions |
+| `POST` | `/api/reports/generate` | AI report (licensed) |
+| `GET` | `/api/profiles/me` | Profile |
+| `PATCH` | `/api/profiles` | Update self |
+| `POST` | `/api/payments/create-session` | Stripe checkout |
+| `POST` | `/api/payments/webhook` | Stripe webhook (raw body) |
+
+Staff routes live under `/api/admin/*` (see codebase). Full behavior and RLS notes remain in migration docs.
+
+---
+
+## Roles vs premium
 
 | Concept | Storage | Meaning |
-|--------|---------|--------|
-| **Premium (paid)** | `profiles.license_active` | Set to `true` when Stripe sends `checkout.session.completed`. Gates AI reports, full history, etc. (`requireLicense` on the API). |
-| **App role** | `profiles.app_role` | `user` (default), `admin`, or `developer`. **Independent of billing** — an admin can be on the free plan; a paying customer is usually still `user`. Use roles for staff permissions (`requireAppRole` in `packages/api/src/middleware/roles.js`). |
+| :--- | :--- | :--- |
+| **Premium** | `profiles.license_active` | Set via Stripe `checkout.session.completed`; gates licensed features (`requireLicense`) |
+| **App role** | `profiles.app_role` | `user` · `admin` · `developer` — **independent of billing**; used for staff APIs / UI |
 
-Promote your first admin in Supabase → SQL:
+Promote first admin in Supabase (example):
 
-`UPDATE public.profiles SET app_role = 'admin' WHERE email = 'you@example.com';`
+```sql
+UPDATE public.profiles
+SET app_role = 'admin'
+WHERE email = 'you@example.com';
+```
 
-The **`developer`** role matches **`admin`** for staff API and portal access; pick either for operators vs engineering.
+---
 
-### Staff dashboard (web)
+## Production deployment
 
-- Route: **`/dashboard/admin`**, linked from the main dashboard nav as **Staff** when `profiles.app_role` is **`admin`** or **`developer`** (nav uses an RLS-backed read of your own row).
-- The admin segment **re-checks** access on the Next.js server by calling **`GET /api/profiles/me`** with your session access token — not something you can satisfy by tampering with client-side JS alone.
-- **Admins** and **developers** both get full staff UI and may call all **`/api/admin/*`** routes (including role changes), verified server-side with `requireElevatedStaff`.
+1. **HTTPS API** (Railway, Fly.io, Render, VPS + reverse proxy). Example: `https://api.yourdomain.com`
+2. **Run** `packages/api` with **`NODE_ENV=production`**, real secrets from `.env.example` — no dev placeholders
+3. **`ALLOWED_ORIGINS`**: web origin(s) + `chrome-extension://…` for your published extension ID
+4. **Stripe webhook**: `POST /api/payments/webhook` — event `checkout.session.completed`; set `STRIPE_WEBHOOK_SECRET`
+5. **Monitor**: `GET /health` → `{ "status": "ok" }`
 
-## Production API (live backend)
+CI deploy workflow: [`.github/workflows/deploy-cloudflare.yml`](./.github/workflows/deploy-cloudflare.yml) (push to `main` or manual).
 
-1. **Host the API over HTTPS** (e.g. Railway, Fly.io, Render, a VPS + reverse proxy). Point a domain at it, e.g. `https://api.yourdomain.com`.
+---
 
-2. **Deploy `packages/api` only** (monorepo: set the service **root directory** to `packages/api`, or build from repo root with install that includes workspaces, then `npm run start -w @recount/api`). Start command: **`node src/server.js`** (uses `PORT` from env, often set by the host to `3000` or `8080`).
+## Documentation
 
-3. **Production environment variables** — copy `packages/api/.env.example` and set **real** values (no placeholders):
-   - **`NODE_ENV=production`** so the API does **not** use dev placeholder env (and Zod validation stays strict).
-   - **`SUPABASE_*`** — same Supabase project as the web app; **service role** key only on the server, never in the client.
-   - **`OPENAI_API_KEY`** — live key for reports.
-   - **`STRIPE_*`** — use **`sk_live_…`**, live **`price_…`**, and a webhook signing secret from the **live** Stripe dashboard.
-   - **`RESEND_API_KEY`** + **`FROM_EMAIL`** — verified sender domain in Resend.
-   - **`WEB_URL`** — your **production** dashboard URL, e.g. `https://app.yourdomain.com` (Stripe success/cancel redirects).
-   - **`ALLOWED_ORIGINS`** — comma-separated list of origins allowed by CORS, e.g.  
-     `https://app.yourdomain.com,chrome-extension://YOUR_EXTENSION_ID`  
-     After you publish the extension, copy its ID from `chrome://extensions` and add **`chrome-extension://<id>`** here so the extension can call the API. Include **`https://**` web origins only (no trailing slashes on origins).
+| Document | Purpose |
+| :--- | :--- |
+| [`docs/integrations-setup.md`](./docs/integrations-setup.md) | Third-party services & feature matrix |
+| [`docs/cloudflare-native-deploy.md`](./docs/cloudflare-native-deploy.md) | Workers + npm deploy commands |
+| [`SECURITY_HARDENING.md`](./SECURITY_HARDENING.md) | Security checklist & verification |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | How to contribute |
+| [`SECURITY.md`](./SECURITY.md) | Responsible disclosure |
+| [`SUPPORT.md`](./SUPPORT.md) | Where to ask for help |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Release history |
 
-4. **Stripe webhook (live)** — in Stripe Dashboard → Developers → Webhooks, add endpoint  
-   `https://api.yourdomain.com/api/payments/webhook`,  
-   event **`checkout.session.completed`**, and paste the signing secret into **`STRIPE_WEBHOOK_SECRET`**.
+---
 
-5. **Health check** — your monitor can hit **`GET /health`** (`{ "status": "ok" }`).
+## Security
 
-6. **Extension** — set **`DEFAULT_API_URL_STORE`** in `packages/extension/src/utils/constants.js` to the same public API base URL (no trailing slash), or rely on users setting Options.
+- Hardening summary: **[`SECURITY_HARDENING.md`](./SECURITY_HARDENING.md)**
+- Reporting vulnerabilities: **[`SECURITY.md`](./SECURITY.md)**
 
-7. **Supabase Auth** — in Supabase → Authentication → URL configuration, add your **production site URL** and redirect URLs if you use email links / OAuth.
+---
 
-## Stripe
+## Testing and CI
 
-Webhook: `POST /api/payments/webhook` (raw body). Event: `checkout.session.completed`. Set `STRIPE_PRICE_ID` to your one-time GBP price. Checkout **cancel** returns users to `/pricing?payment=cancelled` (set `WEB_URL` accordingly).
+| Check | Command / location |
+| :--- | :--- |
+| API tests | `npm run test -w @recount/api` |
+| Web lint | `npm run lint -w @recount/web` |
+| Security CI | [`.github/workflows/ci-security.yml`](./.github/workflows/ci-security.yml) |
 
-## Name
+---
 
-The specification used the name “FocusTrack”; this repo uses **Recount** as the product name.
+## Project name
+
+The specification referenced **FocusTrack**; this repository uses **Recount** as the product name.
+
+---
+
+## License
+
+This project is licensed under the **MIT License** — see [`LICENSE`](./LICENSE).
+
+---
+
+<div align="center">
+
+**Built with** `Node` · `Next.js` · `Express` · `Supabase` · `Stripe`
+
+⭐ *If Recount helps you stay accountable, consider starring the repo.*
+
+</div>
