@@ -13,8 +13,23 @@ import {
   parseTabEventPagination,
   fetchTabEventSummary,
 } from "../lib/tab-event-activity";
+import { normalizeHostname } from "../utils";
 
 const appRoleSchema = z.enum(["user", "admin", "developer"]);
+
+function normalizeHostnameArray(arr: string[]) {
+  const seen = new Set<string>();
+  const list: string[] = [];
+  for (const line of arr) {
+    const h = normalizeHostname(line);
+    if (h && !seen.has(h)) {
+      seen.add(h);
+      list.push(h);
+    }
+  }
+  return list;
+}
+
 const patchRoleBody = z.object({ app_role: appRoleSchema });
 
 const nullableShortText = z
@@ -46,6 +61,7 @@ const adminPatchProfileBody = z
     license_key: nullableShortText,
     app_role: appRoleSchema.optional(),
     distraction_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
+    blocked_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
     intent_lock_enabled: z.boolean().optional(),
     weekly_digest_enabled: z.boolean().optional(),
     send_tab_titles: z.boolean().optional(),
@@ -239,7 +255,8 @@ admin.patch("/users/:userId", requireAuth, requireElevatedStaff, async (c) => {
     if (authErr) return c.json({ error: authErr.message }, 400);
     patch.email = b.email;
   }
-  if (b.distraction_domains !== undefined) patch.distraction_domains = b.distraction_domains;
+    if (b.distraction_domains !== undefined) patch.distraction_domains = b.distraction_domains;
+    if (b.blocked_domains !== undefined) patch.blocked_domains = normalizeHostnameArray(b.blocked_domains);
   if (b.intent_lock_enabled !== undefined) patch.intent_lock_enabled = b.intent_lock_enabled;
   if (b.weekly_digest_enabled !== undefined) patch.weekly_digest_enabled = b.weekly_digest_enabled;
   if (b.send_tab_titles !== undefined) patch.send_tab_titles = b.send_tab_titles;

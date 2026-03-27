@@ -71,10 +71,12 @@ async function syncProfilePrefs() {
   const row = body.data;
   if (!row) return;
   const prev = await getLocal(STORAGE_SETTINGS, {});
+  const fromProfileBlocked = Array.isArray(row.blocked_domains) ? row.blocked_domains.map(String) : null;
   await setLocal({
     [STORAGE_SETTINGS]: {
       ...prev,
       distractionDomains: Array.isArray(row.distraction_domains) ? row.distraction_domains.map(String) : [],
+      blockedDomains: fromProfileBlocked ?? (Array.isArray(prev.blockedDomains) ? prev.blockedDomains : []),
       intentLockEnabled: Boolean(row.intent_lock_enabled),
       sendTabTitles: row.send_tab_titles !== false,
     },

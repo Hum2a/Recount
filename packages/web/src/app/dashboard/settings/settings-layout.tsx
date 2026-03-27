@@ -14,6 +14,7 @@ export const SETTINGS_SECTIONS = [
 
 /** In-page anchors inside the Features block (jump menu). */
 export const FEATURE_SUBSECTIONS = [
+  { id: "features-never-track", label: "Never track" },
   { id: "features-extension", label: "Extension" },
   { id: "features-distractions", label: "Distractions" },
   { id: "features-email", label: "Email" },

@@ -47,6 +47,7 @@ type ProfileRow = {
   license_active?: boolean;
   app_role?: string;
   distraction_domains?: string[];
+  blocked_domains?: string[];
   intent_lock_enabled?: boolean;
   weekly_digest_enabled?: boolean;
   send_tab_titles?: boolean;
@@ -134,6 +135,8 @@ export default function SettingsPage() {
   const [leaderOptIn, setLeaderOptIn] = useState(false);
   /** When false, distraction domains are cleared on save (extension treats as no custom list). */
   const [distractionListEnabled, setDistractionListEnabled] = useState(false);
+  /** Hostnames the extension must never record (one per line). */
+  const [blockedDomainsText, setBlockedDomainsText] = useState("");
   const [nickname, setNickname] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [birthYearSelect, setBirthYearSelect] = useState("");
@@ -220,6 +223,9 @@ export default function SettingsPage() {
       setSelectedPremadeHosts([...new Set(premade)].sort());
       setDistractionCustomText([...new Set(custom)].sort().join("\n"));
       setDistractionListEnabled(rawDomains.length > 0);
+      setBlockedDomainsText(
+        Array.isArray(row.blocked_domains) ? row.blocked_domains.map((h) => String(h).trim().toLowerCase()).filter(Boolean).sort().join("\n") : ""
+      );
       setIntentLock(Boolean(row.intent_lock_enabled));
       setWeeklyDigest(Boolean(row.weekly_digest_enabled));
       setSendTitles(row.send_tab_titles !== false);
@@ -344,6 +350,11 @@ export default function SettingsPage() {
       setMsg("Too many distraction domains (max 100). Remove some presets or custom lines.");
       return;
     }
+    const blocked_domains = parseCustomDistractionLines(blockedDomainsText);
+    if (blocked_domains.length > 100) {
+      setMsg("Too many never-track domains (max 100). Remove some lines from the blocklist.");
+      return;
+    }
     const res = await fetch(`${getApiBaseUrl()}/api/profiles`, {
       method: "PATCH",
       headers: {
@@ -374,7 +385,11 @@ export default function SettingsPage() {
       }),
     });
     const body = await res.json().catch(() => ({}));
-    setMsg(res.ok ? "Saved. Reload the browser extension if it is open so intent-lock prefs sync." : (body.error ?? "Could not save"));
+    setMsg(
+      res.ok
+        ? "Saved. Reload the browser extension if it is open so distraction list, blocklist, and other prefs sync."
+        : (body.error ?? "Could not save")
+    );
   }
 
   async function exportCsv() {
@@ -746,6 +761,27 @@ export default function SettingsPage() {
                 <FeatureSubsectionNav onNavigate={navigateToFeatureSub} />
               </div>
               <div className="min-w-0 flex-1 space-y-8">
+                <FeatureSubsection
+                  id="features-never-track"
+                  title="Never track these sites"
+                  description="The browser extension will not record time on matching hostnames or their subdomains (e.g. online banking)."
+                >
+                  <FieldWithHint
+                    id="settings-blocked-domains"
+                    label="Domain blocklist"
+                    hint="One hostname per line, no https://. Matches the exact host and subdomains (same rules as the extension). This list is saved on your profile and applied when the extension syncs— you can still edit it in the extension’s Options page; the profile copy wins on the next sync."
+                  >
+                    <textarea
+                      id="settings-blocked-domains"
+                      className={cn(inputClass, "font-mono text-sm")}
+                      rows={6}
+                      value={blockedDomainsText}
+                      onChange={(e) => setBlockedDomainsText(e.target.value)}
+                      placeholder={"bank.example.com\nhealth-provider.nhs.uk"}
+                    />
+                  </FieldWithHint>
+                </FeatureSubsection>
+
                 <FeatureSubsection
                   id="features-extension"
                   title="Browser extension"

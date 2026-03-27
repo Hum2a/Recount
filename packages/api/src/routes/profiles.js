@@ -26,6 +26,7 @@ const patchSchema = z
     hourly_rate: z.coerce.number().min(0).max(99999999).optional(),
     timezone: z.string().min(1).max(100).optional(),
     distraction_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
+    blocked_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
     intent_lock_enabled: z.boolean().optional(),
     weekly_digest_enabled: z.boolean().optional(),
     send_tab_titles: z.boolean().optional(),
@@ -140,6 +141,18 @@ router.patch("/", requireAuth, validate(patchSchema), async (req, res, next) => 
         }
       }
       patch.distraction_domains = list;
+    }
+    if (v.blocked_domains !== undefined) {
+      const seen = new Set();
+      const list = [];
+      for (const line of v.blocked_domains) {
+        const h = normalizeHostname(line);
+        if (h && !seen.has(h)) {
+          seen.add(h);
+          list.push(h);
+        }
+      }
+      patch.blocked_domains = list;
     }
     if (v.intent_lock_enabled !== undefined) patch.intent_lock_enabled = v.intent_lock_enabled;
     if (v.weekly_digest_enabled !== undefined) patch.weekly_digest_enabled = v.weekly_digest_enabled;

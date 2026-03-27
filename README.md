@@ -145,7 +145,7 @@ graph TB
 
 Run SQL from [`packages/api/src/db/migrations/`](./packages/api/src/db/migrations/) **in order** in the Supabase SQL editor:
 
-- Through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`**, **`011_stripe_webhook_events.sql`** (Stripe webhook idempotency).  
+- Through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`**, **`011_stripe_webhook_events.sql`** (Stripe webhook idempotency), **`012_profile_blocked_domains.sql`** (extension never-track list on `profiles`).  
   For **`010`**: JWT **`SELECT`** own rows + admin/developer **`SELECT`** on core tables; writes stay behind the API.
 
 ### 2. Environment files
