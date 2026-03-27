@@ -17,15 +17,43 @@ import jobsRoutes from "./routes/jobs.js";
 
 const app = express();
 
-const origins = env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+const origins = new Set(
+  env.ALLOWED_ORIGINS.split(",")
+    .map((o) => o.trim())
+    .filter(Boolean)
+);
 
-app.use(helmet());
-app.use(cors({ origin: origins, credentials: true }));
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return origins.has(origin);
+}
+
+app.disable("x-powered-by");
+app.use(
+  helmet({
+    // API is consumed by browser clients and extension; CSP belongs to web app/static assets.
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: "no-referrer" },
+  })
+);
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(compression());
 
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
 
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({ limit: "64kb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

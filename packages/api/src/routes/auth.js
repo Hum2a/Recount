@@ -9,19 +9,25 @@ import { recordLoginEvent } from "../lib/login-events.js";
 
 const router = Router();
 
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+const signupSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8),
+  })
+  .strict();
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+const loginSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  })
+  .strict();
 
-const refreshSchema = z.object({
-  refresh_token: z.string().min(1),
-});
+const refreshSchema = z
+  .object({
+    refresh_token: z.string().min(1),
+  })
+  .strict();
 
 router.post("/signup", authLimiter, validate(signupSchema), async (req, res, next) => {
   try {
@@ -65,7 +71,7 @@ router.post("/login", authLimiter, validate(loginSchema), async (req, res, next)
     const { email, password } = req.validated;
     const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
     if (error) {
-      return res.status(401).json({ error: error.message });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
     if (!data.session) return res.status(401).json({ error: "Invalid credentials" });
 

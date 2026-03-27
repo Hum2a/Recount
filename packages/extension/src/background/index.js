@@ -324,7 +324,22 @@ chrome.runtime.onStartup.addListener(() => {
   void bootstrapActiveTab();
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+function isTrustedExtensionSender(sender) {
+  if (!sender) return false;
+  if (sender.id !== chrome.runtime.id) return false;
+  if (!sender.url) return true;
+  return sender.url.startsWith(`chrome-extension://${chrome.runtime.id}/`);
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!isTrustedExtensionSender(sender)) {
+    sendResponse({ ok: false, error: "Untrusted sender" });
+    return true;
+  }
+  if (!msg || typeof msg !== "object" || typeof msg.type !== "string") {
+    sendResponse({ ok: false, error: "Invalid message shape" });
+    return true;
+  }
   if (msg?.type === "prefs-sync-now") {
     void (async () => {
       await syncProfilePrefs();
