@@ -2,6 +2,8 @@
 
 # Recount
 
+[![Release](https://img.shields.io/badge/release-v0.2.0-brightgreen.svg?style=for-the-badge)](https://github.com/Hum2a/Recount/releases/tag/v0.2.0)
+
 ### Honest productivity tracking with intentions, tab time, and AI accountability
 
 <sub>Chrome extension · Next.js dashboard · Express API · Supabase · Stripe · OpenAI</sub>
