@@ -183,7 +183,7 @@ export function DashboardNav() {
     pricingLink,
   ];
   const pathname = usePathname();
-  const reduce = useReducedMotion();
+  const reduceMotion = Boolean(useReducedMotion());
 
   return (
     <nav className="relative flex flex-wrap gap-1 border-b border-white/10 pb-4 text-sm">
@@ -192,7 +192,7 @@ export function DashboardNav() {
           item.href === "/dashboard"
             ? pathname === "/dashboard"
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
-        return <NavTabLink key={item.href} item={item} active={active} reduce={reduce} />;
+        return <NavTabLink key={item.href} item={item} active={active} reduce={reduceMotion} />;
       })}
     </nav>
   );

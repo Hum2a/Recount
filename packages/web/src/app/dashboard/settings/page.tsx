@@ -22,6 +22,13 @@ import {
 } from "./demographics-options";
 import { getApiBaseUrl } from "@/lib/api-url";
 import { useDashboardEntitlements } from "@/components/layout/dashboard-entitlements";
+import {
+  CollapsibleSettingsBlock,
+  SETTINGS_SECTIONS,
+  SettingsSectionNav,
+  useSettingsScrollSpy,
+  useSettingsSectionOpenState,
+} from "./settings-layout";
 
 const inputClass =
   "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
@@ -117,6 +124,15 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const ent = useDashboardEntitlements();
+  const [sectionOpen, setSectionOpen] = useSettingsSectionOpenState();
+  const activeNavId = useSettingsScrollSpy(SETTINGS_SECTIONS.map((s) => s.id));
+
+  function navigateToSection(id: string) {
+    setSectionOpen((prev) => ({ ...prev, [id]: true }));
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -296,7 +312,7 @@ export default function SettingsPage() {
       setMsg("Sign in again.");
       return;
     }
-    const days = licensed ? 30 : 7;
+    const days = ent.fullAccess ? 30 : 7;
     const lines = ["date,domain,minutes,category"];
     for (let i = 0; i < days; i++) {
       const d = new Date();
@@ -348,47 +364,69 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
-        <p className="mt-3 text-sm text-muted">
-          <span className="font-medium text-foreground">Plan:</span> {ent.planLabel}
-          {" · "}
-          <span className="font-medium text-foreground">Role:</span>{" "}
-          {ent.loading && !ent.ready ? "…" : ent.appRole}
-        </p>
-        {ent.error && (
-          <p className="mt-1 text-xs text-amber-200/90">
-            Account status: {ent.error} — check that the API is running and NEXT_PUBLIC_API_URL matches.
-          </p>
-        )}
-        {profileError && <p className="mt-1 text-xs text-amber-200/90">Profile form: {profileError}</p>}
-      </div>
-      <FieldWithHint
-        id="settings-hourly-rate"
-        label="Hourly rate (£)"
-        hint="Roughly what one hour of your time is worth to you, in pounds. Recount saves this on your profile for context in the product (for example future reports or value summaries). It is not your subscription price and is not sent to payment providers."
-      >
-        <input
-          id="settings-hourly-rate"
-          className={inputClass}
-          type="number"
-          min={0}
-          step="0.01"
-          value={hourly}
-          onChange={(e) => setHourly(e.target.value)}
-        />
-      </FieldWithHint>
-      <FieldWithHint
-        id="settings-timezone"
-        label="Timezone (IANA, e.g. Europe/London)"
-        hint="Used so dates and “today” in the app match your locale. Use a standard IANA name (e.g. Europe/London, America/Toronto). If unsure, UTC is fine."
-      >
-        <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
-      </FieldWithHint>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">About you</h2>
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+        <aside className="lg:sticky lg:top-24 lg:w-52 lg:shrink-0">
+          <p className="mb-2 hidden text-xs font-medium uppercase tracking-wide text-muted lg:block">Jump to</p>
+          <SettingsSectionNav activeId={activeNavId} onNavigate={navigateToSection} />
+        </aside>
+
+        <div className="min-w-0 flex-1 space-y-6 lg:max-w-2xl">
+          <div id="settings-overview" className="scroll-mt-28 space-y-3">
+            <h1 className="text-2xl font-semibold">Settings</h1>
+            <p className="text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
+            <p className="text-sm text-muted">
+              <span className="font-medium text-foreground">Plan:</span> {ent.planLabel}
+              {" · "}
+              <span className="font-medium text-foreground">Role:</span>{" "}
+              {ent.loading && !ent.ready ? "…" : ent.appRole}
+            </p>
+            {ent.error && (
+              <p className="text-xs text-amber-200/90">
+                Account status: {ent.error} — check that the API is running and NEXT_PUBLIC_API_URL matches.
+              </p>
+            )}
+            {profileError && <p className="text-xs text-amber-200/90">Profile form: {profileError}</p>}
+          </div>
+
+          <CollapsibleSettingsBlock
+            id="settings-general"
+            title="General"
+            description="Hourly rate and timezone"
+            open={sectionOpen["settings-general"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-general": o }))}
+          >
+            <FieldWithHint
+              id="settings-hourly-rate"
+              label="Hourly rate (£)"
+              hint="Roughly what one hour of your time is worth to you, in pounds. Recount saves this on your profile for context in the product (for example future reports or value summaries). It is not your subscription price and is not sent to payment providers."
+            >
+              <input
+                id="settings-hourly-rate"
+                className={inputClass}
+                type="number"
+                min={0}
+                step="0.01"
+                value={hourly}
+                onChange={(e) => setHourly(e.target.value)}
+              />
+            </FieldWithHint>
+            <FieldWithHint
+              id="settings-timezone"
+              label="Timezone (IANA, e.g. Europe/London)"
+              hint="Used so dates and “today” in the app match your locale. Use a standard IANA name (e.g. Europe/London, America/Toronto). If unsure, UTC is fine."
+            >
+              <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
+            </FieldWithHint>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-about"
+            title="About you"
+            description="Optional demographics — entirely skippable"
+            open={sectionOpen["settings-about"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-about": o }))}
+          >
         <p className="text-sm text-muted">
           <span className="font-medium text-foreground">Entirely optional.</span> You can ignore this whole block —
           nothing here is required to use Recount. Pick from the menus for faster input; use “other” rows when you need
@@ -619,9 +657,15 @@ export default function SettingsPage() {
             />
           </FieldWithHint>
         ) : null}
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-focus"
+            title="Focus & intent lock"
+            description="Distraction domains and intent-lock nudges"
+            open={sectionOpen["settings-focus"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-focus": o }))}
+          >
         <p className="text-sm text-muted">
           Distraction hostnames (one per line, no <code className="text-foreground/80">https://</code>). When intent lock
           is on and you have goals for today, the extension nudges you on these sites. Reload the extension after saving.
@@ -646,9 +690,15 @@ export default function SettingsPage() {
           label="Enable intent lock nudges (extension must be signed in)"
           hint="When on, if you saved goals for today (UTC) in the extension, Recount can show a notification and in-page banner when you focus a tab on a distraction domain. Syncs from these settings about every 30 minutes or when the extension starts."
         />
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Privacy &amp; email</h2>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-privacy"
+            title="Privacy & email"
+            description="Titles, weekly digest"
+            open={sectionOpen["settings-privacy"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-privacy": o }))}
+          >
         <CheckboxWithHint
           checked={sendTitles}
           onChange={setSendTitles}
@@ -661,9 +711,15 @@ export default function SettingsPage() {
           label="Weekly digest email (previous UTC week; requires Resend + cron calling the digest job)"
           hint="If enabled, your account can be included when an operator runs the weekly digest job on the API (POST /api/jobs/weekly-digest with a secret). You’ll get one email summarizing tracked time and intentions for the previous Monday–Sunday in UTC. Your server must have Resend and DIGEST_JOB_SECRET configured."
         />
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Team leaderboard</h2>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-team"
+            title="Team leaderboard"
+            description="Slug, nickname, opt-in"
+            open={sectionOpen["settings-team"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-team": o }))}
+          >
         <p className="text-sm text-muted">
           Use the same team slug as colleagues (lowercase letters, numbers, hyphens). Opt in to appear on the board with a
           display nickname.
@@ -701,25 +757,43 @@ export default function SettingsPage() {
           label="Show me on the team leaderboard (this UTC week's tracked minutes)"
           hint="When enabled, other people with the same team slug can see your nickname and total tracked minutes for the current UTC week (Monday start). They never see your email. Turn off to hide yourself while keeping a team slug for later."
         />
-      </div>
-      <Button onClick={saveProfile}>Save settings</Button>
-      <div className="border-t border-white/10 pt-6">
-        <h2 className="text-lg font-medium">Export</h2>
-        <p className="mt-1 text-sm text-muted">
-          CSV of domain totals per day ({licensed ? "30" : "7"} days).
+          </CollapsibleSettingsBlock>
+
+          <section
+            id="settings-save"
+            className="scroll-mt-28 rounded-xl border border-white/10 bg-card/30 px-4 py-4 sm:px-5"
+          >
+            <p className="text-sm text-muted">Apply changes to your profile (and sync extension prefs on next sync).</p>
+            <Button className="mt-3" onClick={saveProfile}>
+              Save settings
+            </Button>
+          </section>
+
+          <CollapsibleSettingsBlock
+            id="settings-export"
+            title="Export"
+            description="CSV and calendar download"
+            open={sectionOpen["settings-export"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-export": o }))}
+          >
+        <p className="text-sm text-muted">
+          CSV of domain totals per day ({ent.fullAccess ? "30" : "7"} days).
         </p>
         <Button variant="secondary" className="mt-3" onClick={exportCsv}>
           Download CSV
         </Button>
         <p className="mt-4 text-sm text-muted">
-          Subscribe in Google Calendar or Apple Calendar with the ICS feed (default range: {licensed ? "30" : "7"} UTC
-          days).
+          Subscribe in Google Calendar or Apple Calendar with the ICS feed (default range: {ent.fullAccess ? "30" : "7"}{" "}
+          UTC days).
         </p>
         <Button variant="secondary" className="mt-3" onClick={downloadIcs}>
           Download ICS
         </Button>
+          </CollapsibleSettingsBlock>
+
+          {msg && <p className="text-sm text-muted">{msg}</p>}
+        </div>
       </div>
-      {msg && <p className="text-sm text-muted">{msg}</p>}
     </div>
   );
 }
