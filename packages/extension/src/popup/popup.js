@@ -13,9 +13,17 @@ import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
 import { getLocal, setLocal } from "../utils/storage.js";
 import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
+import {
+  utcDateStringsEndingToday,
+  renderDailyMinutesChart,
+  renderDomainBarsChart,
+} from "../utils/analytics-charts.js";
 
 /** @type {Record<string, unknown> | null} */
 let lastPaymentsExtras = null;
+
+/** Set in refreshUI — used for Analytics day range (7 vs 14 UTC days). */
+let popupLicensed = false;
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
@@ -267,6 +275,76 @@ async function openWebPath(path) {
   const base = await getResolvedWebBase();
   const p = path.startsWith("/") ? path : `/${path}`;
   chrome.tabs.create({ url: `${base}${p}` });
+}
+
+async function refreshAnalyticsPanel() {
+  const dailyEl = $("analytics-daily-chart");
+  const domainsEl = $("analytics-domains-chart");
+  const rangeHint = $("analytics-range-hint");
+  const statusEl = $("analytics-status");
+  if (!dailyEl || !domainsEl) return;
+
+  if (statusEl) {
+    statusEl.hidden = true;
+    statusEl.textContent = "";
+  }
+  const dayCount = popupLicensed ? 14 : 7;
+  if (rangeHint) {
+    rangeHint.textContent = popupLicensed
+      ? `Last ${dayCount} UTC days (full access).`
+      : `Last ${dayCount} UTC days (free plan window).`;
+  }
+
+  const dates = utcDateStringsEndingToday(dayCount);
+  dailyEl.replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "muted analytics-empty";
+  loading.textContent = "Loading charts…";
+  dailyEl.appendChild(loading);
+
+  domainsEl.replaceChildren();
+  const loadingD = document.createElement("p");
+  loadingD.className = "muted analytics-empty";
+  loadingD.textContent = "…";
+  domainsEl.appendChild(loadingD);
+
+  const results = await Promise.all(
+    dates.map(async (date) => {
+      const res = await apiFetch(`/api/events/summary?date=${encodeURIComponent(date)}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          date,
+          seconds: 0,
+          domains: /** @type {{ domain: string, seconds: number }[]} */ ([]),
+          err: typeof body.error === "string" ? body.error : null,
+        };
+      }
+      const d = body.data;
+      const total = d?.total_active_sec ?? 0;
+      const raw = Array.isArray(d?.domains) ? d.domains : [];
+      const domains = raw.map((r) => ({
+        domain: String(r.domain ?? ""),
+        seconds: Number(r.seconds ?? 0) || 0,
+      }));
+      return { date, seconds: total, domains, err: null };
+    })
+  );
+
+  const anyErr = results.find((r) => r.err);
+  if (statusEl && anyErr?.err) {
+    statusEl.hidden = false;
+    statusEl.textContent = anyErr.err.includes("7 days")
+      ? "Some days aren’t available on the free plan."
+      : anyErr.err;
+  }
+
+  const days = results.map((r) => ({ date: r.date, seconds: r.seconds }));
+  renderDailyMinutesChart(dailyEl, days);
+
+  const today = todayUtc();
+  const todayRow = results.find((r) => r.date === today) ?? results[results.length - 1];
+  renderDomainBarsChart(domainsEl, todayRow?.domains ?? []);
 }
 
 async function loadTodayActivityPreview() {
@@ -613,6 +691,7 @@ async function refreshUI() {
     const hasLicense = Boolean(body.data?.license_active);
     const privileged = role === "admin" || role === "developer";
     const licensed = hasLicense || privileged;
+    popupLicensed = licensed;
     const devTabBtn = $("tab-btn-dev");
     if (devTabBtn) devTabBtn.hidden = !privileged;
     const connectionCard = $("acct-connection-card");
@@ -646,6 +725,7 @@ async function refreshUI() {
     if (remembered && visible.includes(remembered)) initial = /** @type {string} */ (remembered);
     activateTab(initial);
     if (initial === "dev") void refreshDevPanelStats();
+    if (initial === "analytics") void refreshAnalyticsPanel();
     await loadTodayActivityPreview();
     await loadStreaks();
     if (licensed) await loadTodayReportPreview();
@@ -656,6 +736,7 @@ async function refreshUI() {
     /** @type {HTMLElement | null} */ (document.querySelector(".wrap"))?.focus();
   } else {
     lastPaymentsExtras = null;
+    popupLicensed = false;
     clearPomodoroTick();
     auth.hidden = false;
     app.hidden = true;
@@ -695,6 +776,14 @@ $("refresh-activity-btn")?.addEventListener("click", async () => {
   await loadTodayActivityPreview();
   await refreshCurrentTabSummary();
   await updateSyncHint();
+});
+
+$("refresh-analytics-btn")?.addEventListener("click", () => {
+  void refreshAnalyticsPanel();
+});
+
+$("analytics-open-activity-btn")?.addEventListener("click", () => {
+  void openWebPath("/dashboard/activity");
 });
 
 $("generate-report-btn")?.addEventListener("click", async () => {
@@ -911,6 +1000,7 @@ for (const btn of document.querySelectorAll(".tab-btn")) {
     const tab = btn.getAttribute("data-tab") || "today";
     activateTab(tab);
     if (tab === "dev") void refreshDevPanelStats();
+    if (tab === "analytics") void refreshAnalyticsPanel();
   });
 }
 
@@ -937,6 +1027,7 @@ document.addEventListener("keydown", (e) => {
     const next = tabs[(idx + 1) % tabs.length];
     activateTab(next);
     if (next === "dev") void refreshDevPanelStats();
+    if (next === "analytics") void refreshAnalyticsPanel();
     return;
   }
   if (e.key === "ArrowLeft") {
@@ -944,14 +1035,16 @@ document.addEventListener("keydown", (e) => {
     const next = tabs[(idx - 1 + tabs.length) % tabs.length];
     activateTab(next);
     if (next === "dev") void refreshDevPanelStats();
+    if (next === "analytics") void refreshAnalyticsPanel();
     return;
   }
   const num = Number(e.key);
-  if (num >= 1 && num <= Math.min(5, tabs.length)) {
+  if (num >= 1 && num <= tabs.length) {
     e.preventDefault();
     const next = tabs[num - 1];
     activateTab(next);
     if (next === "dev") void refreshDevPanelStats();
+    if (next === "analytics") void refreshAnalyticsPanel();
   }
 });
 

@@ -959,3 +959,138 @@ button.tiny.secondary {
   transform: translateY(-1px);
   background: #3f3f46;
 }
+
+/* —— Analytics tab */
+.analytics-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.analytics-intro {
+  margin: 0;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analytics-intro strong {
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+.analytics-status {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #f87171;
+}
+
+.analytics-card {
+  margin-top: 10px;
+}
+
+.analytics-range-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+}
+
+.analytics-chart {
+  min-height: 48px;
+}
+
+.analytics-empty {
+  margin: 0;
+  font-size: 12px;
+}
+
+.analytics-foot {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.vbar-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3px;
+  height: 92px;
+  padding: 4px 0 0;
+}
+
+.vbar-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  height: 100%;
+}
+
+.vbar-bar {
+  width: 100%;
+  max-width: 28px;
+  margin: 0 auto;
+  min-height: 2px;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, #93c5fd 0%, #3b82f6 55%, #2563eb 100%);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+  transition: filter var(--duration-fast) var(--ease-out-expo);
+}
+
+.vbar-col:hover .vbar-bar {
+  filter: brightness(1.08);
+}
+
+.vbar-label {
+  font-size: 9px;
+  color: #a1a1aa;
+  text-align: center;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hbar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.hbar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 76px) 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.hbar-label {
+  font-size: 10px;
+  color: #d4d4d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hbar-track {
+  height: 9px;
+  background: #27272a;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hbar-fill {
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.35);
+  transition: width var(--duration-normal) var(--ease-out-expo);
+}
