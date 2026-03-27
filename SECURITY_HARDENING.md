@@ -2,6 +2,8 @@
 
 This is a repo-specific hardening checklist for `packages/web`, `packages/api`, and `packages/extension`.
 
+**See also:** prioritized follow-ups from codebase review — [`docs/SECURITY_FINDINGS.md`](docs/SECURITY_FINDINGS.md) (security) and [`docs/IMPROVEMENTS_BACKLOG.md`](docs/IMPROVEMENTS_BACKLOG.md) (quality / tech debt).
+
 ## What is already implemented
 
 - API:

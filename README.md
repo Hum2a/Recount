@@ -273,6 +273,8 @@ CI deploy workflow: [`.github/workflows/deploy-cloudflare.yml`](./.github/workfl
 | [`SECURITY.md`](./SECURITY.md) | Responsible disclosure |
 | [`SUPPORT.md`](./SUPPORT.md) | Where to ask for help |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Release history |
+| [`docs/SECURITY_FINDINGS.md`](./docs/SECURITY_FINDINGS.md) | Security backlog (prioritized findings) |
+| [`docs/IMPROVEMENTS_BACKLOG.md`](./docs/IMPROVEMENTS_BACKLOG.md) | Improvements & tech debt backlog |
 
 ---
 
