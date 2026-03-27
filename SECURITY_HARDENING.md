@@ -12,6 +12,9 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - Auth endpoint rate limiting already present (`authLimiter`).
   - Login now returns generic invalid-credentials errors.
   - Auth payload schemas are strict (`zod.strict()`).
+  - Route validation now supports `params` in addition to body/query.
+  - `intentions`, `reports`, and event-delete routes use schema-based param validation.
+  - Scheduled job secret check now uses constant-time comparison.
 - Web (Next.js):
   - Global security headers configured in `next.config.js`:
     - `X-Frame-Options: DENY`

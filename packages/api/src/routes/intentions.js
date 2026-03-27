@@ -6,10 +6,18 @@ import { validate } from "../middleware/validate.js";
 
 const router = Router();
 
-const createSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  goals: z.array(z.string().min(1).max(500)).min(1).max(20),
-});
+const createSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    goals: z.array(z.string().min(1).max(500)).min(1).max(20),
+  })
+  .strict();
+
+const dateParamsSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .strict();
 
 router.post("/", requireAuth, validate(createSchema), async (req, res, next) => {
   try {
@@ -30,12 +38,9 @@ router.post("/", requireAuth, validate(createSchema), async (req, res, next) => 
   }
 });
 
-router.get("/:date", requireAuth, async (req, res, next) => {
+router.get("/:date", requireAuth, validate(dateParamsSchema, "params"), async (req, res, next) => {
   try {
-    const date = req.params.date;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: "Invalid date" });
-    }
+    const { date } = req.validated;
     const { data, error } = await supabaseAdmin
       .from("intentions")
       .select("*")

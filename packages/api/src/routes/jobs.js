@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 import { runWeeklyDigestJob } from "../lib/weekly-digest.js";
 import { logger } from "../logger.js";
@@ -15,7 +16,11 @@ router.post("/weekly-digest", async (req, res, next) => {
       return res.status(503).json({ error: "DIGEST_JOB_SECRET is not configured" });
     }
     const got = req.get("x-recount-job-secret");
-    if (!got || got !== secret) {
+    const expectedBuf = Buffer.from(secret, "utf8");
+    const gotBuf = Buffer.from(got ?? "", "utf8");
+    const matches =
+      gotBuf.length === expectedBuf.length && timingSafeEqual(gotBuf, expectedBuf);
+    if (!matches) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 

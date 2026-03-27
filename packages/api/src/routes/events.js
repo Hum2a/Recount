@@ -38,6 +38,12 @@ const calendarQuery = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
+const eventIdParams = z
+  .object({
+    eventId: z.string().uuid(),
+  })
+  .strict();
+
 function parseIso(s) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return null;
@@ -263,12 +269,13 @@ router.get("/me/activity/segments", requireAuth, async (req, res, next) => {
 });
 
 /** Delete one of your own tab events (e.g. privacy cleanup). */
-router.delete("/me/activity/segments/:eventId", requireAuth, async (req, res, next) => {
+router.delete(
+  "/me/activity/segments/:eventId",
+  requireAuth,
+  validate(eventIdParams, "params"),
+  async (req, res, next) => {
   try {
-    const eventId = req.params.eventId;
-    if (!z.string().uuid().safeParse(eventId).success) {
-      return res.status(400).json({ error: "Invalid event id" });
-    }
+    const { eventId } = req.validated;
     const { data, error } = await supabaseAdmin
       .from("tab_events")
       .delete()
@@ -281,6 +288,7 @@ router.delete("/me/activity/segments/:eventId", requireAuth, async (req, res, ne
   } catch (e) {
     next(e);
   }
-});
+}
+);
 
 export default router;
