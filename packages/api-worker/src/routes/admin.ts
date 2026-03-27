@@ -101,13 +101,21 @@ const patchIntentionBody = z
   })
   .refine((d) => d.goals !== undefined || d.date !== undefined, { message: "Provide goals and/or date" });
 
-const patchReportBody = z.object({
-  ai_summary: z.string().min(1).optional(),
-  score: z.union([z.coerce.number().int().min(1).max(10), z.null()]).optional(),
-  top_domains: z.any().optional(),
-  goals_met: z.array(z.string()).optional(),
-  goals_missed: z.array(z.string()).optional(),
+const reportTopDomainRow = z.object({
+  domain: z.string().min(1).max(512),
+  seconds: z.coerce.number().min(0).max(1_000_000_000),
+  category: z.string().max(64).optional(),
 });
+
+const patchReportBody = z
+  .object({
+    ai_summary: z.string().min(1).optional(),
+    score: z.union([z.coerce.number().int().min(1).max(10), z.null()]).optional(),
+    top_domains: z.array(reportTopDomainRow).max(50).optional(),
+    goals_met: z.array(z.string().max(500)).max(100).optional(),
+    goals_missed: z.array(z.string().max(500)).max(100).optional(),
+  })
+  .strict();
 
 function parseListQuery(query: Record<string, string | undefined>) {
   const rawQ = typeof query.q === "string" ? query.q.trim().slice(0, 120) : "";

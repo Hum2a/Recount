@@ -44,7 +44,7 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
     const { data, error } = await supabaseAuth.auth.signUp({ email, password });
     if (error) {
       logger.warn({ err: error }, "signup");
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: "Could not complete signup. Try again or use a different email." });
     }
     if (!data.user) return res.status(400).json({ error: "Signup failed" });
 
@@ -112,7 +112,7 @@ router.post("/refresh", authLimiter, validate(refreshSchema), async (req, res, n
     const { refresh_token } = req.validated;
     const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token });
     if (error || !data.session) {
-      return res.status(401).json({ error: error?.message ?? "Invalid refresh token" });
+      return res.status(401).json({ error: "Invalid or expired session" });
     }
     return res.json({
       data: {

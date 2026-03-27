@@ -44,4 +44,6 @@ CI security workflow: [`.github/workflows/ci-security.yml`](./.github/workflows/
   issues in third-party services unless directly caused by this repository’s
   integration (we may still forward reports).
 
+**Chrome extension:** threat model and surface notes: [`packages/extension/SECURITY.md`](./packages/extension/SECURITY.md).
+
 Thank you for helping keep Recount users safe.

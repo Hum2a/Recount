@@ -37,6 +37,10 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   ALLOWED_ORIGINS: z.string().min(1),
   WEB_URL: z.string().url(),
+  /**
+   * Unused by this codebase: API auth uses Supabase-issued JWTs only.
+   * Kept as an optional key so older `.env` files stay valid; omit unless you add custom JWT signing.
+   */
   JWT_SECRET: z.string().min(32).optional(),
   /** Set to run POST /api/jobs/weekly-digest (cron / scheduler). */
   DIGEST_JOB_SECRET: z.preprocess((val) => {
@@ -48,6 +52,22 @@ const schema = z.object({
     if (val === undefined || val === null || String(val).trim() === "") return undefined;
     return val;
   }, z.string().min(16).optional()),
+  /**
+   * When "1" or "true", trust `X-Forwarded-For` (first hop) for client IP — use behind a reverse proxy.
+   * Improves rate limiting and login audit IP hashing.
+   */
+  TRUST_PROXY: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return undefined;
+    return String(val).trim().toLowerCase();
+  }, z.enum(["0", "1", "false", "true"]).optional()),
+  /**
+   * When TRUST_PROXY is enabled: number of reverse-proxy hops for `X-Forwarded-For` (Express `trust proxy`).
+   * Default 1 when omitted (single load balancer). Use 2+ only if your chain strips headers correctly.
+   */
+  TRUST_PROXY_HOPS: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return undefined;
+    return val;
+  }, z.coerce.number().int().min(1).max(10).optional()),
 });
 
 function isEmpty(v) {

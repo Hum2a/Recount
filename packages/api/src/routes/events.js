@@ -135,7 +135,11 @@ router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next)
   }
 });
 
-/** iCalendar feed of daily tracked totals (UTC dates). */
+/**
+ * iCalendar feed of daily tracked totals (UTC dates).
+ * Auth: session Bearer only (no query-token secrets). If you add shareable URLs later,
+ * use opaque revocable tokens + TTL — never long-lived JWTs in query strings (cf. SEC-019).
+ */
 router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), async (req, res, next) => {
   try {
     const licensed = await userHasLicense(req.user.id);

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
+import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { createSupabaseAdmin } from "../supabase";
 import { createCheckoutSession, stripeClient } from "../services/stripe";
@@ -9,7 +10,26 @@ import type { AppVars } from "../types";
 
 const payments = new Hono<{ Bindings: WorkerEnv; Variables: AppVars }>();
 
+const createCheckoutBody = z.preprocess(
+  (val) => (val == null || typeof val !== "object" ? {} : val),
+  z.object({}).strict()
+);
+
 payments.post("/create-session", requireAuth, async (c) => {
+  let raw: unknown;
+  const text = await c.req.text();
+  if (!text.trim()) {
+    raw = {};
+  } else {
+    try {
+      raw = JSON.parse(text) as unknown;
+    } catch {
+      return c.json({ error: "Invalid JSON" }, 400);
+    }
+  }
+  const bodyParsed = createCheckoutBody.safeParse(raw);
+  if (!bodyParsed.success) return c.json({ error: "Invalid request body" }, 400);
+
   const email = c.get("user").email;
   if (!email) return c.json({ error: "Email required on account" }, 400);
   const url = await createCheckoutSession(c.env, c.get("user").id, email);
@@ -42,20 +62,41 @@ payments.post("/webhook", async (c) => {
     const stripe = stripeClient(c.env);
     const body = await c.req.text();
     event = stripe.webhooks.constructEvent(body, sig, c.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Invalid signature";
-    return c.text(`Webhook Error: ${message}`, 400);
+  } catch {
+    return c.text("Webhook signature verification failed", 400);
   }
 
   if (event.type === "checkout.session.completed") {
+    const supabaseAdmin = createSupabaseAdmin(c.env);
+    const { data: seen } = await supabaseAdmin
+      .from("stripe_webhook_events")
+      .select("id")
+      .eq("id", event.id)
+      .maybeSingle();
+    if (seen?.id) {
+      return c.json({ received: true });
+    }
+
     const session = event.data.object;
     const userId = session.metadata?.userId;
     if (userId) {
-      const supabaseAdmin = createSupabaseAdmin(c.env);
-      const licenseKey = randomUUID();
       const paymentRef = session.payment_intent ? String(session.payment_intent) : String(session.id);
 
-      await supabaseAdmin.from("profiles").update({ license_active: true, license_key: licenseKey }).eq("id", userId);
+      const { data: prior } = await supabaseAdmin
+        .from("profiles")
+        .select("license_active, license_key")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const alreadyLicensed = Boolean(prior?.license_active && prior?.license_key);
+      const licenseKey =
+        alreadyLicensed && prior?.license_key ? prior.license_key : randomUUID();
+
+      await supabaseAdmin
+        .from("profiles")
+        .update({ license_active: true, license_key: licenseKey })
+        .eq("id", userId);
+
       await supabaseAdmin.from("payments").upsert(
         {
           user_id: userId,
@@ -68,7 +109,17 @@ payments.post("/webhook", async (c) => {
       );
 
       const customerEmail = session.customer_details?.email ?? session.customer_email;
-      if (customerEmail) await sendLicenseEmail(c.env, customerEmail, licenseKey);
+      if (customerEmail && !alreadyLicensed) {
+        await sendLicenseEmail(c.env, customerEmail, licenseKey);
+      }
+    }
+
+    const { error: evtErr } = await supabaseAdmin.from("stripe_webhook_events").insert({
+      id: event.id,
+      event_type: event.type,
+    });
+    if (evtErr && evtErr.code !== "23505") {
+      console.error("[payments/webhook] stripe_webhook_events insert:", evtErr.message);
     }
   }
 

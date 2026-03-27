@@ -17,19 +17,24 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - Route validation now supports `params` in addition to body/query.
   - `intentions`, `reports`, and event-delete routes use schema-based param validation.
   - Scheduled job secret check now uses constant-time comparison.
+  - Optional `TRUST_PROXY` + `TRUST_PROXY_HOPS` for correct client IP behind proxies.
+  - Auth rate limits use IP + email (refresh uses a dedicated refresh bucket).
+  - Stripe webhooks record `event.id` in `stripe_webhook_events` (migration `011`) to skip duplicate deliveries.
   - Added executable authorization regression tests for user-scoped routes (`vitest` + `supertest`).
+  - AI report prompts bound and hardened against prompt injection (`packages/api/src/services/openai.js`).
 - Web (Next.js):
   - Global security headers configured in `next.config.js`:
     - `X-Frame-Options: DENY`
     - `X-Content-Type-Options: nosniff`
     - `Referrer-Policy: strict-origin-when-cross-origin`
     - `Permissions-Policy` baseline
-    - Baseline CSP
+    - CSP: tight `connect-src` from public env URLs; `unsafe-eval` only in development
 - Extension:
   - Background message handler now validates sender identity and message shape.
   - API/Web URL overrides in options are now normalized and restricted to:
     - `https://` origins
     - localhost loopback for local development only
+  - Staff Dev-tab logs redact obvious bearer/refresh patterns; see `packages/extension/SECURITY.md`.
 
 ## Next high-priority actions
 
@@ -58,6 +63,7 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - Implemented in `.github/workflows/ci-security.yml` with:
     - API authorization regression tests (`npm run test -w @recount/api`)
     - dependency audit gate (`npm audit --audit-level=high --omit=dev --workspace @recount/api`)
+    - informational web prod audit (`npm audit … --workspace @recount/web`, non-blocking)
     - `gitleaks` secret scanning
 
 6. Extension permission minimization

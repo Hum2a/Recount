@@ -17,6 +17,11 @@ import jobsRoutes from "./routes/jobs.js";
 
 const app = express();
 
+if (env.TRUST_PROXY === "1" || env.TRUST_PROXY === "true") {
+  const hops = env.TRUST_PROXY_HOPS ?? 1;
+  app.set("trust proxy", hops);
+}
+
 const origins = new Set(
   env.ALLOWED_ORIGINS.split(",")
     .map((o) => o.trim())
@@ -44,7 +49,7 @@ app.use(
         callback(null, true);
         return;
       }
-      callback(new Error("Origin not allowed by CORS"));
+      callback(null, false);
     },
     credentials: true,
   })
