@@ -22,6 +22,8 @@ import {
 } from "./demographics-options";
 import { getApiBaseUrl } from "@/lib/api-url";
 import { useDashboardEntitlements } from "@/components/layout/dashboard-entitlements";
+import { DistractionPresetPicker } from "./distraction-preset-picker";
+import { getPresetHostSet, parseCustomDistractionLines } from "./distraction-presets";
 import {
   CollapsibleSettingsBlock,
   FeatureSubsectionNav,
@@ -121,7 +123,10 @@ function FeatureSubsection({
 export default function SettingsPage() {
   const [hourly, setHourly] = useState("0");
   const [tz, setTz] = useState("UTC");
-  const [distractionText, setDistractionText] = useState("");
+  /** Preset picker selection (hostnames, lowercase). */
+  const [selectedPremadeHosts, setSelectedPremadeHosts] = useState<string[]>([]);
+  /** Additional hostnames, one per line (not from the preset list). */
+  const [distractionCustomText, setDistractionCustomText] = useState("");
   const [intentLock, setIntentLock] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [sendTitles, setSendTitles] = useState(true);
@@ -193,8 +198,19 @@ export default function SettingsPage() {
       const row = body.data as ProfileRow;
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
-      setDistractionText(Array.isArray(row.distraction_domains) ? row.distraction_domains.join("\n") : "");
-      setDistractionListEnabled(Array.isArray(row.distraction_domains) && row.distraction_domains.length > 0);
+      const rawDomains = Array.isArray(row.distraction_domains)
+        ? row.distraction_domains.map((h) => String(h).trim().toLowerCase()).filter(Boolean)
+        : [];
+      const presetSet = getPresetHostSet();
+      const premade: string[] = [];
+      const custom: string[] = [];
+      for (const h of rawDomains) {
+        if (presetSet.has(h)) premade.push(h);
+        else custom.push(h);
+      }
+      setSelectedPremadeHosts([...new Set(premade)].sort());
+      setDistractionCustomText([...new Set(custom)].sort().join("\n"));
+      setDistractionListEnabled(rawDomains.length > 0);
       setIntentLock(Boolean(row.intent_lock_enabled));
       setWeeklyDigest(Boolean(row.weekly_digest_enabled));
       setSendTitles(row.send_tab_titles !== false);
@@ -304,12 +320,21 @@ export default function SettingsPage() {
       setMsg("Referral source is too long (max 100 characters).");
       return;
     }
-    const distraction_domains = distractionListEnabled
-      ? distractionText
-          .split("\n")
-          .map((l) => l.trim().toLowerCase())
-          .filter(Boolean)
-      : [];
+    const customHosts = parseCustomDistractionLines(distractionCustomText);
+    const presetLower = selectedPremadeHosts.map((h) => h.trim().toLowerCase()).filter(Boolean);
+    const seen = new Set<string>();
+    const distraction_domains: string[] = [];
+    if (distractionListEnabled) {
+      for (const h of [...presetLower, ...customHosts]) {
+        if (seen.has(h)) continue;
+        seen.add(h);
+        distraction_domains.push(h);
+      }
+    }
+    if (distraction_domains.length > 100) {
+      setMsg("Too many distraction domains (max 100). Remove some presets or custom lines.");
+      return;
+    }
     const res = await fetch(`${getApiBaseUrl()}/api/profiles`, {
       method: "PATCH",
       headers: {
@@ -745,26 +770,37 @@ export default function SettingsPage() {
                 <FeatureSubsection
                   id="features-distractions"
                   title="Distractions"
-                  description="Hostnames where you want nudges when intent lock is on (one per line, no https://)."
+                  description="Pick common sites from the list or add your own hostnames when intent lock is on."
                 >
                   <SwitchWithHint
                     checked={distractionListEnabled}
                     onChange={setDistractionListEnabled}
-                    label="Use a custom distraction list"
-                    hint="When off, no hostnames are saved and the extension won’t use a custom list for intent-lock nudges. Turn on to edit the list below. Tracking still runs; this only affects nudges."
+                    label="Use a distraction list"
+                    hint="When off, no hostnames are saved and the extension won’t use a custom list for intent-lock nudges. Turn on to choose presets and/or add your own sites below. Tracking still runs; this only affects nudges."
                   />
                   <FieldWithHint
-                    id="settings-distraction-domains"
-                    label="Distraction domains"
-                    hint="Websites you want reminders about when you have daily intentions (e.g. social or news). Enter hostnames only, one per line (e.g. youtube.com)."
+                    id="settings-distraction-presets"
+                    label="Common distraction sites"
+                    hint="Search and tick sites you want nudges on. Per category you can use All / None. These merge with any custom hostnames you add underneath. Max 100 hostnames total when you save."
+                  >
+                    <DistractionPresetPicker
+                      disabled={!distractionListEnabled}
+                      value={selectedPremadeHosts}
+                      onChange={setSelectedPremadeHosts}
+                    />
+                  </FieldWithHint>
+                  <FieldWithHint
+                    id="settings-distraction-custom"
+                    label="Custom hostnames (optional)"
+                    hint="One hostname per line, no https://. Use this for sites not in the list above (e.g. a niche forum or internal tool hostname)."
                   >
                     <textarea
-                      id="settings-distraction-domains"
+                      id="settings-distraction-custom"
                       className={cn(inputClass, "font-mono text-sm", !distractionListEnabled && "opacity-50")}
-                      rows={5}
-                      value={distractionText}
-                      onChange={(e) => setDistractionText(e.target.value)}
-                      placeholder={"youtube.com\nreddit.com"}
+                      rows={4}
+                      value={distractionCustomText}
+                      onChange={(e) => setDistractionCustomText(e.target.value)}
+                      placeholder={"news.ycombinator.com\nexample-internal.app"}
                       disabled={!distractionListEnabled}
                       aria-disabled={!distractionListEnabled}
                     />
