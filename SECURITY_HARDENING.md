@@ -15,6 +15,7 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - Route validation now supports `params` in addition to body/query.
   - `intentions`, `reports`, and event-delete routes use schema-based param validation.
   - Scheduled job secret check now uses constant-time comparison.
+  - Added executable authorization regression tests for user-scoped routes (`vitest` + `supertest`).
 - Web (Next.js):
   - Global security headers configured in `next.config.js`:
     - `X-Frame-Options: DENY`
