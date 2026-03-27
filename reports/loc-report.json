@@ -1,0 +1,248 @@
+{
+  "generatedAt": "2026-03-27T18:17:47.349Z",
+  "root": "C:\\Users\\Humza\\OneDrive\\Documents\\Programming\\Recount",
+  "totals": {
+    "files": 231,
+    "lines": 23377,
+    "blank": 2741,
+    "comment": 492,
+    "code": 20144
+  },
+  "byCategory": {
+    "TypeScript": {
+      "files": 102,
+      "lines": 10585,
+      "blank": 899,
+      "comment": 97,
+      "code": 9589
+    },
+    "JavaScript": {
+      "files": 60,
+      "lines": 6219,
+      "blank": 738,
+      "comment": 291,
+      "code": 5190
+    },
+    "Markdown": {
+      "files": 14,
+      "lines": 1571,
+      "blank": 491,
+      "comment": 0,
+      "code": 1080
+    },
+    "CSS": {
+      "files": 2,
+      "lines": 1022,
+      "blank": 105,
+      "comment": 10,
+      "code": 907
+    },
+    "Plain text": {
+      "files": 2,
+      "lines": 972,
+      "blank": 143,
+      "comment": 0,
+      "code": 829
+    },
+    "Shell": {
+      "files": 1,
+      "lines": 799,
+      "blank": 103,
+      "comment": 86,
+      "code": 610
+    },
+    "SQL": {
+      "files": 11,
+      "lines": 647,
+      "blank": 68,
+      "comment": 0,
+      "code": 579
+    },
+    "HTML": {
+      "files": 2,
+      "lines": 348,
+      "blank": 12,
+      "comment": 0,
+      "code": 336
+    },
+    "YAML": {
+      "files": 7,
+      "lines": 274,
+      "blank": 43,
+      "comment": 4,
+      "code": 227
+    },
+    "Python": {
+      "files": 1,
+      "lines": 252,
+      "blank": 36,
+      "comment": 4,
+      "code": 212
+    },
+    "JSON": {
+      "files": 9,
+      "lines": 223,
+      "blank": 9,
+      "comment": 0,
+      "code": 214
+    },
+    "Cursor rules": {
+      "files": 6,
+      "lines": 182,
+      "blank": 40,
+      "comment": 0,
+      "code": 142
+    },
+    "Project config": {
+      "files": 4,
+      "lines": 92,
+      "blank": 15,
+      "comment": 0,
+      "code": 77
+    },
+    "SVG": {
+      "files": 1,
+      "lines": 85,
+      "blank": 13,
+      "comment": 0,
+      "code": 72
+    },
+    "Env / samples": {
+      "files": 7,
+      "lines": 82,
+      "blank": 20,
+      "comment": 0,
+      "code": 62
+    },
+    "TOML": {
+      "files": 2,
+      "lines": 24,
+      "blank": 6,
+      "comment": 0,
+      "code": 18
+    }
+  },
+  "byExtension": {
+    ".md": {
+      "category": "Markdown",
+      "files": 14,
+      "lines": 1571
+    },
+    ".mdc": {
+      "category": "Cursor rules",
+      "files": 6,
+      "lines": 182
+    },
+    ".cursorignore": {
+      "category": "Project config",
+      "files": 1,
+      "lines": 64
+    },
+    ".editorconfig": {
+      "category": "Project config",
+      "files": 1,
+      "lines": 14
+    },
+    ".env": {
+      "category": "Env / samples",
+      "files": 3,
+      "lines": 34
+    },
+    ".example": {
+      "category": "Env / samples",
+      "files": 3,
+      "lines": 44
+    },
+    ".yml": {
+      "category": "YAML",
+      "files": 7,
+      "lines": 274
+    },
+    ".gitignore": {
+      "category": "Project config",
+      "files": 1,
+      "lines": 12
+    },
+    ".nvmrc": {
+      "category": "Project config",
+      "files": 1,
+      "lines": 2
+    },
+    "LICENSE": {
+      "category": "Plain text",
+      "files": 1,
+      "lines": 22
+    },
+    ".json": {
+      "category": "JSON",
+      "files": 9,
+      "lines": 223
+    },
+    ".js": {
+      "category": "JavaScript",
+      "files": 51,
+      "lines": 5369
+    },
+    ".sql": {
+      "category": "SQL",
+      "files": 11,
+      "lines": 647
+    },
+    ".ts": {
+      "category": "TypeScript",
+      "files": 43,
+      "lines": 3453
+    },
+    ".toml": {
+      "category": "TOML",
+      "files": 2,
+      "lines": 24
+    },
+    ".mjs": {
+      "category": "JavaScript",
+      "files": 9,
+      "lines": 850
+    },
+    ".html": {
+      "category": "HTML",
+      "files": 2,
+      "lines": 348
+    },
+    ".css": {
+      "category": "CSS",
+      "files": 2,
+      "lines": 1022
+    },
+    ".local": {
+      "category": "Env / samples",
+      "files": 1,
+      "lines": 4
+    },
+    ".svg": {
+      "category": "SVG",
+      "files": 1,
+      "lines": 85
+    },
+    ".tsx": {
+      "category": "TypeScript",
+      "files": 59,
+      "lines": 7132
+    },
+    ".sh": {
+      "category": "Shell",
+      "files": 1,
+      "lines": 799
+    },
+    ".py": {
+      "category": "Python",
+      "files": 1,
+      "lines": 252
+    },
+    ".txt": {
+      "category": "Plain text",
+      "files": 1,
+      "lines": 950
+    }
+  },
+  "fileCount": 231
+}
