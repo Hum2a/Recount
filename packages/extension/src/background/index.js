@@ -45,6 +45,8 @@ function shouldSkipUrl(url) {
     const u = new URL(url);
     const proto = u.protocol;
     if (proto !== "http:" && proto !== "https:") return true;
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]") return true;
     return false;
   } catch {
     return true;

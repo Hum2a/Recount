@@ -8,7 +8,7 @@ import { zodErrorMessage } from "../utils";
 
 const createSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  goals: z.array(z.string().min(1).max(500)).min(1).max(20),
+  goals: z.array(z.string().min(1).max(500)).max(20),
 });
 
 const intentions = new Hono<{ Bindings: WorkerEnv; Variables: AppVars }>();

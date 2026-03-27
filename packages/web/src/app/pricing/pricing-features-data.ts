@@ -40,11 +40,13 @@ What you can do: work normally; open the extension or dashboard to see today’s
     free: "Yes",
     premium: "Yes",
     tagline: "Exclude sensitive or irrelevant sites from tracking entirely.",
-    body: `In the extension’s options, list hostnames (one per line) that should never be tracked — for example banking or health portals. Matching uses the site hostname (subdomains count).
+    body: `List hostnames (one per line) that should never be tracked — for example banking or health portals. You can edit the list in **Dashboard → Settings → Features → Never track** (saved on your profile) or in the extension **Options** page. The extension applies the profile copy when it syncs your settings.
+
+Matching uses the site hostname (subdomains count, same as the extension).
 
 Blocked sites don’t create tab events at all, so they won’t appear in Activity, exports, or AI reports.
 
-What you can do: add or remove domains anytime; changes apply to new activity immediately.`,
+What you can do: add or remove domains anytime; after saving on the web, reload or wait for extension sync so new activity respects the list.`,
   },
   {
     id: "intentions",
@@ -52,11 +54,11 @@ What you can do: add or remove domains anytime; changes apply to new activity im
     free: "Yes",
     premium: "Yes",
     tagline: "Write what you plan to do today — Recount compares it to your real tabs.",
-    body: `Intentions are simple text goals for a calendar day (stored in UTC). You can set them from the extension popup or view them on the dashboard overview.
+    body: `Intentions are simple text goals for a calendar day (stored in UTC). You can set them from the **extension popup** or **edit today’s goals on the dashboard** (same API as the extension — one goal per line).
 
 They power honest check-ins: the AI report (Lifetime) weighs your goals against where time actually went. Intent lock uses the same goals to decide when to nudge you on distraction sites.
 
-What you can do: add several lines in the popup (one goal per line), save, and edit any time. Empty days are fine — streaks only count days where you actually set goals.`,
+What you can do: add several goals, save from either place, and clear a day by saving an empty list from the dashboard. Streaks only count days where you have at least one non-empty goal.`,
   },
   {
     id: "overview",
@@ -100,7 +102,7 @@ What you can do: start/stop from the popup; combine with Activity filters later 
     free: "Yes",
     premium: "Yes",
     tagline: "Gentle nudges when you visit sites you said pull you off track.",
-    body: `In **Settings** on the web, list distraction hostnames and turn on intent lock. The signed-in extension pulls these prefs periodically and caches them locally.
+    body: `In **Settings → Features** on the web, pick distraction sites (preset multiselect and/or custom hostnames) and turn on intent lock. The signed-in extension pulls these prefs periodically and caches them locally.
 
 If intent lock is on, you have goals for today, and you focus a tab on a distraction domain, Recount can show a system notification and a small in-page banner (once per domain per UTC day).
 
@@ -112,11 +114,11 @@ What you can do: curate your distraction list in Settings, save, reload the exte
     free: "Yes",
     premium: "Yes",
     tagline: "Choose whether page titles leave your browser.",
-    body: `By default the extension sends both domain and tab title with each segment. In **Settings**, you can turn off titles so uploads contain timing and domain only — better for privacy, less context in Activity and reports.
+    body: `By default the extension sends both domain and tab title with each segment. In **Settings → Features**, use the **Activity detail** control to choose domains-only vs including page titles — better for privacy, less context in Activity and reports.
 
 The extension reads this preference from your profile when it syncs settings.
 
-What you can do: toggle **Send page titles** off if you prefer minimal data; turn it back on when you want richer history.`,
+What you can do: slide to **domains and time only** if you prefer minimal data; include titles when you want richer history.`,
   },
   {
     id: "profile-settings",
@@ -124,7 +126,7 @@ What you can do: toggle **Send page titles** off if you prefer minimal data; tur
     free: "Yes",
     premium: "Yes",
     tagline: "Central place for prefs that follow your account.",
-    body: `Settings saves through the API to your profile: timezone, optional hourly rate (for your own sense of value — not billing), distraction list, digest opt-in, team leaderboard fields, and privacy toggles.
+    body: `Settings saves through the API to your profile: timezone, optional hourly rate (for your own sense of value — not billing), **never-track blocklist**, distraction list for intent lock, digest opt-in, team leaderboard fields, and privacy toggles.
 
 Exports and calendar feeds use your plan to decide default date ranges.
 

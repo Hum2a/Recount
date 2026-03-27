@@ -102,7 +102,7 @@ function normalizeHostname(line) {
 }
 
 const meSelect =
-  "email, hourly_rate, timezone, license_active, app_role, distraction_domains, intent_lock_enabled, weekly_digest_enabled, send_tab_titles, team_slug, leaderboard_opt_in, leaderboard_nickname, display_name, birth_year, country_code, locale, gender_identity, occupation, industry, work_role, company_size, primary_use_case, referral_source, demographics_updated_at";
+  "email, hourly_rate, timezone, license_active, app_role, distraction_domains, blocked_domains, intent_lock_enabled, weekly_digest_enabled, send_tab_titles, team_slug, leaderboard_opt_in, leaderboard_nickname, display_name, birth_year, country_code, locale, gender_identity, occupation, industry, work_role, company_size, primary_use_case, referral_source, demographics_updated_at";
 
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
