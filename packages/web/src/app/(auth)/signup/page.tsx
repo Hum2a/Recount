@@ -53,16 +53,18 @@ export default function SignupPage() {
       return;
     }
     const session = body.data?.session;
-    if (session?.access_token && session?.refresh_token) {
-      const supabase = createClient();
-      const { error: sErr } = await supabase.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-      });
-      if (sErr) {
-        setError(sErr.message);
-        return;
-      }
+    if (!session?.access_token || !session?.refresh_token) {
+      setError("Account may have been created, but we could not start your session. Try signing in.");
+      return;
+    }
+    const supabase = createClient();
+    const { error: sErr } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+    if (sErr) {
+      setError(sErr.message);
+      return;
     }
     router.push("/dashboard");
     router.refresh();

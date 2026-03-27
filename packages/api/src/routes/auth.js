@@ -48,6 +48,28 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
     }
     if (!data.user) return res.status(400).json({ error: "Signup failed" });
 
+    let session = data.session;
+    if (!session) {
+      const { error: confirmErr } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
+        email_confirm: true,
+      });
+      if (confirmErr) {
+        logger.error({ err: confirmErr }, "confirm email on signup");
+        return res.status(500).json({ error: "Could not complete signup" });
+      }
+      const { data: signInData, error: signInErr } = await supabaseAuth.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInErr || !signInData?.session) {
+        logger.warn({ err: signInErr }, "sign-in after signup");
+        return res.status(500).json({
+          error: "Account created but automatic sign-in failed. Try signing in with your email and password.",
+        });
+      }
+      session = signInData.session;
+    }
+
     const { error: profileErr } = await supabaseAdmin.from("profiles").upsert(
       { id: data.user.id, email },
       { onConflict: "id" }
@@ -67,7 +89,7 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
     return res.json({
       data: {
         user: data.user,
-        session: data.session,
+        session,
       },
     });
   } catch (e) {
