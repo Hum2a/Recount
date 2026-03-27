@@ -62,7 +62,6 @@ async function main() {
     "OPENAI_API_KEY",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
-    "STRIPE_PRICE_ID",
     "RESEND_API_KEY",
     "FROM_EMAIL",
     "WEB_URL",

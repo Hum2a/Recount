@@ -16,7 +16,6 @@ const devDefaults = {
   OPENAI_API_KEY: "sk-dev-placeholder-openai-not-real",
   STRIPE_SECRET_KEY: "sk_test_dev_placeholder_not_real",
   STRIPE_WEBHOOK_SECRET: "whsec_dev_placeholder_not_real",
-  STRIPE_PRICE_ID: "price_dev_placeholder",
   RESEND_API_KEY: "re_dev_placeholder_not_real",
   FROM_EMAIL: "noreply@example.com",
   // Both hosts: browser Origin must match exactly; dev users often open Next on 127.0.0.1 vs localhost.
@@ -31,7 +30,6 @@ const schema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
-  STRIPE_PRICE_ID: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),
   FROM_EMAIL: z.string().email(),
   PORT: z.coerce.number().default(3001),

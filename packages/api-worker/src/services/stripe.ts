@@ -6,6 +6,16 @@ export function stripeClient(env: WorkerEnv) {
   return new Stripe(env.STRIPE_SECRET_KEY);
 }
 
+/** One-time Lifetime checkout — matches pricing page (£14.99). */
+const LIFETIME_CHECKOUT_LINE_ITEM = {
+  quantity: 1,
+  price_data: {
+    currency: "gbp",
+    unit_amount: 1499,
+    product_data: { name: "Recount Lifetime" },
+  },
+} as const;
+
 export async function createCheckoutSession(env: WorkerEnv, userId: string, email: string) {
   const supabaseAdmin = createSupabaseAdmin(env);
   const stripe = stripeClient(env);
@@ -27,7 +37,7 @@ export async function createCheckoutSession(env: WorkerEnv, userId: string, emai
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
-    line_items: [{ price: env.STRIPE_PRICE_ID, quantity: 1 }],
+    line_items: [LIFETIME_CHECKOUT_LINE_ITEM],
     success_url: `${env.WEB_URL}/dashboard?payment=success`,
     cancel_url: `${env.WEB_URL}/pricing?payment=cancelled`,
     metadata: { userId },

@@ -7,7 +7,6 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
-  STRIPE_PRICE_ID: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),
   FROM_EMAIL: z.string().email(),
   WEB_URL: z.string().url(),
