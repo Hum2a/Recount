@@ -10,3 +10,4 @@ out/
 spec-extracted.txt
 .turbo
 focustrack-spec.docx
+*.zip
