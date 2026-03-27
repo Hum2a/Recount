@@ -3,8 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 export function PaymentSuccessHandler() {
   const params = useSearchParams();
@@ -26,7 +25,7 @@ export function PaymentSuccessHandler() {
       if (!token) return;
 
       while (!cancelled && Date.now() - started < 30_000) {
-        const res = await fetch(`${apiUrl}/api/payments/status`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/payments/status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = await res.json().catch(() => ({}));

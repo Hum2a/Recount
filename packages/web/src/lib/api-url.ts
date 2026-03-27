@@ -1,17 +1,29 @@
 /**
  * Base URL for the Recount REST API (`packages/api`).
  *
- * In **server** contexts (RSC, route handlers), `http://localhost:…` is rewritten to
- * `http://127.0.0.1:…`. Node’s `fetch` (undici) often resolves `localhost` to IPv6 while
- * Express listens on IPv4, which surfaces as a generic `fetch failed` on the dashboard.
+ * **Browser:** If the env URL points at loopback (`localhost` or `127.0.0.1`), the hostname is
+ * set to `window.location.hostname` so it matches the page (e.g. both `localhost`). Otherwise
+ * `fetch` goes to `127.0.0.1` while `Origin` is `http://localhost:3000` — valid CORS, but
+ * easy to misconfigure in `ALLOWED_ORIGINS` and looks like a CORS bug.
  *
- * In the **browser**, the configured URL is left unchanged.
+ * **Server (RSC, route handlers):** `localhost` is rewritten to `127.0.0.1` so Node’s fetch
+ * does not hit IPv6-only `::1` while Express listens on IPv4.
  */
 export function getApiBaseUrl(): string {
   const raw = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/+$/, "");
-  if (typeof window !== "undefined") return raw;
   try {
     const u = new URL(raw);
+    if (typeof window !== "undefined") {
+      const pageHost = window.location.hostname;
+      if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+        if (pageHost === "::1" || pageHost === "[::1]") {
+          u.hostname = "127.0.0.1";
+        } else {
+          u.hostname = pageHost;
+        }
+      }
+      return u.toString().replace(/\/+$/, "");
+    }
     if (u.hostname === "localhost") u.hostname = "127.0.0.1";
     return u.toString().replace(/\/+$/, "");
   } catch {

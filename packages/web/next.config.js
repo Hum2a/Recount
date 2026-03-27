@@ -13,6 +13,12 @@ function originsFromPublicUrl(raw) {
     if (u.protocol === "https:") {
       list.push(`wss://${u.host}`);
     }
+    // Client fetch uses 127.0.0.1 when the configured host is localhost (see getApiBaseUrl).
+    if (u.hostname === "localhost") {
+      const v4 = new URL(u.href);
+      v4.hostname = "127.0.0.1";
+      list.push(v4.origin);
+    }
     return list;
   } catch {
     return [];
@@ -21,7 +27,13 @@ function originsFromPublicUrl(raw) {
 
 function contentSecurityPolicy() {
   const dev = process.env.NODE_ENV !== "production";
-  const connectParts = new Set(["'self'", ...originsFromPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL), ...originsFromPublicUrl(process.env.NEXT_PUBLIC_API_URL)]);
+  const connectParts = new Set([
+    "'self'",
+    ...originsFromPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    ...originsFromPublicUrl(process.env.NEXT_PUBLIC_API_URL),
+    // GPU/driver browser extensions sometimes issue requests to data: URLs from the page context.
+    "data:",
+  ]);
   const connectSrc = Array.from(connectParts).join(" ");
   const scriptSrc = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : [])].join(" ");
   return [

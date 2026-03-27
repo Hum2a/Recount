@@ -69,7 +69,12 @@ export function DashboardEntitlementsProvider({
       setError(null);
       setReady(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not reach the Recount API.");
+      const raw = e instanceof Error ? e.message : "Could not reach the Recount API.";
+      setError(
+        raw === "Failed to fetch"
+          ? "Failed to fetch (API unreachable or CORS). Start the API with npm run dev:api; ALLOWED_ORIGINS must include your browser origin (e.g. http://127.0.0.1:3000 if you open the app that way)."
+          : raw
+      );
       setReady(false);
     } finally {
       setLoading(false);

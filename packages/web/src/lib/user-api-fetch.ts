@@ -1,8 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 export async function userApi(path: string, init: RequestInit = {}) {
   const supabase = createClient();
@@ -14,5 +13,5 @@ export async function userApi(path: string, init: RequestInit = {}) {
   if (init.body != null && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  return fetch(`${apiUrl}${path}`, { ...init, headers, cache: "no-store" });
+  return fetch(`${getApiBaseUrl()}${path}`, { ...init, headers, cache: "no-store" });
 }

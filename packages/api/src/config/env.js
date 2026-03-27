@@ -19,7 +19,8 @@ const devDefaults = {
   STRIPE_PRICE_ID: "price_dev_placeholder",
   RESEND_API_KEY: "re_dev_placeholder_not_real",
   FROM_EMAIL: "noreply@example.com",
-  ALLOWED_ORIGINS: "http://localhost:3000",
+  // Both hosts: browser Origin must match exactly; dev users often open Next on 127.0.0.1 vs localhost.
+  ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000",
   WEB_URL: "http://localhost:3000",
 };
 

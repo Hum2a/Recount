@@ -182,9 +182,18 @@ export default function SettingsPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token || cancelled) return;
-      const res = await fetch(`${getApiBaseUrl()}/api/profiles/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${getApiBaseUrl()}/api/profiles/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        if (cancelled) return;
+        setProfileError(
+          "Could not reach the API. Run `npm run dev:api` from the repo root, confirm the URL in packages/web `.env.local` (NEXT_PUBLIC_API_URL), and match your browser address (localhost vs 127.0.0.1) to API ALLOWED_ORIGINS."
+        );
+        return;
+      }
       const body = await res.json().catch(() => ({}));
       if (cancelled) return;
       if (!res.ok) {
@@ -444,11 +453,7 @@ export default function SettingsPage() {
               <span className="font-medium text-foreground">Role:</span>{" "}
               {ent.loading && !ent.ready ? "…" : ent.appRole}
             </p>
-            {ent.error && (
-              <p className="text-xs text-amber-200/90">
-                Account status: {ent.error} — check that the API is running and NEXT_PUBLIC_API_URL matches.
-              </p>
-            )}
+            {ent.error && <p className="text-xs text-amber-200/90">Account status: {ent.error}</p>}
             {profileError && <p className="text-xs text-amber-200/90">Profile form: {profileError}</p>}
           </div>
 

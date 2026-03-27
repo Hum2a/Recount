@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { FieldWithHint } from "@/components/ui/field-hint";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 function safeNextPath(raw: string | null) {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
@@ -27,8 +28,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
