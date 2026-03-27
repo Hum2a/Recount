@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 function parseEnvFile(filePath) {
   if (!existsSync(filePath)) return {};
@@ -21,17 +22,27 @@ function parseEnvFile(filePath) {
   return out;
 }
 
-function runSecretPut({ configPath, key, value }) {
+/** Strip CR and trim; avoids CRLF/.env quirks breaking Wrangler’s multipart upload. */
+function normalizeSecretValue(value) {
+  return String(value).replace(/\r/g, "").trim();
+}
+
+/**
+ * Bulk upload reads secrets from a JSON file (no stdin), so `shell: true` on Windows is safe here.
+ * Spawning `npx.cmd` with `shell: false` often throws EINVAL; `npx` + shell matches deploy-cf.mjs.
+ * See: wrangler versions secret bulk — JSON {"KEY": "value", ...}
+ */
+function runVersionsSecretBulk({ configPath, secretsJsonPath }) {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn("npx", ["wrangler", "versions", "secret", "put", key, "--config", configPath], {
-      stdio: ["pipe", "inherit", "inherit"],
-      shell: process.platform === "win32",
-    });
-    child.stdin.write(String(value ?? ""));
-    child.stdin.end();
+    const child = spawn(
+      "npx",
+      ["wrangler", "versions", "secret", "bulk", secretsJsonPath, "--config", configPath],
+      { stdio: "inherit", shell: process.platform === "win32" }
+    );
+    child.on("error", (err) => rejectPromise(err));
     child.on("exit", (code) => {
       if (code === 0) resolvePromise();
-      else rejectPromise(new Error(`wrangler secret put ${key} failed (${code ?? "unknown"})`));
+      else rejectPromise(new Error(`wrangler versions secret bulk failed (${code ?? "unknown"})`));
     });
   });
 }
@@ -72,18 +83,52 @@ async function main() {
 
   const webKeys = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_API_URL"];
 
+  function buildSecretsObject(keys, localEnv) {
+    const out = {};
+    for (const key of keys) {
+      const raw = pickEnv(localEnv, key);
+      if (!raw) continue;
+      const normalized = normalizeSecretValue(raw);
+      if (!normalized) continue;
+      out[key] = normalized;
+    }
+    return out;
+  }
+
   console.log("Syncing API worker secrets (packages/api/.env + process.env) ...");
-  for (const key of apiKeys) {
-    const value = pickEnv(apiEnv, key);
-    if (!value) continue;
-    await runSecretPut({ configPath: apiWorkerConfig, key, value });
+  const apiSecrets = buildSecretsObject(apiKeys, apiEnv);
+  if (Object.keys(apiSecrets).length > 0) {
+    const secretsPath = join(tmpdir(), `recount-cf-api-secrets-${process.pid}-${Date.now()}.json`);
+    try {
+      writeFileSync(secretsPath, JSON.stringify(apiSecrets), "utf8");
+      await runVersionsSecretBulk({ configPath: apiWorkerConfig, secretsJsonPath: secretsPath });
+    } finally {
+      try {
+        unlinkSync(secretsPath);
+      } catch {
+        /* ignore */
+      }
+    }
+  } else {
+    console.log("(No API worker secrets found to sync; skipping.)");
   }
 
   console.log("Syncing web worker secrets (packages/web/.env.local + process.env) ...");
-  for (const key of webKeys) {
-    const value = pickEnv(webEnv, key);
-    if (!value) continue;
-    await runSecretPut({ configPath: webWorkerConfig, key, value });
+  const webSecrets = buildSecretsObject(webKeys, webEnv);
+  if (Object.keys(webSecrets).length > 0) {
+    const secretsPath = join(tmpdir(), `recount-cf-web-secrets-${process.pid}-${Date.now()}.json`);
+    try {
+      writeFileSync(secretsPath, JSON.stringify(webSecrets), "utf8");
+      await runVersionsSecretBulk({ configPath: webWorkerConfig, secretsJsonPath: secretsPath });
+    } finally {
+      try {
+        unlinkSync(secretsPath);
+      } catch {
+        /* ignore */
+      }
+    }
+  } else {
+    console.log("(No web worker secrets found to sync; skipping.)");
   }
 
   console.log("Cloudflare secret sync complete.");
