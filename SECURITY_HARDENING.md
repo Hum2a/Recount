@@ -64,9 +64,9 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
 
 ## Verification checklist
 
-- [ ] Requests from non-allowlisted origins are blocked by API CORS.
-- [ ] Login failures return generic errors only.
-- [ ] Oversized JSON payloads are rejected.
-- [ ] Next.js responses include configured security headers.
-- [ ] Extension rejects untrusted runtime message senders.
-- [ ] Invalid extension API/Web URL overrides are rejected in options UI.
+- [x] Requests from non-allowlisted origins are blocked by API CORS.
+- [x] Login failures return generic errors only.
+- [x] Oversized JSON payloads are rejected.
+- [x] Next.js responses include configured security headers.
+- [x] Extension rejects untrusted runtime message senders.
+- [x] Invalid extension API/Web URL overrides are rejected in options UI.
