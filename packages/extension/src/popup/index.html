@@ -36,6 +36,9 @@
           <button type="button" class="tab-btn" data-tab="intentions" role="tab" aria-selected="false">
             Intentions
           </button>
+          <button type="button" class="tab-btn" data-tab="analytics" role="tab" aria-selected="false">
+            Analytics
+          </button>
           <button type="button" class="tab-btn" data-tab="timer" role="tab" aria-selected="false">
             Timer
           </button>
@@ -46,7 +49,7 @@
             Dev
           </button>
         </nav>
-        <p class="muted kb-hint">Tabs: <kbd>←</kbd> <kbd>→</kbd> or number keys <kbd>1</kbd>–<kbd>5</kbd> (when focus isn’t in a field).</p>
+        <p class="muted kb-hint">Tabs: <kbd>←</kbd> <kbd>→</kbd> or number keys <kbd>1</kbd>–<kbd>6</kbd> (when focus isn’t in a field).</p>
 
         <div class="tab-panels">
           <section class="tab-panel" data-tab-panel="today" role="tabpanel">
@@ -108,6 +111,27 @@
             <label>Today’s goals (one per line)</label>
             <textarea id="goals" rows="6" placeholder="Ship the API&#10;Deep work block"></textarea>
             <button type="button" id="save-goals">Save intentions</button>
+          </section>
+
+          <section class="tab-panel" data-tab-panel="analytics" role="tabpanel" hidden>
+            <div class="analytics-head">
+              <p class="muted analytics-intro">Charts use <strong>UTC calendar days</strong> (same as Today).</p>
+              <button type="button" id="refresh-analytics-btn" class="inline">Refresh</button>
+            </div>
+            <p id="analytics-status" class="muted analytics-status" hidden></p>
+            <div class="settings-card analytics-card">
+              <p class="settings-card-title">Tracked time per day</p>
+              <p id="analytics-range-hint" class="muted analytics-range-hint"></p>
+              <div id="analytics-daily-chart" class="analytics-chart"></div>
+            </div>
+            <div class="settings-card analytics-card">
+              <p class="settings-card-title">Today’s top sites (UTC)</p>
+              <div id="analytics-domains-chart" class="analytics-chart"></div>
+            </div>
+            <p class="muted analytics-foot">
+              Deeper history and filters live on the web —
+              <button type="button" id="analytics-open-activity-btn" class="inline-link">Open Activity</button>
+            </p>
           </section>
 
           <section class="tab-panel" data-tab-panel="timer" role="tabpanel" hidden>
