@@ -332,6 +332,17 @@ function setMsg(text, ok = false) {
   });
 }
 
+function getPasswordPolicyFailures(password) {
+  const failures = [];
+  if (password.length < 12) failures.push("at least 12 characters");
+  if (!/[A-Z]/.test(password)) failures.push("an uppercase letter");
+  if (!/[a-z]/.test(password)) failures.push("a lowercase letter");
+  if (!/[0-9]/.test(password)) failures.push("a number");
+  if (!/[^A-Za-z0-9]/.test(password)) failures.push("a special character");
+  if (password.length > 128) failures.push("at most 128 characters");
+  return failures;
+}
+
 async function refreshInstallBadge() {
   await syncInstallMetadata();
   const meta = await getLocal(STORAGE_INSTALL_META, {});
@@ -769,8 +780,9 @@ $("signup-btn").addEventListener("click", async () => {
   setMsg("");
   const email = /** @type {HTMLInputElement} */ ($("email")).value.trim();
   const password = /** @type {HTMLInputElement} */ ($("password")).value;
-  if (password.length < 8) {
-    setMsg("Password must be at least 8 characters.");
+  const failures = getPasswordPolicyFailures(password);
+  if (failures.length > 0) {
+    setMsg(`Password must include ${failures.join(", ")}.`);
     return;
   }
   const base = await getResolvedApiBase();

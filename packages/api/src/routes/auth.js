@@ -9,10 +9,19 @@ import { recordLoginEvent } from "../lib/login-events.js";
 
 const router = Router();
 
+const strongPasswordSchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(128, "Password must be at most 128 characters")
+  .regex(/[A-Z]/, "Password must include at least one uppercase letter")
+  .regex(/[a-z]/, "Password must include at least one lowercase letter")
+  .regex(/[0-9]/, "Password must include at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must include at least one special character");
+
 const signupSchema = z
   .object({
     email: z.string().email(),
-    password: z.string().min(8),
+    password: strongPasswordSchema,
   })
   .strict();
 
