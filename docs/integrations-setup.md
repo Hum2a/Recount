@@ -83,6 +83,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
    - Copy signing secret → `STRIPE_WEBHOOK_SECRET`.
 4. Ensure **`WEB_URL`** matches where users return after pay/cancel (`/dashboard?payment=success`, `/pricing?payment=cancelled`).
 5. **Dedupe table:** run migration **`011_stripe_webhook_events.sql`** so Stripe retries use a stable `event.id` ledger (Express and Worker webhooks both rely on it).
+6. **Verify:** After `011` is applied, trigger a test **`checkout.session.completed`** (Stripe CLI `stripe trigger checkout.session.completed` with CLI forwarding, or Dashboard → Webhooks → resend). Confirm a row appears in **`stripe_webhook_events`** and the test user’s profile gets **`license_active`** (and one license email on first success).
 
 **Test mode:** use `sk_test_…`, test price, and Stripe CLI or test webhook secret for local webhook testing.
 

@@ -36,8 +36,9 @@ Security-adjacent items that are mostly **quality** are listed here; pure securi
 ### IMP-003 — API test coverage beyond authz + password
 
 - **Where:** `packages/api/src/routes/__tests__/`
-- **Issue:** Most routes lack automated tests (payments webhook mock, admin RBAC, team leaderboard, jobs).
+- **Issue:** Most routes lack automated tests (admin RBAC, team leaderboard, jobs).
 - **Improvement:** Route-level tests with mocks; contract tests for critical paths.
+- **Progress:** Stripe **`checkout.session.completed`** webhook covered in `payments.webhook.test.js` (dedupe, license email, signature failure).
 
 ### IMP-004 — Web / component tests
 
@@ -48,8 +49,9 @@ Security-adjacent items that are mostly **quality** are listed here; pure securi
 ### IMP-005 — Monorepo lint/typecheck in CI
 
 - **Where:** `.github/workflows`
-- **Issue:** `ci-security.yml` runs API tests + audit + gitleaks; full `next lint` / `tsc --noEmit` may not run on every PR.
-- **Improvement:** Add `lint` + `build` matrix job (or path filters) so regressions fail fast.
+- **Issue:** Root `tsc --noEmit` for all packages may still be missing on every PR.
+- **Progress:** `ci-security.yml` includes **Web lint + production build** (`web-lint-build` job).
+- **Improvement:** Optional strict TypeScript check for `packages/api` or shared packages when migrated.
 
 ---
 

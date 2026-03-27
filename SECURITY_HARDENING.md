@@ -61,7 +61,8 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - secret scanning (gitleaks/trufflehog or platform-native scanner)
 - Fail CI on critical vulnerabilities/secrets.
   - Implemented in `.github/workflows/ci-security.yml` with:
-    - API authorization regression tests (`npm run test -w @recount/api`)
+    - API tests (`npm run test -w @recount/api`) — includes Stripe webhook dedupe regression tests
+    - Next.js `lint` + `build` (`web-lint-build` job)
     - dependency audit gate (`npm audit --audit-level=high --omit=dev --workspace @recount/api`)
     - informational web prod audit (`npm audit … --workspace @recount/web`, non-blocking)
     - `gitleaks` secret scanning
@@ -78,3 +79,4 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
 - [x] Next.js responses include configured security headers.
 - [x] Extension rejects untrusted runtime message senders.
 - [x] Invalid extension API/Web URL overrides are rejected in options UI.
+- [x] Supabase migration **`011_stripe_webhook_events.sql`** applied; Stripe test webhook creates **`stripe_webhook_events`** row and idempotent replays skip duplicate work (see [`docs/integrations-setup.md`](docs/integrations-setup.md) §5–6).

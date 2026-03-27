@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Vitest coverage for Stripe **`checkout.session.completed`** webhook (dedupe, license email, bad signature).
+- CI: **Web lint + production build** job in `ci-security.yml`.
 - Professional repo metadata (README, community docs, issue templates, `LICENSE`).
 - API security CI workflow and authorization + password policy tests.
 - `TRUST_PROXY` / **`TRUST_PROXY_HOPS`** for Express behind reverse proxies; optional `timing-safe` job secret check on Cloudflare Worker.
