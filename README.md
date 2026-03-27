@@ -207,7 +207,7 @@ If you see **`ENOSPC`**, free disk space and consider removing `packages/web/.ne
 | **Dev** | Load unpacked `packages/extension` from `chrome://extensions/` |
 | **Production build** | `npm run build:extension` → load `packages/extension/dist` |
 | **Site access** | Host permissions are **optional** (`http://*/*`, `https://*/*`). First install can open **Options** to grant access; tracking is off until granted |
-| **API / web URLs** | Unpacked builds default to localhost; store builds use constants in `packages/extension/src/utils/constants.js` — set before publishing |
+| **API / web URLs** | Defaults in `packages/extension/src/utils/constants.js` (`WEB_APP_ORIGIN` for the Next app, API URL for Workers). Override in extension Options. |
 | **CORS** | Add `chrome-extension://<extension-id>` to API **`ALLOWED_ORIGINS`** for deployed APIs |
 
 Session note: extension and website sessions are separate; use the same credentials if both prompt for login.
