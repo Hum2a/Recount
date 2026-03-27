@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { getApiBaseUrl } from "@/lib/api-url";
 import { createClient } from "@/lib/supabase/server";
 
 /** Matches API / DB `profiles.app_role` for staff routes. */
@@ -33,8 +34,7 @@ export const getVerifiedStaffAccess = cache(async () => {
   const token = session?.access_token;
   if (!token) return null;
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-  const res = await fetch(`${apiUrl}/api/profiles/me`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/profiles/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

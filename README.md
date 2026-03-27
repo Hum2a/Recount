@@ -161,9 +161,11 @@ Run SQL from [`packages/api/src/db/migrations/`](./packages/api/src/db/migration
 
 ```bash
 npm install
-npm run dev:api     # http://localhost:3001
+npm run dev:api     # http://localhost:3001 — keep this running for the dashboard
 npm run dev:web     # http://localhost:3000
 ```
+
+The dashboard loads data from the API during server rendering; if you only start Next.js, you’ll see a connection error until `dev:api` is up.
 
 **Integrations** (Stripe, OpenAI, Resend, store URLs): [`docs/integrations-setup.md`](./docs/integrations-setup.md)  
 **Cloudflare deploy**: [`docs/cloudflare-native-deploy.md`](./docs/cloudflare-native-deploy.md)
