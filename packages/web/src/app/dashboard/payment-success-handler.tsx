@@ -32,6 +32,7 @@ export function PaymentSuccessHandler() {
         const body = await res.json().catch(() => ({}));
         if (body.data?.license_active) {
           setMsg("Payment confirmed — full access unlocked.");
+          window.dispatchEvent(new Event("recount:entitlements-refresh"));
           router.replace("/dashboard");
           router.refresh();
           return;

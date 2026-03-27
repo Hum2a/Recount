@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
+import { hasFullProductAccess } from "@/lib/entitlements";
 
 export function PricingCheckout() {
   const [ready, setReady] = useState(false);
@@ -22,11 +22,13 @@ export function PricingCheckout() {
       if (cancelled) return;
       setToken(data.session?.access_token ?? null);
       if (data.session?.access_token) {
-        const res = await fetch(`${apiUrl}/api/payments/status`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/payments/status`, {
           headers: { Authorization: `Bearer ${data.session.access_token}` },
         });
         const body = await res.json().catch(() => ({}));
-        setLicensed(Boolean(body.data?.license_active));
+        setLicensed(
+          hasFullProductAccess(Boolean(body.data?.license_active), body.data?.app_role as string | undefined)
+        );
       }
       setReady(true);
     }
@@ -44,7 +46,7 @@ export function PricingCheckout() {
       setLoading(false);
       return;
     }
-    const res = await fetch(`${apiUrl}/api/payments/create-session`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/payments/create-session`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

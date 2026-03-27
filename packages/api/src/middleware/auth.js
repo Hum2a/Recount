@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "../db/client.js";
 import { logger } from "../logger.js";
 
+const STAFF_APP_ROLES = ["admin", "developer"];
+
 /**
  * @param {import("@supabase/supabase-js").User} user
  * @returns {Promise<{ id: string, app_role: string, license_active: boolean }>}
@@ -68,16 +70,25 @@ export async function requireLicense(req, res, next) {
       next();
       return;
     }
+    if (req.profile?.app_role && STAFF_APP_ROLES.includes(req.profile.app_role)) {
+      next();
+      return;
+    }
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("license_active")
+      .select("license_active, app_role")
       .eq("id", req.user.id)
       .single();
 
-    if (error || !data?.license_active) {
-      return res.status(403).json({ error: "License required" });
+    if (!error && data?.license_active) {
+      next();
+      return;
     }
-    next();
+    if (!error && data?.app_role && STAFF_APP_ROLES.includes(data.app_role)) {
+      next();
+      return;
+    }
+    return res.status(403).json({ error: "License required" });
   } catch (e) {
     next(e);
   }
@@ -87,4 +98,16 @@ export async function requireLicense(req, res, next) {
 export async function userHasLicense(userId) {
   const { data } = await supabaseAdmin.from("profiles").select("license_active").eq("id", userId).single();
   return Boolean(data?.license_active);
+}
+
+/** License or staff role (admin/developer) — same “full product” gate as the web app. */
+export async function userHasLicensedOrStaffAccess(userId) {
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("license_active, app_role")
+    .eq("id", userId)
+    .single();
+  if (!data) return false;
+  if (data.license_active) return true;
+  return Boolean(data.app_role && STAFF_APP_ROLES.includes(data.app_role));
 }

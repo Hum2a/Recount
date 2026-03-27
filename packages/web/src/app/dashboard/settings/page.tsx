@@ -20,8 +20,8 @@ import {
   resolveSelect,
   WORK_ROLE_OPTIONS,
 } from "./demographics-options";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
+import { useDashboardEntitlements } from "@/components/layout/dashboard-entitlements";
 
 const inputClass =
   "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
@@ -115,26 +115,33 @@ export default function SettingsPage() {
   const [referralSelect, setReferralSelect] = useState("");
   const [referralOther, setReferralOther] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [licensed, setLicensed] = useState(false);
-  const [appRole, setAppRole] = useState<string>("user");
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const ent = useDashboardEntitlements();
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setProfileError(null);
       const supabase = createClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token || cancelled) return;
-      const res = await fetch(`${apiUrl}/api/profiles/me`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/profiles/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json().catch(() => ({}));
-      if (cancelled || !body.data) return;
+      if (cancelled) return;
+      if (!res.ok) {
+        setProfileError(typeof body.error === "string" ? body.error : `Could not load profile (${res.status}).`);
+        return;
+      }
+      if (!body.data) {
+        setProfileError(typeof body.error === "string" ? body.error : "Could not load profile.");
+        return;
+      }
       const row = body.data as ProfileRow;
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
-      setLicensed(Boolean(row.license_active));
-      setAppRole(typeof row.app_role === "string" ? row.app_role : "user");
       setDistractionText(Array.isArray(row.distraction_domains) ? row.distraction_domains.join("\n") : "");
       setIntentLock(Boolean(row.intent_lock_enabled));
       setWeeklyDigest(Boolean(row.weekly_digest_enabled));
@@ -249,7 +256,7 @@ export default function SettingsPage() {
       .split("\n")
       .map((l) => l.trim().toLowerCase())
       .filter(Boolean);
-    const res = await fetch(`${apiUrl}/api/profiles`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/profiles`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -295,7 +302,7 @@ export default function SettingsPage() {
       const d = new Date();
       d.setUTCDate(d.getUTCDate() - i);
       const date = d.toISOString().slice(0, 10);
-      const res = await fetch(`${apiUrl}/api/events/summary?date=${date}`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/events/summary?date=${date}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json().catch(() => ({}));
@@ -322,7 +329,7 @@ export default function SettingsPage() {
       setMsg("Sign in again.");
       return;
     }
-    const res = await fetch(`${apiUrl}/api/events/me/calendar.ics`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/events/me/calendar.ics`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -346,11 +353,17 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="mt-1 text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
         <p className="mt-3 text-sm text-muted">
-          <span className="font-medium text-foreground">Plan:</span>{" "}
-          {licensed ? "Premium (license active)" : "Free"}
+          <span className="font-medium text-foreground">Plan:</span> {ent.planLabel}
           {" · "}
-          <span className="font-medium text-foreground">Role:</span> {appRole}
+          <span className="font-medium text-foreground">Role:</span>{" "}
+          {ent.loading && !ent.ready ? "…" : ent.appRole}
         </p>
+        {ent.error && (
+          <p className="mt-1 text-xs text-amber-200/90">
+            Account status: {ent.error} — check that the API is running and NEXT_PUBLIC_API_URL matches.
+          </p>
+        )}
+        {profileError && <p className="mt-1 text-xs text-amber-200/90">Profile form: {profileError}</p>}
       </div>
       <FieldWithHint
         id="settings-hourly-rate"

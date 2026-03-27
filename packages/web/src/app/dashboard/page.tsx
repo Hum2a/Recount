@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 import { AnimatedCard } from "@/components/motion/animated-card";
 import { GenerateReportButton } from "./generate-report-button";
 import { UpgradeCard } from "./upgrade-card";
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
   const intention = await intRes.json().catch(() => ({}));
   const streakBody = await streakRes.json().catch(() => ({}));
 
-  const licensed = Boolean(pay.data?.license_active);
+  const licensed = hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined);
   let report: unknown = null;
   if (licensed) {
     const repRes = await apiFetch(`/api/reports/${date}`, token);

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { classifyDomain } from "@recount/shared";
 import { supabaseAdmin } from "../db/client.js";
-import { requireAuth, userHasLicense } from "../middleware/auth.js";
+import { requireAuth, userHasLicensedOrStaffAccess } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import {
   parseTabEventFilters,
@@ -142,7 +142,7 @@ router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next)
  */
 router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), async (req, res, next) => {
   try {
-    const licensed = await userHasLicense(req.user.id);
+    const licensed = await userHasLicensedOrStaffAccess(req.user.id);
     const { from, to } = resolveCalendarRange(req.validated, licensed);
 
     const { data, error } = await supabaseAdmin
@@ -187,7 +187,7 @@ router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), as
 router.get("/summary", requireAuth, validate(summaryQuery, "query"), async (req, res, next) => {
   try {
     const { date } = req.validated;
-    const licensed = await userHasLicense(req.user.id);
+    const licensed = await userHasLicensedOrStaffAccess(req.user.id);
     if (!licensed && !isDateAllowedForFreeUser(date)) {
       return res.status(403).json({ error: "Free plan limited to the last 7 days" });
     }
@@ -238,7 +238,7 @@ router.get("/summary", requireAuth, validate(summaryQuery, "query"), async (req,
 router.get("/me/activity/summary", requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const licensed = await userHasLicense(userId);
+    const licensed = await userHasLicensedOrStaffAccess(userId);
     let filters = parseTabEventFilters(req.query);
     filters = applyFreeTierActivityWindow(filters, licensed);
     const data = await fetchTabEventSummary(userId, filters);
@@ -255,7 +255,7 @@ router.get("/me/activity/summary", requireAuth, async (req, res, next) => {
 router.get("/me/activity/segments", requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const licensed = await userHasLicense(userId);
+    const licensed = await userHasLicensedOrStaffAccess(userId);
     let filters = parseTabEventFilters(req.query);
     filters = applyFreeTierActivityWindow(filters, licensed);
     const { limit, offset } = parseTabEventPagination(req.query, 40, 150);
