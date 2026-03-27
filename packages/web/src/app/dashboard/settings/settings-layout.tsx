@@ -6,12 +6,18 @@ import { cn } from "@/lib/utils";
 export const SETTINGS_SECTIONS = [
   { id: "settings-overview", label: "Overview" },
   { id: "settings-general", label: "General" },
+  { id: "settings-features", label: "Features" },
   { id: "settings-about", label: "About you" },
-  { id: "settings-focus", label: "Focus" },
-  { id: "settings-privacy", label: "Privacy" },
-  { id: "settings-team", label: "Team" },
   { id: "settings-save", label: "Save" },
   { id: "settings-export", label: "Export" },
+] as const;
+
+/** In-page anchors inside the Features block (jump menu). */
+export const FEATURE_SUBSECTIONS = [
+  { id: "features-extension", label: "Extension" },
+  { id: "features-distractions", label: "Distractions" },
+  { id: "features-email", label: "Email" },
+  { id: "features-team", label: "Team" },
 ] as const;
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
@@ -19,10 +25,8 @@ export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
 /** Default expanded state for collapsible sections (nav ids that use CollapsibleSettingsBlock). */
 const DEFAULT_OPEN: Record<string, boolean> = {
   "settings-general": true,
+  "settings-features": true,
   "settings-about": false,
-  "settings-focus": true,
-  "settings-privacy": true,
-  "settings-team": true,
   "settings-export": true,
 };
 
@@ -129,6 +133,26 @@ export function SettingsSectionNav({
               ? "bg-white/[0.1] font-medium text-foreground ring-1 ring-white/15"
               : "text-muted hover:bg-white/[0.05] hover:text-foreground"
           )}
+        >
+          {s.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+export function FeatureSubsectionNav({ onNavigate }: { onNavigate: (featureAnchorId: string) => void }) {
+  return (
+    <nav
+      className="flex flex-wrap gap-1 border-b border-white/10 pb-3 lg:flex-col lg:border-b-0 lg:pb-0"
+      aria-label="Feature settings subsections"
+    >
+      {FEATURE_SUBSECTIONS.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          onClick={() => onNavigate(s.id)}
+          className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground lg:w-full lg:text-sm"
         >
           {s.label}
         </button>

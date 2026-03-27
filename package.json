@@ -18,7 +18,9 @@
     "deploy:web:cf": "node scripts/deploy-web-cf.mjs",
     "deploy:web:cf:wsl": "node scripts/deploy-web-cf-wsl.mjs",
     "deploy:api:cf": "node scripts/deploy-api-cf.mjs",
-    "deploy:cf": "node scripts/deploy-cf.mjs"
+    "deploy:cf": "node scripts/deploy-cf.mjs",
+    "loc": "node scripts/count-loc.mjs",
+    "loc:json": "node scripts/count-loc.mjs --json"
   },
   "engines": {
     "node": ">=20"
