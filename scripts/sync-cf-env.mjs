@@ -23,7 +23,7 @@ function parseEnvFile(filePath) {
 
 function runSecretPut({ configPath, key, value }) {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn("npx", ["wrangler", "secret", "put", key, "--config", configPath], {
+    const child = spawn("npx", ["wrangler", "versions", "secret", "put", key, "--config", configPath], {
       stdio: ["pipe", "inherit", "inherit"],
       shell: process.platform === "win32",
     });
