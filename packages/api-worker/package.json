@@ -11,7 +11,7 @@
     "@recount/shared": "*",
     "@supabase/supabase-js": "^2.49.1",
     "hono": "^4.8.12",
-    "openai": "^4.85.1",
+    "openai": "^6.33.0",
     "resend": "^4.1.2",
     "stripe": "^17.7.0",
     "zod": "^3.24.2"
