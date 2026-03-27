@@ -53,6 +53,10 @@ This is a repo-specific hardening checklist for `packages/web`, `packages/api`, 
   - `npm audit --workspaces` (or equivalent SCA gate)
   - secret scanning (gitleaks/trufflehog or platform-native scanner)
 - Fail CI on critical vulnerabilities/secrets.
+  - Implemented in `.github/workflows/ci-security.yml` with:
+    - API authorization regression tests (`npm run test -w @recount/api`)
+    - dependency audit gate (`npm audit --audit-level=high --omit=dev --workspace @recount/api`)
+    - `gitleaks` secret scanning
 
 6. Extension permission minimization
 - Re-audit whether `tabs` + `webNavigation` are both strictly required for all flows.
