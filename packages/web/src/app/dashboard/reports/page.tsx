@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 import { UpgradeCard } from "../upgrade-card";
 
 export default async function ReportsPage() {
@@ -13,13 +14,13 @@ export default async function ReportsPage() {
 
   const payRes = await apiFetch("/api/payments/status", session.access_token);
   const pay = await payRes.json().catch(() => ({}));
-  const licensed = Boolean(pay.data?.license_active);
+  const licensed = hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined);
 
   if (!licensed) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold">Reports</h1>
-        <p className="text-sm text-muted">AI reports require a lifetime license.</p>
+        <p className="text-sm text-muted">AI reports need an active license or staff access (admin/developer).</p>
         <UpgradeCard />
       </div>
     );

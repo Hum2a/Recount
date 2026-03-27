@@ -9,19 +9,34 @@ import { recordLoginEvent } from "../lib/login-events.js";
 
 const router = Router();
 
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+const strongPasswordSchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(128, "Password must be at most 128 characters")
+  .regex(/[A-Z]/, "Password must include at least one uppercase letter")
+  .regex(/[a-z]/, "Password must include at least one lowercase letter")
+  .regex(/[0-9]/, "Password must include at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must include at least one special character");
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+const signupSchema = z
+  .object({
+    email: z.string().email(),
+    password: strongPasswordSchema,
+  })
+  .strict();
 
-const refreshSchema = z.object({
-  refresh_token: z.string().min(1),
-});
+const loginSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  })
+  .strict();
+
+const refreshSchema = z
+  .object({
+    refresh_token: z.string().min(1),
+  })
+  .strict();
 
 router.post("/signup", authLimiter, validate(signupSchema), async (req, res, next) => {
   try {
@@ -29,7 +44,7 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
     const { data, error } = await supabaseAuth.auth.signUp({ email, password });
     if (error) {
       logger.warn({ err: error }, "signup");
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: "Could not complete signup. Try again or use a different email." });
     }
     if (!data.user) return res.status(400).json({ error: "Signup failed" });
 
@@ -65,7 +80,7 @@ router.post("/login", authLimiter, validate(loginSchema), async (req, res, next)
     const { email, password } = req.validated;
     const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
     if (error) {
-      return res.status(401).json({ error: error.message });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
     if (!data.session) return res.status(401).json({ error: "Invalid credentials" });
 
@@ -97,7 +112,7 @@ router.post("/refresh", authLimiter, validate(refreshSchema), async (req, res, n
     const { refresh_token } = req.validated;
     const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token });
     if (error || !data.session) {
-      return res.status(401).json({ error: error?.message ?? "Invalid refresh token" });
+      return res.status(401).json({ error: "Invalid or expired session" });
     }
     return res.json({
       data: {

@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 type HintTriggerProps = {
   /** Full explanation shown in the tooltip */
@@ -88,5 +89,106 @@ export function CheckboxWithHint({ checked, onChange, disabled, label, hint, cla
         <HintTrigger hint={hint} labelForA11y={label} />
       </span>
     </label>
+  );
+}
+
+type SwitchWithHintProps = {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+  label: string;
+  hint: string;
+  className?: string;
+};
+
+/** Accessible toggle row (switch + label + hint). */
+export function SwitchWithHint({ checked, onChange, disabled, label, hint, className }: SwitchWithHintProps) {
+  const switchId = useId();
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 text-sm text-muted",
+        disabled && "pointer-events-none opacity-60",
+        className
+      )}
+    >
+      <Switch id={switchId} checked={checked} onCheckedChange={onChange} disabled={disabled} className="mt-0.5" />
+      <div className="min-w-0 flex-1 pt-0.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <label htmlFor={switchId} className={cn("cursor-pointer", disabled && "cursor-not-allowed")}>
+            {label}
+          </label>
+          <HintTrigger hint={hint} labelForA11y={label} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ScaleWithHintProps = {
+  id: string;
+  label: string;
+  hint: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (next: number) => void;
+  leftLabel: string;
+  rightLabel: string;
+  disabled?: boolean;
+  className?: string;
+  /** Shown between the endpoints, e.g. current mode name */
+  valueDescription?: string;
+};
+
+/**
+ * Native range control with endpoint labels. Use integer steps for discrete modes (e.g. 0/1).
+ */
+export function ScaleWithHint({
+  id,
+  label,
+  hint,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  leftLabel,
+  rightLabel,
+  disabled,
+  className,
+  valueDescription,
+}: ScaleWithHintProps) {
+  return (
+    <div className={cn("text-sm text-muted", className)}>
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        <label htmlFor={id}>{label}</label>
+        <HintTrigger hint={hint} labelForA11y={label} />
+      </div>
+      {valueDescription ? (
+        <p className="mb-2 text-xs font-medium text-foreground/90">{valueDescription}</p>
+      ) : null}
+      <div className="flex items-center justify-between gap-2 text-xs text-muted/90">
+        <span className="max-w-[42%] leading-snug">{leftLabel}</span>
+        <span className="max-w-[42%] text-right leading-snug">{rightLabel}</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        className={cn(
+          "mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-accent",
+          "[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md",
+          "[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white",
+          disabled && "pointer-events-none opacity-50"
+        )}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </div>
   );
 }

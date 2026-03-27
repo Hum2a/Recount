@@ -1,10 +1,16 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  try {
+    return await updateSession(request);
+  } catch {
+    // Avoid returning an HTML error document for asset URLs if session refresh fails.
+    return NextResponse.next();
+  }
 }
 
+/** Skip all of `/_next/*` (static, image optimizer, HMR) plus common static files. */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

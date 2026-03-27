@@ -7,9 +7,17 @@ import { generateAccountabilityReport } from "../services/openai.js";
 
 const router = Router();
 
-const generateSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+const generateSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .strict();
+
+const dateParamsSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .strict();
 
 async function aggregateDay(userId, date) {
   const start = `${date}T00:00:00.000Z`;
@@ -110,12 +118,9 @@ router.get("/history", requireAuth, requireLicense, async (req, res, next) => {
   }
 });
 
-router.get("/:date", requireAuth, requireLicense, async (req, res, next) => {
+router.get("/:date", requireAuth, requireLicense, validate(dateParamsSchema, "params"), async (req, res, next) => {
   try {
-    const date = req.params.date;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: "Invalid date" });
-    }
+    const { date } = req.validated;
     const { data, error } = await supabaseAdmin
       .from("reports")
       .select("*")

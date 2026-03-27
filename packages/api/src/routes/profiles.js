@@ -26,6 +26,7 @@ const patchSchema = z
     hourly_rate: z.coerce.number().min(0).max(99999999).optional(),
     timezone: z.string().min(1).max(100).optional(),
     distraction_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
+    blocked_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
     intent_lock_enabled: z.boolean().optional(),
     weekly_digest_enabled: z.boolean().optional(),
     send_tab_titles: z.boolean().optional(),
@@ -101,7 +102,7 @@ function normalizeHostname(line) {
 }
 
 const meSelect =
-  "email, hourly_rate, timezone, license_active, app_role, distraction_domains, intent_lock_enabled, weekly_digest_enabled, send_tab_titles, team_slug, leaderboard_opt_in, leaderboard_nickname, display_name, birth_year, country_code, locale, gender_identity, occupation, industry, work_role, company_size, primary_use_case, referral_source, demographics_updated_at";
+  "email, hourly_rate, timezone, license_active, app_role, distraction_domains, blocked_domains, intent_lock_enabled, weekly_digest_enabled, send_tab_titles, team_slug, leaderboard_opt_in, leaderboard_nickname, display_name, birth_year, country_code, locale, gender_identity, occupation, industry, work_role, company_size, primary_use_case, referral_source, demographics_updated_at";
 
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
@@ -140,6 +141,18 @@ router.patch("/", requireAuth, validate(patchSchema), async (req, res, next) => 
         }
       }
       patch.distraction_domains = list;
+    }
+    if (v.blocked_domains !== undefined) {
+      const seen = new Set();
+      const list = [];
+      for (const line of v.blocked_domains) {
+        const h = normalizeHostname(line);
+        if (h && !seen.has(h)) {
+          seen.add(h);
+          list.push(h);
+        }
+      }
+      patch.blocked_domains = list;
     }
     if (v.intent_lock_enabled !== undefined) patch.intent_lock_enabled = v.intent_lock_enabled;
     if (v.weekly_digest_enabled !== undefined) patch.weekly_digest_enabled = v.weekly_digest_enabled;

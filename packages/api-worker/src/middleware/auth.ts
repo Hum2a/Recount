@@ -4,6 +4,8 @@ import type { AppVars } from "../types";
 import type { WorkerEnv } from "../env";
 import type { MiddlewareHandler } from "hono";
 
+const STAFF_APP_ROLES = ["admin", "developer"] as const;
+
 async function loadOrCreateProfile(env: WorkerEnv, user: { id: string; email?: string | null }) {
   const supabaseAdmin = createSupabaseAdmin(env);
   const { data, error } = await supabaseAdmin
@@ -57,12 +59,29 @@ export async function userHasLicense(env: WorkerEnv, userId: string) {
   return Boolean(data?.license_active);
 }
 
+export async function userHasLicensedOrStaffAccess(env: WorkerEnv, userId: string) {
+  const supabaseAdmin = createSupabaseAdmin(env);
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("license_active, app_role")
+    .eq("id", userId)
+    .single();
+  if (!data) return false;
+  if (data.license_active) return true;
+  return Boolean(data.app_role && (STAFF_APP_ROLES as readonly string[]).includes(data.app_role));
+}
+
 export const requireLicense: MiddlewareHandler<{ Bindings: WorkerEnv; Variables: AppVars }> = async (c, next) => {
-  if (c.get("profile")?.license_active) {
+  const profile = c.get("profile");
+  if (profile?.license_active) {
     await next();
     return;
   }
-  const licensed = await userHasLicense(c.env, c.get("user").id);
-  if (!licensed) return c.json({ error: "License required" }, 403);
+  if (profile?.app_role && (STAFF_APP_ROLES as readonly string[]).includes(profile.app_role)) {
+    await next();
+    return;
+  }
+  const ok = await userHasLicensedOrStaffAccess(c.env, c.get("user").id);
+  if (!ok) return c.json({ error: "License required" }, 403);
   await next();
 };

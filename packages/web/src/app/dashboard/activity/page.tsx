@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 import { AnimatedCard } from "@/components/motion/animated-card";
 import { MyActivityClient } from "./my-activity-client";
 
@@ -13,7 +14,7 @@ export default async function ActivityPage() {
 
   const payRes = await apiFetch("/api/payments/status", session.access_token);
   const pay = await payRes.json().catch(() => ({}));
-  const licensed = Boolean(pay.data?.license_active);
+  const licensed = hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined);
 
   return (
     <div className="space-y-8">

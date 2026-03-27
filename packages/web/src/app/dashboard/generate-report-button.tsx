@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 export function GenerateReportButton({ date }: { date: string }) {
   const router = useRouter();
@@ -23,7 +22,7 @@ export function GenerateReportButton({ date }: { date: string }) {
       setLoading(false);
       return;
     }
-    const res = await fetch(`${apiUrl}/api/reports/generate`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/reports/generate`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

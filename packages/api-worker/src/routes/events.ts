@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { classifyDomain } from "@recount/shared";
-import { requireAuth, userHasLicense } from "../middleware/auth";
+import { requireAuth, userHasLicensedOrStaffAccess } from "../middleware/auth";
 import { createSupabaseAdmin } from "../supabase";
 import { buildIcsCalendar } from "../lib/ics";
 import {
@@ -123,7 +123,7 @@ events.get("/me/calendar.ics", requireAuth, async (c) => {
   const parsed = calendarQuery.safeParse(c.req.query());
   if (!parsed.success) return c.json({ error: zodErrorMessage(parsed.error) }, 400);
   const userId = c.get("user").id;
-  const licensed = await userHasLicense(c.env, userId);
+  const licensed = await userHasLicensedOrStaffAccess(c.env, userId);
   const { from, to } = resolveCalendarRange(parsed.data, licensed);
   const supabaseAdmin = createSupabaseAdmin(c.env);
   const { data, error } = await supabaseAdmin
@@ -165,7 +165,7 @@ events.get("/summary", requireAuth, async (c) => {
   if (!parsed.success) return c.json({ error: zodErrorMessage(parsed.error) }, 400);
   const { date } = parsed.data;
   const userId = c.get("user").id;
-  const licensed = await userHasLicense(c.env, userId);
+  const licensed = await userHasLicensedOrStaffAccess(c.env, userId);
   if (!licensed && !isDateAllowedForFreeUser(date)) return c.json({ error: "Free plan limited to the last 7 days" }, 403);
 
   const start = `${date}T00:00:00.000Z`;
@@ -195,7 +195,7 @@ events.get("/summary", requireAuth, async (c) => {
 
 events.get("/me/activity/summary", requireAuth, async (c) => {
   const userId = c.get("user").id;
-  const licensed = await userHasLicense(c.env, userId);
+  const licensed = await userHasLicensedOrStaffAccess(c.env, userId);
   let filters = parseTabEventFilters(c.req.query());
   filters = applyFreeTierActivityWindow(filters, licensed);
   const data = await fetchTabEventSummary(c.env, userId, filters);
@@ -207,7 +207,7 @@ events.get("/me/activity/summary", requireAuth, async (c) => {
 
 events.get("/me/activity/segments", requireAuth, async (c) => {
   const userId = c.get("user").id;
-  const licensed = await userHasLicense(c.env, userId);
+  const licensed = await userHasLicensedOrStaffAccess(c.env, userId);
   let filters = parseTabEventFilters(c.req.query());
   filters = applyFreeTierActivityWindow(filters, licensed);
   const { limit, offset } = parseTabEventPagination(c.req.query(), 40, 150);

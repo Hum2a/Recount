@@ -5,19 +5,34 @@ import { recordLoginEvent } from "../lib/login-events";
 import { zodErrorMessage } from "../utils";
 import type { WorkerEnv } from "../env";
 
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+const strongPasswordSchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(128, "Password must be at most 128 characters")
+  .regex(/[A-Z]/, "Password must include at least one uppercase letter")
+  .regex(/[a-z]/, "Password must include at least one lowercase letter")
+  .regex(/[0-9]/, "Password must include at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must include at least one special character");
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+const signupSchema = z
+  .object({
+    email: z.string().email(),
+    password: strongPasswordSchema,
+  })
+  .strict();
 
-const refreshSchema = z.object({
-  refresh_token: z.string().min(1),
-});
+const loginSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  })
+  .strict();
+
+const refreshSchema = z
+  .object({
+    refresh_token: z.string().min(1),
+  })
+  .strict();
 
 const auth = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -30,7 +45,7 @@ auth.post("/signup", async (c) => {
   const supabaseAdmin = createSupabaseAdmin(c.env);
 
   const { data, error } = await supabaseAuth.auth.signUp({ email, password });
-  if (error) return c.json({ error: error.message }, 400);
+  if (error) return c.json({ error: "Could not complete signup. Try again or use a different email." }, 400);
   if (!data.user) return c.json({ error: "Signup failed" }, 400);
 
   const { error: profileErr } = await supabaseAdmin.from("profiles").upsert({ id: data.user.id, email }, { onConflict: "id" });
@@ -61,7 +76,7 @@ auth.post("/login", async (c) => {
   const supabaseAuth = createSupabaseAuth(c.env);
   const supabaseAdmin = createSupabaseAdmin(c.env);
   const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
-  if (error) return c.json({ error: error.message }, 401);
+  if (error) return c.json({ error: "Invalid credentials" }, 401);
   if (!data.session) return c.json({ error: "Invalid credentials" }, 401);
 
   await supabaseAdmin.from("profiles").upsert({ id: data.user.id, email: data.user.email ?? email }, { onConflict: "id" });
@@ -89,7 +104,7 @@ auth.post("/refresh", async (c) => {
 
   const supabaseAuth = createSupabaseAuth(c.env);
   const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token: parsed.data.refresh_token });
-  if (error || !data.session) return c.json({ error: error?.message ?? "Invalid refresh token" }, 401);
+  if (error || !data.session) return c.json({ error: "Invalid or expired session" }, 401);
 
   return c.json({
     data: {

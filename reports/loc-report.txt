@@ -1,0 +1,64 @@
+
+  Lines of code — C:\Users\Humza\OneDrive\Documents\Programming\Recount
+  Generated: 2026-03-27T18:17:47.349Z
+
+  Summary
+  ────────────────────────────────────────────────────────
+  Files scanned (included):     231
+  Total lines:                  23,377
+    Blank:                      2,741  (11.7%)
+    Comments (approx.):         492  (2.1%)
+    Code (non-blank, non-comm):   20,144  (86.2%)
+
+  By language (category)
+  Language                  Files      Lines    Blank   Comment       Code
+  ────────────────────────────────────────────────────────────────────────
+  TypeScript                  102      10585      899        97       9589
+  JavaScript                   60       6219      738       291       5190
+  Markdown                     14       1571      491         0       1080
+  CSS                           2       1022      105        10        907
+  Plain text                    2        972      143         0        829
+  Shell                         1        799      103        86        610
+  SQL                          11        647       68         0        579
+  HTML                          2        348       12         0        336
+  YAML                          7        274       43         4        227
+  Python                        1        252       36         4        212
+  JSON                          9        223        9         0        214
+  Cursor rules                  6        182       40         0        142
+  Project config                4         92       15         0         77
+  SVG                           1         85       13         0         72
+  Env / samples                 7         82       20         0         62
+  TOML                          2         24        6         0         18
+  ────────────────────────────────────────────────────────────────────────
+  Total                       231      23377     2741       492      20144
+
+  By extension (top 40 by lines)
+  Ext / file              Files      Lines Category          
+  ──────────────────────────────────────────────────────────────
+  .tsx                       59       7132 TypeScript        
+  .js                        51       5369 JavaScript        
+  .ts                        43       3453 TypeScript        
+  .md                        14       1571 Markdown          
+  .css                        2       1022 CSS               
+  .txt                        1        950 Plain text        
+  .mjs                        9        850 JavaScript        
+  .sh                         1        799 Shell             
+  .sql                       11        647 SQL               
+  .html                       2        348 HTML              
+  .yml                        7        274 YAML              
+  .py                         1        252 Python            
+  .json                       9        223 JSON              
+  .mdc                        6        182 Cursor rules      
+  .svg                        1         85 SVG               
+  .cursorignore               1         64 Project config    
+  .example                    3         44 Env / samples     
+  .env                        3         34 Env / samples     
+  .toml                       2         24 TOML              
+  LICENSE                     1         22 Plain text        
+  .editorconfig               1         14 Project config    
+  .gitignore                  1         12 Project config    
+  .local                      1          4 Env / samples     
+  .nvmrc                      1          2 Project config    
+
+  Note: comment counts are heuristic (//, /* */, #, etc.). Lockfiles and
+  binaries are excluded. JSON snapshot: loc-report.json in the same folder.

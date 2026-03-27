@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security disclosure
+    url: https://github.com/Hum2a/Recount/security/advisories/new
+    about: Report a vulnerability privately (do not open a public issue).
+  - name: Contributing guide
+    url: https://github.com/Hum2a/Recount/blob/main/CONTRIBUTING.md
+    about: How to set up the monorepo and submit PRs.

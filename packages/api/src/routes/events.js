@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { classifyDomain } from "@recount/shared";
 import { supabaseAdmin } from "../db/client.js";
-import { requireAuth, userHasLicense } from "../middleware/auth.js";
+import { requireAuth, userHasLicensedOrStaffAccess } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import {
   parseTabEventFilters,
@@ -37,6 +37,12 @@ const calendarQuery = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
+
+const eventIdParams = z
+  .object({
+    eventId: z.string().uuid(),
+  })
+  .strict();
 
 function parseIso(s) {
   const d = new Date(s);
@@ -129,10 +135,14 @@ router.post("/batch", requireAuth, validate(batchSchema), async (req, res, next)
   }
 });
 
-/** iCalendar feed of daily tracked totals (UTC dates). */
+/**
+ * iCalendar feed of daily tracked totals (UTC dates).
+ * Auth: session Bearer only (no query-token secrets). If you add shareable URLs later,
+ * use opaque revocable tokens + TTL — never long-lived JWTs in query strings (cf. SEC-019).
+ */
 router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), async (req, res, next) => {
   try {
-    const licensed = await userHasLicense(req.user.id);
+    const licensed = await userHasLicensedOrStaffAccess(req.user.id);
     const { from, to } = resolveCalendarRange(req.validated, licensed);
 
     const { data, error } = await supabaseAdmin
@@ -177,7 +187,7 @@ router.get("/me/calendar.ics", requireAuth, validate(calendarQuery, "query"), as
 router.get("/summary", requireAuth, validate(summaryQuery, "query"), async (req, res, next) => {
   try {
     const { date } = req.validated;
-    const licensed = await userHasLicense(req.user.id);
+    const licensed = await userHasLicensedOrStaffAccess(req.user.id);
     if (!licensed && !isDateAllowedForFreeUser(date)) {
       return res.status(403).json({ error: "Free plan limited to the last 7 days" });
     }
@@ -228,7 +238,7 @@ router.get("/summary", requireAuth, validate(summaryQuery, "query"), async (req,
 router.get("/me/activity/summary", requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const licensed = await userHasLicense(userId);
+    const licensed = await userHasLicensedOrStaffAccess(userId);
     let filters = parseTabEventFilters(req.query);
     filters = applyFreeTierActivityWindow(filters, licensed);
     const data = await fetchTabEventSummary(userId, filters);
@@ -245,7 +255,7 @@ router.get("/me/activity/summary", requireAuth, async (req, res, next) => {
 router.get("/me/activity/segments", requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const licensed = await userHasLicense(userId);
+    const licensed = await userHasLicensedOrStaffAccess(userId);
     let filters = parseTabEventFilters(req.query);
     filters = applyFreeTierActivityWindow(filters, licensed);
     const { limit, offset } = parseTabEventPagination(req.query, 40, 150);
@@ -263,12 +273,13 @@ router.get("/me/activity/segments", requireAuth, async (req, res, next) => {
 });
 
 /** Delete one of your own tab events (e.g. privacy cleanup). */
-router.delete("/me/activity/segments/:eventId", requireAuth, async (req, res, next) => {
+router.delete(
+  "/me/activity/segments/:eventId",
+  requireAuth,
+  validate(eventIdParams, "params"),
+  async (req, res, next) => {
   try {
-    const eventId = req.params.eventId;
-    if (!z.string().uuid().safeParse(eventId).success) {
-      return res.status(400).json({ error: "Invalid event id" });
-    }
+    const { eventId } = req.validated;
     const { data, error } = await supabaseAdmin
       .from("tab_events")
       .delete()
@@ -281,6 +292,7 @@ router.delete("/me/activity/segments/:eventId", requireAuth, async (req, res, ne
   } catch (e) {
     next(e);
   }
-});
+}
+);
 
 export default router;

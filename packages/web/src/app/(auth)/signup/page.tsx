@@ -8,6 +8,17 @@ import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { FieldWithHint } from "@/components/ui/field-hint";
+import { getApiBaseUrl } from "@/lib/api-url";
+
+function getPasswordRequirements(password: string) {
+  return [
+    { label: "At least 12 characters", met: password.length >= 12 },
+    { label: "At least one uppercase letter", met: /[A-Z]/.test(password) },
+    { label: "At least one lowercase letter", met: /[a-z]/.test(password) },
+    { label: "At least one number", met: /[0-9]/.test(password) },
+    { label: "At least one special character", met: /[^A-Za-z0-9]/.test(password) },
+  ];
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,13 +27,18 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const passwordRequirements = getPasswordRequirements(password);
+  const passwordValid = passwordRequirements.every((r) => r.met);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!passwordValid) {
+      setError("Please choose a stronger password that meets all requirements.");
+      return;
+    }
     setLoading(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-    const res = await fetch(`${apiUrl}/api/auth/signup`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -85,8 +101,8 @@ export default function SignupPage() {
         </FieldWithHint>
         <FieldWithHint
           id="signup-password"
-          label="Password (min 8 characters)"
-          hint="Choose a strong password (at least 8 characters). This protects your tracking data and account; store it in a password manager if you can."
+          label="Password"
+          hint="Use a strong password with 12+ characters and mixed character types. A password manager is strongly recommended."
         >
           <input
             id="signup-password"
@@ -95,12 +111,20 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={12}
+            maxLength={128}
             autoComplete="new-password"
           />
+          <ul className="mt-2 space-y-1 text-xs text-muted">
+            {passwordRequirements.map((rule) => (
+              <li key={rule.label} className={rule.met ? "text-emerald-400" : "text-muted"}>
+                {rule.met ? "✓" : "•"} {rule.label}
+              </li>
+            ))}
+          </ul>
         </FieldWithHint>
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" disabled={loading || !passwordValid} className="w-full">
           {loading ? "Creating…" : "Sign up"}
         </Button>
       </form>

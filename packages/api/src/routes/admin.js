@@ -15,6 +15,28 @@ import {
 
 const router = Router();
 
+function normalizeHostname(line) {
+  return String(line)
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./, "");
+}
+
+function normalizeHostnameArray(arr) {
+  const seen = new Set();
+  const list = [];
+  for (const line of arr) {
+    const h = normalizeHostname(line);
+    if (h && !seen.has(h)) {
+      seen.add(h);
+      list.push(h);
+    }
+  }
+  return list;
+}
+
 const patchRoleBody = z.object({
   app_role: z.enum([...APP_ROLES]),
 });
@@ -48,6 +70,7 @@ const adminPatchProfileBody = z
     license_key: nullableShortText,
     app_role: z.enum([...APP_ROLES]).optional(),
     distraction_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
+    blocked_domains: z.array(z.string().min(1).max(253)).max(100).optional(),
     intent_lock_enabled: z.boolean().optional(),
     weekly_digest_enabled: z.boolean().optional(),
     send_tab_titles: z.boolean().optional(),
@@ -111,13 +134,21 @@ const patchIntentionBody = z
     message: "Provide goals and/or date",
   });
 
-const patchReportBody = z.object({
-  ai_summary: z.string().min(1).optional(),
-  score: z.union([z.coerce.number().int().min(1).max(10), z.null()]).optional(),
-  top_domains: z.any().optional(),
-  goals_met: z.array(z.string()).optional(),
-  goals_missed: z.array(z.string()).optional(),
+const reportTopDomainRow = z.object({
+  domain: z.string().min(1).max(512),
+  seconds: z.coerce.number().min(0).max(1_000_000_000),
+  category: z.string().max(64).optional(),
 });
+
+const patchReportBody = z
+  .object({
+    ai_summary: z.string().min(1).optional(),
+    score: z.union([z.coerce.number().int().min(1).max(10), z.null()]).optional(),
+    top_domains: z.array(reportTopDomainRow).max(50).optional(),
+    goals_met: z.array(z.string().max(500)).max(100).optional(),
+    goals_missed: z.array(z.string().max(500)).max(100).optional(),
+  })
+  .strict();
 
 function parseListQuery(query) {
   const rawQ = typeof query.q === "string" ? query.q.trim().slice(0, 120) : "";
@@ -304,6 +335,7 @@ router.patch("/users/:userId", requireAuth, requireElevatedStaff, async (req, re
       patch.email = b.email;
     }
     if (b.distraction_domains !== undefined) patch.distraction_domains = b.distraction_domains;
+    if (b.blocked_domains !== undefined) patch.blocked_domains = normalizeHostnameArray(b.blocked_domains);
     if (b.intent_lock_enabled !== undefined) patch.intent_lock_enabled = b.intent_lock_enabled;
     if (b.weekly_digest_enabled !== undefined) patch.weekly_digest_enabled = b.weekly_digest_enabled;
     if (b.send_tab_titles !== undefined) patch.send_tab_titles = b.send_tab_titles;

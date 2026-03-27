@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 
 type Props = { params: { date: string } };
 
@@ -17,7 +18,9 @@ export default async function ReportDetailPage({ params }: Props) {
 
   const payRes = await apiFetch("/api/payments/status", session.access_token);
   const pay = await payRes.json().catch(() => ({}));
-  if (!pay.data?.license_active) redirect("/dashboard/reports");
+  if (!hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined)) {
+    redirect("/dashboard/reports");
+  }
 
   const repRes = await apiFetch(`/api/reports/${date}`, session.access_token);
   const rep = await repRes.json().catch(() => ({}));

@@ -332,6 +332,17 @@ function setMsg(text, ok = false) {
   });
 }
 
+function getPasswordPolicyFailures(password) {
+  const failures = [];
+  if (password.length < 12) failures.push("at least 12 characters");
+  if (!/[A-Z]/.test(password)) failures.push("an uppercase letter");
+  if (!/[a-z]/.test(password)) failures.push("a lowercase letter");
+  if (!/[0-9]/.test(password)) failures.push("a number");
+  if (!/[^A-Za-z0-9]/.test(password)) failures.push("a special character");
+  if (password.length > 128) failures.push("at most 128 characters");
+  return failures;
+}
+
 async function refreshInstallBadge() {
   await syncInstallMetadata();
   const meta = await getLocal(STORAGE_INSTALL_META, {});
@@ -498,10 +509,24 @@ async function patchProfileField(partial) {
   return true;
 }
 
+/** Redact likely secrets from dev-panel log lines (best-effort; Dev tab is staff-only). */
+function redactDevLogDetail(detail) {
+  let s;
+  if (typeof detail === "string") s = detail;
+  else {
+    try {
+      s = JSON.stringify(detail, null, 2);
+    } catch {
+      s = String(detail);
+    }
+  }
+  return s.replace(/Bearer\s+[\w-_.]+/gi, "Bearer [redacted]").replace(/"refresh_token"\s*:\s*"[^"]+"/gi, '"refresh_token":"[redacted]"');
+}
+
 function logDev(message, detail) {
   const el = $("dev-log");
   if (!el) return;
-  const tail = detail !== undefined ? `\n${typeof detail === "string" ? detail : JSON.stringify(detail, null, 2)}` : "";
+  const tail = detail !== undefined ? `\n${redactDevLogDetail(detail)}` : "";
   const line = `[${new Date().toISOString().slice(11, 19)}] ${message}${tail}\n\n`;
   el.textContent = (line + el.textContent).slice(0, 6000);
 }
@@ -769,8 +794,9 @@ $("signup-btn").addEventListener("click", async () => {
   setMsg("");
   const email = /** @type {HTMLInputElement} */ ($("email")).value.trim();
   const password = /** @type {HTMLInputElement} */ ($("password")).value;
-  if (password.length < 8) {
-    setMsg("Password must be at least 8 characters.");
+  const failures = getPasswordPolicyFailures(password);
+  if (failures.length > 0) {
+    setMsg(`Password must include ${failures.join(", ")}.`);
     return;
   }
   const base = await getResolvedApiBase();

@@ -4,8 +4,7 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 export function UpgradeCard() {
   const [err, setErr] = useState<string | null>(null);
@@ -20,7 +19,7 @@ export function UpgradeCard() {
       setErr("Sign in again.");
       return;
     }
-    const res = await fetch(`${apiUrl}/api/payments/create-session`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/payments/create-session`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

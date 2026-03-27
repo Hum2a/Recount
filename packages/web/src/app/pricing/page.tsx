@@ -78,11 +78,6 @@ export default async function PricingPage({ searchParams }: Props) {
         </div>
 
         <PricingFeatureTable />
-
-        <p className="text-xs leading-relaxed text-muted">
-          <strong className="text-foreground/80">Staff / admin tools</strong> (user directory, support edits) are{" "}
-          <strong className="text-foreground/80">not</strong> part of Free vs Lifetime — they are assigned by role (admin/developer) only.
-        </p>
       </AnimatedCard>
     </main>
   );

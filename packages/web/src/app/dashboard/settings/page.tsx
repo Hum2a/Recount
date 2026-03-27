@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckboxWithHint, FieldWithHint } from "@/components/ui/field-hint";
+import { FieldWithHint, ScaleWithHint, SwitchWithHint } from "@/components/ui/field-hint";
 import { cn } from "@/lib/utils";
 import {
   birthYearOptions,
@@ -20,8 +20,18 @@ import {
   resolveSelect,
   WORK_ROLE_OPTIONS,
 } from "./demographics-options";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { getApiBaseUrl } from "@/lib/api-url";
+import { useDashboardEntitlements } from "@/components/layout/dashboard-entitlements";
+import { DistractionPresetPicker } from "./distraction-preset-picker";
+import { getPresetHostSet, parseCustomDistractionLines } from "./distraction-presets";
+import {
+  CollapsibleSettingsBlock,
+  FeatureSubsectionNav,
+  SETTINGS_SECTIONS,
+  SettingsSectionNav,
+  useSettingsScrollSpy,
+  useSettingsSectionOpenState,
+} from "./settings-layout";
 
 const inputClass =
   "mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground";
@@ -37,6 +47,7 @@ type ProfileRow = {
   license_active?: boolean;
   app_role?: string;
   distraction_domains?: string[];
+  blocked_domains?: string[];
   intent_lock_enabled?: boolean;
   weekly_digest_enabled?: boolean;
   send_tab_titles?: boolean;
@@ -85,15 +96,47 @@ function DemographicsSelect({
   );
 }
 
+function FeatureSubsection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-28 space-y-4 rounded-lg border border-white/10 bg-black/[0.18] px-4 py-4 sm:px-5"
+    >
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {description ? <p className="mt-1 text-xs text-muted">{description}</p> : null}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const [hourly, setHourly] = useState("0");
   const [tz, setTz] = useState("UTC");
-  const [distractionText, setDistractionText] = useState("");
+  /** Preset picker selection (hostnames, lowercase). */
+  const [selectedPremadeHosts, setSelectedPremadeHosts] = useState<string[]>([]);
+  /** Additional hostnames, one per line (not from the preset list). */
+  const [distractionCustomText, setDistractionCustomText] = useState("");
   const [intentLock, setIntentLock] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [sendTitles, setSendTitles] = useState(true);
   const [teamSlug, setTeamSlug] = useState("");
   const [leaderOptIn, setLeaderOptIn] = useState(false);
+  /** When false, distraction domains are cleared on save (extension treats as no custom list). */
+  const [distractionListEnabled, setDistractionListEnabled] = useState(false);
+  /** Hostnames the extension must never record (one per line). */
+  const [blockedDomainsText, setBlockedDomainsText] = useState("");
   const [nickname, setNickname] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [birthYearSelect, setBirthYearSelect] = useState("");
@@ -115,27 +158,74 @@ export default function SettingsPage() {
   const [referralSelect, setReferralSelect] = useState("");
   const [referralOther, setReferralOther] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [licensed, setLicensed] = useState(false);
-  const [appRole, setAppRole] = useState<string>("user");
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const ent = useDashboardEntitlements();
+  const [sectionOpen, setSectionOpen] = useSettingsSectionOpenState();
+  const activeNavId = useSettingsScrollSpy(SETTINGS_SECTIONS.map((s) => s.id));
+
+  function navigateToSection(id: string) {
+    setSectionOpen((prev) => ({ ...prev, [id]: true }));
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function navigateToFeatureSub(anchorId: string) {
+    setSectionOpen((prev) => ({ ...prev, "settings-features": true }));
+    requestAnimationFrame(() => {
+      document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setProfileError(null);
       const supabase = createClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token || cancelled) return;
-      const res = await fetch(`${apiUrl}/api/profiles/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${getApiBaseUrl()}/api/profiles/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        if (cancelled) return;
+        setProfileError(
+          "Could not reach the API. Run `npm run dev:api` from the repo root, confirm the URL in packages/web `.env.local` (NEXT_PUBLIC_API_URL), and match your browser address (localhost vs 127.0.0.1) to API ALLOWED_ORIGINS."
+        );
+        return;
+      }
       const body = await res.json().catch(() => ({}));
-      if (cancelled || !body.data) return;
+      if (cancelled) return;
+      if (!res.ok) {
+        setProfileError(typeof body.error === "string" ? body.error : `Could not load profile (${res.status}).`);
+        return;
+      }
+      if (!body.data) {
+        setProfileError(typeof body.error === "string" ? body.error : "Could not load profile.");
+        return;
+      }
       const row = body.data as ProfileRow;
       setHourly(String(row.hourly_rate ?? 0));
       setTz(row.timezone ?? "UTC");
-      setLicensed(Boolean(row.license_active));
-      setAppRole(typeof row.app_role === "string" ? row.app_role : "user");
-      setDistractionText(Array.isArray(row.distraction_domains) ? row.distraction_domains.join("\n") : "");
+      const rawDomains = Array.isArray(row.distraction_domains)
+        ? row.distraction_domains.map((h) => String(h).trim().toLowerCase()).filter(Boolean)
+        : [];
+      const presetSet = getPresetHostSet();
+      const premade: string[] = [];
+      const custom: string[] = [];
+      for (const h of rawDomains) {
+        if (presetSet.has(h)) premade.push(h);
+        else custom.push(h);
+      }
+      setSelectedPremadeHosts([...new Set(premade)].sort());
+      setDistractionCustomText([...new Set(custom)].sort().join("\n"));
+      setDistractionListEnabled(rawDomains.length > 0);
+      setBlockedDomainsText(
+        Array.isArray(row.blocked_domains) ? row.blocked_domains.map((h) => String(h).trim().toLowerCase()).filter(Boolean).sort().join("\n") : ""
+      );
       setIntentLock(Boolean(row.intent_lock_enabled));
       setWeeklyDigest(Boolean(row.weekly_digest_enabled));
       setSendTitles(row.send_tab_titles !== false);
@@ -245,11 +335,27 @@ export default function SettingsPage() {
       setMsg("Referral source is too long (max 100 characters).");
       return;
     }
-    const distraction_domains = distractionText
-      .split("\n")
-      .map((l) => l.trim().toLowerCase())
-      .filter(Boolean);
-    const res = await fetch(`${apiUrl}/api/profiles`, {
+    const customHosts = parseCustomDistractionLines(distractionCustomText);
+    const presetLower = selectedPremadeHosts.map((h) => h.trim().toLowerCase()).filter(Boolean);
+    const seen = new Set<string>();
+    const distraction_domains: string[] = [];
+    if (distractionListEnabled) {
+      for (const h of [...presetLower, ...customHosts]) {
+        if (seen.has(h)) continue;
+        seen.add(h);
+        distraction_domains.push(h);
+      }
+    }
+    if (distraction_domains.length > 100) {
+      setMsg("Too many distraction domains (max 100). Remove some presets or custom lines.");
+      return;
+    }
+    const blocked_domains = parseCustomDistractionLines(blockedDomainsText);
+    if (blocked_domains.length > 100) {
+      setMsg("Too many never-track domains (max 100). Remove some lines from the blocklist.");
+      return;
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/profiles`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -279,7 +385,11 @@ export default function SettingsPage() {
       }),
     });
     const body = await res.json().catch(() => ({}));
-    setMsg(res.ok ? "Saved. Reload the browser extension if it is open so intent-lock prefs sync." : (body.error ?? "Could not save"));
+    setMsg(
+      res.ok
+        ? "Saved. Reload the browser extension if it is open so distraction list, blocklist, and other prefs sync."
+        : (body.error ?? "Could not save")
+    );
   }
 
   async function exportCsv() {
@@ -289,13 +399,13 @@ export default function SettingsPage() {
       setMsg("Sign in again.");
       return;
     }
-    const days = licensed ? 30 : 7;
+    const days = ent.fullAccess ? 30 : 7;
     const lines = ["date,domain,minutes,category"];
     for (let i = 0; i < days; i++) {
       const d = new Date();
       d.setUTCDate(d.getUTCDate() - i);
       const date = d.toISOString().slice(0, 10);
-      const res = await fetch(`${apiUrl}/api/events/summary?date=${date}`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/events/summary?date=${date}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json().catch(() => ({}));
@@ -322,7 +432,7 @@ export default function SettingsPage() {
       setMsg("Sign in again.");
       return;
     }
-    const res = await fetch(`${apiUrl}/api/events/me/calendar.ics`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/events/me/calendar.ics`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -341,41 +451,65 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
-        <p className="mt-3 text-sm text-muted">
-          <span className="font-medium text-foreground">Plan:</span>{" "}
-          {licensed ? "Premium (license active)" : "Free"}
-          {" · "}
-          <span className="font-medium text-foreground">Role:</span> {appRole}
-        </p>
-      </div>
-      <FieldWithHint
-        id="settings-hourly-rate"
-        label="Hourly rate (£)"
-        hint="Roughly what one hour of your time is worth to you, in pounds. Recount saves this on your profile for context in the product (for example future reports or value summaries). It is not your subscription price and is not sent to payment providers."
-      >
-        <input
-          id="settings-hourly-rate"
-          className={inputClass}
-          type="number"
-          min={0}
-          step="0.01"
-          value={hourly}
-          onChange={(e) => setHourly(e.target.value)}
-        />
-      </FieldWithHint>
-      <FieldWithHint
-        id="settings-timezone"
-        label="Timezone (IANA, e.g. Europe/London)"
-        hint="Used so dates and “today” in the app match your locale. Use a standard IANA name (e.g. Europe/London, America/Toronto). If unsure, UTC is fine."
-      >
-        <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
-      </FieldWithHint>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">About you</h2>
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+        <aside className="lg:sticky lg:top-24 lg:w-52 lg:shrink-0">
+          <p className="mb-2 hidden text-xs font-medium uppercase tracking-wide text-muted lg:block">Jump to</p>
+          <SettingsSectionNav activeId={activeNavId} onNavigate={navigateToSection} />
+        </aside>
+
+        <div className="min-w-0 flex-1 space-y-6 lg:max-w-2xl">
+          <div id="settings-overview" className="scroll-mt-28 space-y-3">
+            <h1 className="text-2xl font-semibold">Settings</h1>
+            <p className="text-sm text-muted">Saved via the Recount API (synced to your profile).</p>
+            <p className="text-sm text-muted">
+              <span className="font-medium text-foreground">Plan:</span> {ent.planLabel}
+              {" · "}
+              <span className="font-medium text-foreground">Role:</span>{" "}
+              {ent.loading && !ent.ready ? "…" : ent.appRole}
+            </p>
+            {ent.error && <p className="text-xs text-amber-200/90">Account status: {ent.error}</p>}
+            {profileError && <p className="text-xs text-amber-200/90">Profile form: {profileError}</p>}
+          </div>
+
+          <CollapsibleSettingsBlock
+            id="settings-general"
+            title="General"
+            description="Hourly rate and timezone"
+            open={sectionOpen["settings-general"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-general": o }))}
+          >
+            <FieldWithHint
+              id="settings-hourly-rate"
+              label="Hourly rate (£)"
+              hint="Roughly what one hour of your time is worth to you, in pounds. Recount saves this on your profile for context in the product (for example future reports or value summaries). It is not your subscription price and is not sent to payment providers."
+            >
+              <input
+                id="settings-hourly-rate"
+                className={inputClass}
+                type="number"
+                min={0}
+                step="0.01"
+                value={hourly}
+                onChange={(e) => setHourly(e.target.value)}
+              />
+            </FieldWithHint>
+            <FieldWithHint
+              id="settings-timezone"
+              label="Timezone (IANA, e.g. Europe/London)"
+              hint="Used so dates and “today” in the app match your locale. Use a standard IANA name (e.g. Europe/London, America/Toronto). If unsure, UTC is fine."
+            >
+              <input id="settings-timezone" className={inputClass} value={tz} onChange={(e) => setTz(e.target.value)} />
+            </FieldWithHint>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-about"
+            title="About you"
+            description="Optional demographics — entirely skippable"
+            open={sectionOpen["settings-about"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-about": o }))}
+          >
         <p className="text-sm text-muted">
           <span className="font-medium text-foreground">Entirely optional.</span> You can ignore this whole block —
           nothing here is required to use Recount. Pick from the menus for faster input; use “other” rows when you need
@@ -606,107 +740,216 @@ export default function SettingsPage() {
             />
           </FieldWithHint>
         ) : null}
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Focus &amp; intent lock</h2>
+          </CollapsibleSettingsBlock>
+
+          <CollapsibleSettingsBlock
+            id="settings-features"
+            title="Features"
+            description="Turn product behaviour on or off and tune how much detail is stored"
+            open={sectionOpen["settings-features"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-features": o }))}
+          >
+            <p className="text-sm text-muted">
+              These options sync to your profile and the browser extension (reload the extension after saving). Use the
+              links on the left on large screens to jump within this section.
+            </p>
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+              <div className="lg:sticky lg:top-28 lg:w-40 lg:shrink-0">
+                <p className="mb-2 hidden text-xs font-medium uppercase tracking-wide text-muted lg:block">
+                  In features
+                </p>
+                <FeatureSubsectionNav onNavigate={navigateToFeatureSub} />
+              </div>
+              <div className="min-w-0 flex-1 space-y-8">
+                <FeatureSubsection
+                  id="features-never-track"
+                  title="Never track these sites"
+                  description="The browser extension will not record time on matching hostnames or their subdomains (e.g. online banking)."
+                >
+                  <FieldWithHint
+                    id="settings-blocked-domains"
+                    label="Domain blocklist"
+                    hint="One hostname per line, no https://. Matches the exact host and subdomains (same rules as the extension). This list is saved on your profile and applied when the extension syncs— you can still edit it in the extension’s Options page; the profile copy wins on the next sync."
+                  >
+                    <textarea
+                      id="settings-blocked-domains"
+                      className={cn(inputClass, "font-mono text-sm")}
+                      rows={6}
+                      value={blockedDomainsText}
+                      onChange={(e) => setBlockedDomainsText(e.target.value)}
+                      placeholder={"bank.example.com\nhealth-provider.nhs.uk"}
+                    />
+                  </FieldWithHint>
+                </FeatureSubsection>
+
+                <FeatureSubsection
+                  id="features-extension"
+                  title="Browser extension"
+                  description="What the extension sends and whether intent-lock nudges run."
+                >
+                  <ScaleWithHint
+                    id="settings-scale-tab-detail"
+                    label="Activity detail from the browser"
+                    hint="Controls whether uploaded time segments include the active tab’s page title. Domains and timing are always recorded when the extension is on."
+                    min={0}
+                    max={1}
+                    step={1}
+                    value={sendTitles ? 1 : 0}
+                    onChange={(v) => setSendTitles(v >= 1)}
+                    leftLabel="Domains and time only"
+                    rightLabel="Include page titles"
+                    valueDescription={sendTitles ? "Richer activity views; titles may contain sensitive words." : "More private; reports show sites without page titles."}
+                  />
+                  <SwitchWithHint
+                    checked={intentLock}
+                    onChange={setIntentLock}
+                    label="Intent lock nudges"
+                    hint="When on, if you saved goals for today (UTC) in the extension, Recount can show a notification and in-page banner when you focus a tab on a distraction domain you list below. The extension must be signed in; prefs sync about every 30 minutes or on startup."
+                  />
+                </FeatureSubsection>
+
+                <FeatureSubsection
+                  id="features-distractions"
+                  title="Distractions"
+                  description="Pick common sites from the list or add your own hostnames when intent lock is on."
+                >
+                  <SwitchWithHint
+                    checked={distractionListEnabled}
+                    onChange={setDistractionListEnabled}
+                    label="Use a distraction list"
+                    hint="When off, no hostnames are saved and the extension won’t use a custom list for intent-lock nudges. Turn on to choose presets and/or add your own sites below. Tracking still runs; this only affects nudges."
+                  />
+                  <FieldWithHint
+                    id="settings-distraction-presets"
+                    label="Common distraction sites"
+                    hint="Search and tick sites you want nudges on. Per category you can use All / None. These merge with any custom hostnames you add underneath. Max 100 hostnames total when you save."
+                  >
+                    <DistractionPresetPicker
+                      disabled={!distractionListEnabled}
+                      value={selectedPremadeHosts}
+                      onChange={setSelectedPremadeHosts}
+                    />
+                  </FieldWithHint>
+                  <FieldWithHint
+                    id="settings-distraction-custom"
+                    label="Custom hostnames (optional)"
+                    hint="One hostname per line, no https://. Use this for sites not in the list above (e.g. a niche forum or internal tool hostname)."
+                  >
+                    <textarea
+                      id="settings-distraction-custom"
+                      className={cn(inputClass, "font-mono text-sm", !distractionListEnabled && "opacity-50")}
+                      rows={4}
+                      value={distractionCustomText}
+                      onChange={(e) => setDistractionCustomText(e.target.value)}
+                      placeholder={"news.ycombinator.com\nexample-internal.app"}
+                      disabled={!distractionListEnabled}
+                      aria-disabled={!distractionListEnabled}
+                    />
+                  </FieldWithHint>
+                </FeatureSubsection>
+
+                <FeatureSubsection
+                  id="features-email"
+                  title="Email"
+                  description="Optional product email when your server runs the digest job."
+                >
+                  <SwitchWithHint
+                    checked={weeklyDigest}
+                    onChange={setWeeklyDigest}
+                    label="Weekly digest email"
+                    hint="If enabled, your account can be included when an operator runs the weekly digest job on the API (POST /api/jobs/weekly-digest with a secret). You’ll get one email summarizing tracked time and intentions for the previous Monday–Sunday in UTC. Your server must have Resend and DIGEST_JOB_SECRET configured."
+                  />
+                </FeatureSubsection>
+
+                <FeatureSubsection
+                  id="features-team"
+                  title="Team leaderboard"
+                  description="Share a slug with colleagues; choose visibility on the board."
+                >
+                  <ScaleWithHint
+                    id="settings-scale-leaderboard"
+                    label="Leaderboard visibility"
+                    hint="When visible, others with the same team slug can see your nickname and this UTC week’s tracked minutes. They never see your email."
+                    min={0}
+                    max={1}
+                    step={1}
+                    value={leaderOptIn ? 1 : 0}
+                    onChange={(v) => setLeaderOptIn(v >= 1)}
+                    leftLabel="Hidden from the board"
+                    rightLabel="Visible with nickname"
+                    valueDescription={
+                      leaderOptIn
+                        ? "You appear for teammates with the same slug."
+                        : "Your minutes stay private; keep a slug for later if you like."
+                    }
+                  />
+                  <FieldWithHint
+                    id="settings-team-slug"
+                    label="Team slug"
+                    hint="A shared label for your group (e.g. company or squad). Everyone who enters the same slug and opts into the leaderboard appears in one list. Use lowercase letters, numbers, and hyphens only (2–64 characters)."
+                  >
+                    <input
+                      id="settings-team-slug"
+                      className={inputClass}
+                      value={teamSlug}
+                      onChange={(e) => setTeamSlug(e.target.value.toLowerCase())}
+                      placeholder="acme-design"
+                    />
+                  </FieldWithHint>
+                  <FieldWithHint
+                    id="settings-leaderboard-nickname"
+                    label="Leaderboard nickname"
+                    hint="Name shown next to your weekly minutes on the Team page. Max 80 characters."
+                  >
+                    <input
+                      id="settings-leaderboard-nickname"
+                      className={inputClass}
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      maxLength={80}
+                      placeholder="Alex"
+                    />
+                  </FieldWithHint>
+                </FeatureSubsection>
+              </div>
+            </div>
+          </CollapsibleSettingsBlock>
+
+          <section
+            id="settings-save"
+            className="scroll-mt-28 rounded-xl border border-white/10 bg-card/30 px-4 py-4 sm:px-5"
+          >
+            <p className="text-sm text-muted">Apply changes to your profile (and sync extension prefs on next sync).</p>
+            <Button className="mt-3" onClick={saveProfile}>
+              Save settings
+            </Button>
+          </section>
+
+          <CollapsibleSettingsBlock
+            id="settings-export"
+            title="Export"
+            description="CSV and calendar download"
+            open={sectionOpen["settings-export"]}
+            onOpenChange={(o) => setSectionOpen((p) => ({ ...p, "settings-export": o }))}
+          >
         <p className="text-sm text-muted">
-          Distraction hostnames (one per line, no <code className="text-foreground/80">https://</code>). When intent lock
-          is on and you have goals for today, the extension nudges you on these sites. Reload the extension after saving.
-        </p>
-        <FieldWithHint
-          id="settings-distraction-domains"
-          label="Distraction domains"
-          hint="Websites you want reminders about when you have set daily intentions (e.g. social or news). Enter hostnames only, one per line (e.g. youtube.com). Tracking still runs; this only controls nudges when intent lock is enabled and the extension is signed in."
-        >
-          <textarea
-            id="settings-distraction-domains"
-            className={`${inputClass} font-mono text-sm`}
-            rows={5}
-            value={distractionText}
-            onChange={(e) => setDistractionText(e.target.value)}
-            placeholder={"youtube.com\nreddit.com"}
-          />
-        </FieldWithHint>
-        <CheckboxWithHint
-          checked={intentLock}
-          onChange={setIntentLock}
-          label="Enable intent lock nudges (extension must be signed in)"
-          hint="When on, if you saved goals for today (UTC) in the extension, Recount can show a notification and in-page banner when you focus a tab on a distraction domain. Syncs from these settings about every 30 minutes or when the extension starts."
-        />
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Privacy &amp; email</h2>
-        <CheckboxWithHint
-          checked={sendTitles}
-          onChange={setSendTitles}
-          label="Send page titles with tab events (uncheck to record domains and time only)"
-          hint="If checked, the browser extension includes the active tab’s title when it uploads time segments. If unchecked, only the domain and timing are stored—better for privacy, less detail in activity views."
-        />
-        <CheckboxWithHint
-          checked={weeklyDigest}
-          onChange={setWeeklyDigest}
-          label="Weekly digest email (previous UTC week; requires Resend + cron calling the digest job)"
-          hint="If enabled, your account can be included when an operator runs the weekly digest job on the API (POST /api/jobs/weekly-digest with a secret). You’ll get one email summarizing tracked time and intentions for the previous Monday–Sunday in UTC. Your server must have Resend and DIGEST_JOB_SECRET configured."
-        />
-      </div>
-      <div className="border-t border-white/10 pt-6 space-y-4">
-        <h2 className="text-lg font-medium">Team leaderboard</h2>
-        <p className="text-sm text-muted">
-          Use the same team slug as colleagues (lowercase letters, numbers, hyphens). Opt in to appear on the board with a
-          display nickname.
-        </p>
-        <FieldWithHint
-          id="settings-team-slug"
-          label="Team slug"
-          hint="A shared label for your group (e.g. company or squad). Everyone who enters the same slug and opts into the leaderboard appears in one list. Use lowercase letters, numbers, and hyphens only (2–64 characters)."
-        >
-          <input
-            id="settings-team-slug"
-            className={inputClass}
-            value={teamSlug}
-            onChange={(e) => setTeamSlug(e.target.value.toLowerCase())}
-            placeholder="acme-design"
-          />
-        </FieldWithHint>
-        <FieldWithHint
-          id="settings-leaderboard-nickname"
-          label="Leaderboard nickname"
-          hint="Name shown next to your weekly minutes on the Team page. It does not have to match your email. Max 80 characters. You can opt out anytime with the checkbox below."
-        >
-          <input
-            id="settings-leaderboard-nickname"
-            className={inputClass}
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={80}
-            placeholder="Alex"
-          />
-        </FieldWithHint>
-        <CheckboxWithHint
-          checked={leaderOptIn}
-          onChange={setLeaderOptIn}
-          label="Show me on the team leaderboard (this UTC week's tracked minutes)"
-          hint="When enabled, other people with the same team slug can see your nickname and total tracked minutes for the current UTC week (Monday start). They never see your email. Turn off to hide yourself while keeping a team slug for later."
-        />
-      </div>
-      <Button onClick={saveProfile}>Save settings</Button>
-      <div className="border-t border-white/10 pt-6">
-        <h2 className="text-lg font-medium">Export</h2>
-        <p className="mt-1 text-sm text-muted">
-          CSV of domain totals per day ({licensed ? "30" : "7"} days).
+          CSV of domain totals per day ({ent.fullAccess ? "30" : "7"} days).
         </p>
         <Button variant="secondary" className="mt-3" onClick={exportCsv}>
           Download CSV
         </Button>
         <p className="mt-4 text-sm text-muted">
-          Subscribe in Google Calendar or Apple Calendar with the ICS feed (default range: {licensed ? "30" : "7"} UTC
-          days).
+          Subscribe in Google Calendar or Apple Calendar with the ICS feed (default range: {ent.fullAccess ? "30" : "7"}{" "}
+          UTC days).
         </p>
         <Button variant="secondary" className="mt-3" onClick={downloadIcs}>
           Download ICS
         </Button>
+          </CollapsibleSettingsBlock>
+
+          {msg && <p className="text-sm text-muted">{msg}</p>}
+        </div>
       </div>
-      {msg && <p className="text-sm text-muted">{msg}</p>}
     </div>
   );
 }

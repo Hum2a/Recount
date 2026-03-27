@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 import { AnimatedCard } from "@/components/motion/animated-card";
 import { GenerateReportButton } from "./generate-report-button";
 import { UpgradeCard } from "./upgrade-card";
+import { TodayIntentionsEditor } from "./today-intentions-editor";
 
 function todayUtc() {
   return new Date().toISOString().slice(0, 10);
@@ -31,7 +33,7 @@ export default async function DashboardPage() {
   const intention = await intRes.json().catch(() => ({}));
   const streakBody = await streakRes.json().catch(() => ({}));
 
-  const licensed = Boolean(pay.data?.license_active);
+  const licensed = hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined);
   let report: unknown = null;
   if (licensed) {
     const repRes = await apiFetch(`/api/reports/${date}`, token);
@@ -73,11 +75,12 @@ export default async function DashboardPage() {
           <h3 className="text-sm font-medium text-muted">Intentions</h3>
           <ul className="mt-2 list-inside list-disc text-sm">
             {(intention.data?.goals ?? []).length ? (
-              intention.data.goals.map((g: string) => <li key={g}>{g}</li>)
+              intention.data.goals.map((g: string, i: number) => <li key={`${i}-${g.slice(0, 32)}`}>{g}</li>)
             ) : (
-              <li className="text-muted">None set — use the extension popup.</li>
+              <li className="text-muted">None set yet — add below or in the extension popup.</li>
             )}
           </ul>
+          <TodayIntentionsEditor date={date} initialGoals={(intention.data?.goals ?? []) as string[]} />
         </div>
       </AnimatedCard>
       <AnimatedCard delay={0.08} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-black/15 ring-1 ring-white/10 backdrop-blur-sm">

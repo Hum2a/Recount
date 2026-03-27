@@ -1,0 +1,63 @@
+﻿# Dependencies (huge; definitions surface through your code + package.json)
+node_modules/
+
+# Build and framework output
+dist/
+.next/
+out/
+.open-next/
+build/
+.turbo/
+.swc/
+.vercel/
+
+# Test / coverage artifacts
+coverage/
+.nyc_output/
+**/coverage/
+
+# Logs and temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+.cache/
+
+# Environment and secrets (never index)
+.env
+.env.*
+!.env.example
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Large / generated binaries and maps (keep source; skip bulk)
+*.map
+*.wasm
+*.node
+*.dll
+*.dylib
+*.so
+
+# Optional: uncomment to skip heavy media
+# **/*.mp4
+# **/*.webm
+# **/*.pdf
+
+# Project-specific bulky inputs
+spec-extracted.txt
+focustrack-spec.docx
+
+# Cloudflare / Wrangler local state (if present)
+.wrangler/
+.dev.vars
+
+# Tooling caches
+*.tsbuildinfo

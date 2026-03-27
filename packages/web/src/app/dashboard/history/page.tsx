@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
+import { hasFullProductAccess } from "@/lib/entitlements";
 import { HistoryCharts } from "./history-charts";
 
 function pastDays(n: number) {
@@ -23,7 +24,7 @@ export default async function HistoryPage() {
 
   const payRes = await apiFetch("/api/payments/status", session.access_token);
   const pay = await payRes.json().catch(() => ({}));
-  const licensed = Boolean(pay.data?.license_active);
+  const licensed = hasFullProductAccess(Boolean(pay.data?.license_active), pay.data?.app_role as string | undefined);
   const days = licensed ? 14 : 7;
 
   const dates = pastDays(days);

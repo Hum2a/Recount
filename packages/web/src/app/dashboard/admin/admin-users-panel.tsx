@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FieldWithHint, HintTrigger } from "@/components/ui/field-hint";
 import { AnimatedCard } from "@/components/motion/animated-card";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 const ROLES = ["user", "admin", "developer"] as const;
 type AppRole = (typeof ROLES)[number];
@@ -35,8 +36,6 @@ function accessLabel(role: string): string {
 function planLabel(active: boolean): string {
   return active ? "Paid (Pro)" : "Free";
 }
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 type Props = {
   canEditRoles: boolean;
@@ -79,7 +78,7 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
         offset: String(opts.nextOffset),
       });
       if (debouncedSearch) params.set("q", debouncedSearch);
-      const res = await fetch(`${apiUrl}/api/admin/users?${params}`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/admin/users?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
@@ -142,7 +141,7 @@ export function AdminUsersPanel({ canEditRoles, currentUserId }: Props) {
       setSavingId(null);
       return;
     }
-    const res = await fetch(`${apiUrl}/api/admin/users/${userId}/role`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/admin/users/${userId}/role`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

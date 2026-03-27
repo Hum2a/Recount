@@ -45,6 +45,8 @@ function shouldSkipUrl(url) {
     const u = new URL(url);
     const proto = u.protocol;
     if (proto !== "http:" && proto !== "https:") return true;
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]") return true;
     return false;
   } catch {
     return true;
@@ -71,10 +73,12 @@ async function syncProfilePrefs() {
   const row = body.data;
   if (!row) return;
   const prev = await getLocal(STORAGE_SETTINGS, {});
+  const fromProfileBlocked = Array.isArray(row.blocked_domains) ? row.blocked_domains.map(String) : null;
   await setLocal({
     [STORAGE_SETTINGS]: {
       ...prev,
       distractionDomains: Array.isArray(row.distraction_domains) ? row.distraction_domains.map(String) : [],
+      blockedDomains: fromProfileBlocked ?? (Array.isArray(prev.blockedDomains) ? prev.blockedDomains : []),
       intentLockEnabled: Boolean(row.intent_lock_enabled),
       sendTabTitles: row.send_tab_titles !== false,
     },
@@ -324,7 +328,22 @@ chrome.runtime.onStartup.addListener(() => {
   void bootstrapActiveTab();
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+function isTrustedExtensionSender(sender) {
+  if (!sender) return false;
+  if (sender.id !== chrome.runtime.id) return false;
+  if (!sender.url) return true;
+  return sender.url.startsWith(`chrome-extension://${chrome.runtime.id}/`);
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!isTrustedExtensionSender(sender)) {
+    sendResponse({ ok: false, error: "Untrusted sender" });
+    return true;
+  }
+  if (!msg || typeof msg !== "object" || typeof msg.type !== "string") {
+    sendResponse({ ok: false, error: "Invalid message shape" });
+    return true;
+  }
   if (msg?.type === "prefs-sync-now") {
     void (async () => {
       await syncProfilePrefs();

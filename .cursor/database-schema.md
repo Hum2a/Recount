@@ -1,6 +1,6 @@
 # Recount database schema (Supabase / Postgres)
 
-**Source of truth:** `packages/api/src/db/migrations/` (apply in order: `001` → `010`).
+**Source of truth:** `packages/api/src/db/migrations/` (apply in order through `012` for current schema).
 
 The **Express API** uses the Supabase **service role** client and **bypasses RLS**. The **Next.js web app** uses the **anon key + user JWT** and is subject to RLS and table **`GRANT`**s (`005`).
 
@@ -43,6 +43,7 @@ The **Express API** uses the Supabase **service role** client and **bypasses RLS
 | `created_at`         | TIMESTAMPTZ | `now()`   | |
 | `updated_at`         | TIMESTAMPTZ | `now()`   | |
 | `distraction_domains` | TEXT[]     | `'{}'`    | Hostnames for intent-lock nudges (API-managed). |
+| `blocked_domains` | TEXT[]     | `'{}'`    | Hostnames the extension never records (`012`). |
 | `intent_lock_enabled` | BOOLEAN    | `false`   | Extension nudges when visiting distraction sites with goals set. |
 | `weekly_digest_enabled` | BOOLEAN  | `false`   | Include user in weekly email job (`007`). |
 | `send_tab_titles`   | BOOLEAN     | `true`    | When false, clients should omit titles on batch upload. |

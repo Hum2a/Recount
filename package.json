@@ -3,6 +3,12 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present",
+    "test:api": "npm run test -w @recount/api",
+    "test:api:watch": "npm run test:watch -w @recount/api",
+    "test:api:verbose": "npm run test:verbose -w @recount/api",
+    "test:watch": "npm run test:watch -w @recount/api",
     "dev:api": "npm run dev -w @recount/api",
     "dev:api:worker": "npm run dev -w @recount/api-worker",
     "dev:web": "npm run dev -w @recount/web",
@@ -12,7 +18,9 @@
     "deploy:web:cf": "node scripts/deploy-web-cf.mjs",
     "deploy:web:cf:wsl": "node scripts/deploy-web-cf-wsl.mjs",
     "deploy:api:cf": "node scripts/deploy-api-cf.mjs",
-    "deploy:cf": "node scripts/deploy-cf.mjs"
+    "deploy:cf": "node scripts/deploy-cf.mjs",
+    "loc": "node scripts/count-loc.mjs",
+    "loc:json": "node scripts/count-loc.mjs --json"
   },
   "engines": {
     "node": ">=20"

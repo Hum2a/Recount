@@ -9,6 +9,7 @@ import {
 import { installChannelLabel, syncInstallMetadata } from "../utils/install-context.js";
 import { getResolvedApiBase } from "../utils/resolve-api-base.js";
 import { getResolvedWebBase } from "../utils/resolve-web-base.js";
+import { normalizeAllowedBaseUrl } from "../utils/safe-url.js";
 import { getLocal, setLocal } from "../utils/storage.js";
 import { hasTrackingHostAccess, trackingHostPermissions } from "../utils/tracking-permissions.js";
 
@@ -64,6 +65,16 @@ async function load() {
 }
 
 document.getElementById("save").addEventListener("click", async () => {
+  const normalizedApi = normalizeAllowedBaseUrl(apiUrl.value);
+  const normalizedWeb = normalizeAllowedBaseUrl(webUrl?.value ?? "");
+  if (apiUrl.value.trim() && !normalizedApi) {
+    status.textContent = "Invalid API URL. Use an origin like https://api.example.com or http://localhost:3001";
+    return;
+  }
+  if ((webUrl?.value ?? "").trim() && !normalizedWeb) {
+    status.textContent = "Invalid Web URL. Use an origin like https://app.example.com or http://localhost:3000";
+    return;
+  }
   const domains = blocked.value
     .split("\n")
     .map((l) => l.trim().toLowerCase())
@@ -72,8 +83,8 @@ document.getElementById("save").addEventListener("click", async () => {
   await setLocal({
     [STORAGE_SETTINGS]: {
       ...prev,
-      apiUrl: apiUrl.value.replace(/\/$/, "") || undefined,
-      webUrl: webUrl?.value.replace(/\/$/, "").trim() || undefined,
+      apiUrl: normalizedApi ?? undefined,
+      webUrl: normalizedWeb ?? undefined,
       blockedDomains: domains,
     },
   });

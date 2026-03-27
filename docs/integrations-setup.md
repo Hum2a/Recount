@@ -24,12 +24,12 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 
 ## 2. Supabase (almost every feature)
 
-**Powers:** sign-up / login / sessions (web + extension-backed flows), `profiles` and all app data the API reads/writes with the service role, RLS for client-safe reads where configured.
+**Powers:** sign-up / login / sessions (web + extension-backed flows), `profiles` and all app data the API reads/writes with the service role, RLS for client-safe reads where configured. For production posture, run **`010_rls_select_own_or_staff.sql`** (with earlier migrations, especially **`005_rls_least_privilege_grants.sql`**).
 
 ### Steps
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL:** Run migrations **in order** from `packages/api/src/db/migrations/` in the Supabase SQL editor (see root `README.md` for the numbered list through `005` / `006` as needed).
+2. **SQL:** Run migrations **in order** from `packages/api/src/db/migrations/` in the Supabase SQL editor (see root `README.md`; includes `010` RLS hardening and `011` Stripe webhook dedupe).
 3. **API keys:** Settings → API → copy **Project URL**, **anon public**, and **service_role** (keep service role **server-only**).
 4. **Auth URLs:** Authentication → URL configuration → set **Site URL** and redirect URLs to your production web origin (e.g. `https://app.yourdomain.com`) and local dev if needed.
 5. **Web env** (`packages/web/.env.local`):  
@@ -53,7 +53,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 3. **CORS:** `ALLOWED_ORIGINS` = comma-separated origins, **no trailing slashes**, e.g.  
    `https://app.yourdomain.com,chrome-extension://YOUR_EXTENSION_ID`
 4. **Web URL:** `WEB_URL` = same origin users use for the Next app (Stripe success/cancel redirects and email links).
-5. **Optional:** `JWT_SECRET` (≥32 chars) if you rely on custom JWT paths; **`DIGEST_JOB_SECRET`** (≥16 chars) if you run the weekly digest job (§7).
+5. **Optional:** `JWT_SECRET` is unused by current Recount code (Supabase JWTs only); you may omit it. **`DIGEST_JOB_SECRET`** (≥16 chars) if you run the weekly digest job (§7).
 
 ---
 
@@ -82,6 +82,8 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
    - Event: **`checkout.session.completed`**  
    - Copy signing secret → `STRIPE_WEBHOOK_SECRET`.
 4. Ensure **`WEB_URL`** matches where users return after pay/cancel (`/dashboard?payment=success`, `/pricing?payment=cancelled`).
+5. **Dedupe table:** run migration **`011_stripe_webhook_events.sql`** so Stripe retries use a stable `event.id` ledger (Express and Worker webhooks both rely on it).
+6. **Verify:** After `011` is applied, trigger a test **`checkout.session.completed`** (Stripe CLI `stripe trigger checkout.session.completed` with CLI forwarding, or Dashboard → Webhooks → resend). Confirm a row appears in **`stripe_webhook_events`** and the test user’s profile gets **`license_active`** (and one license email on first success).
 
 **Test mode:** use `sk_test_…`, test price, and Stripe CLI or test webhook secret for local webhook testing.
 
