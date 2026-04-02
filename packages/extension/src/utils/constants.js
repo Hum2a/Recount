@@ -9,14 +9,17 @@ export const DEFAULT_API_URL_STORE = "https://api.recount.app";
 
 /**
  * Public Recount web app (Next.js). No trailing slash.
- * Update this when you attach a custom domain to the same deployment — Options → Web URL can still override per browser.
+ * Options → Web URL can override per browser.
  */
-export const WEB_APP_ORIGIN = "https://recount-web.humzab1711.workers.dev";
+export const WEB_APP_ORIGIN = "https://recount.world";
 
-/** Unpacked / dev default — same as {@link WEB_APP_ORIGIN} unless user sets Options. */
-export const DEFAULT_WEB_URL_LOCAL = WEB_APP_ORIGIN;
+/** Workers preview URL — quick-fill in extension Options for local development. */
+export const DEV_WEB_APP_URL = "https://recount-web.humzab1711.workers.dev";
 
-/** Store / production packaged default — change {@link WEB_APP_ORIGIN} when you launch on a custom domain. */
+/** @deprecated use DEV_WEB_APP_URL for dev quick-fill */
+export const DEFAULT_WEB_URL_LOCAL = DEV_WEB_APP_URL;
+
+/** Packaged production default (store and resolved default when web URL is unset). */
 export const DEFAULT_WEB_URL_STORE = WEB_APP_ORIGIN;
 
 export const STORAGE_SESSION = "recount_session";

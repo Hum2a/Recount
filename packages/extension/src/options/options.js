@@ -1,8 +1,8 @@
 import {
   DEFAULT_API_URL_LOCAL,
   DEFAULT_API_URL_STORE,
-  DEFAULT_WEB_URL_LOCAL,
   DEFAULT_WEB_URL_STORE,
+  DEV_WEB_APP_URL,
   STORAGE_INSTALL_META,
   STORAGE_SETTINGS,
 } from "../utils/constants.js";
@@ -102,8 +102,8 @@ document.getElementById("use-store-default")?.addEventListener("click", () => {
 });
 
 document.getElementById("use-local-web-default")?.addEventListener("click", () => {
-  if (webUrl) webUrl.value = DEFAULT_WEB_URL_LOCAL;
-  status.textContent = `Web URL: ${DEFAULT_WEB_URL_LOCAL}`;
+  if (webUrl) webUrl.value = DEV_WEB_APP_URL;
+  status.textContent = `Web URL: ${DEV_WEB_APP_URL}`;
 });
 
 document.getElementById("use-store-web-default")?.addEventListener("click", () => {

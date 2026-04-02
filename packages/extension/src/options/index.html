@@ -2,133 +2,119 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Recount — Options</title>
-    <style>
-      body {
-        font: 14px system-ui, sans-serif;
-        max-width: 560px;
-        margin: 24px;
-        color: #18181b;
-      }
-      label {
-        display: block;
-        margin-top: 12px;
-        font-weight: 600;
-      }
-      input,
-      textarea {
-        width: 100%;
-        margin-top: 6px;
-        padding: 8px;
-      }
-      button {
-        margin-top: 16px;
-        padding: 10px 16px;
-      }
-      .hint {
-        color: #52525b;
-        font-size: 12px;
-        margin-top: 4px;
-      }
-      .install-row {
-        font-size: 13px;
-        color: #3f3f46;
-        margin-bottom: 16px;
-        padding: 10px 12px;
-        background: #f4f4f5;
-        border-radius: 8px;
-        border: 1px solid #e4e4e7;
-      }
-      .row-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .row-actions button {
-        margin-top: 0;
-        font-size: 12px;
-        padding: 6px 10px;
-      }
-      .options-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
-      }
-      .options-brand img {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-      }
-      .options-brand h1 {
-        margin: 0;
-        font-size: 22px;
-      }
-      .tracking-block strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-      .options-version {
-        margin: 20px 0 0;
-        font-size: 11px;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.03em;
-        color: #a1a1aa;
-        user-select: none;
-      }
-      .options-version:empty {
-        display: none;
-      }
-    </style>
+    <link rel="stylesheet" href="options.css" />
   </head>
-  <body>
-    <div class="options-brand">
-      <img src="../icons/48.png" width="40" height="40" alt="" />
-      <h1>Recount options</h1>
-    </div>
-    <p id="install-row" class="install-row">Detecting install…</p>
-    <div id="tracking-permission-row" class="install-row tracking-block">
-      <strong>Tab tracking</strong>
-      <span class="hint">
-        Recount only requests access to <code>http</code> and <code>https</code> page URLs (not <code>file://</code> or
-        browser pages). Grant this once so passive tab time and the end-of-day banner can run.
-      </span>
-      <p id="tracking-status" class="hint" style="margin-top: 8px"></p>
-      <div class="row-actions">
-        <button type="button" id="grant-tracking-options-btn">Allow site access</button>
+  <body
+    class="min-h-screen bg-gradient-to-b from-slate-50 via-zinc-50 to-zinc-100 text-zinc-900 antialiased"
+  >
+    <div class="mx-auto max-w-xl px-5 py-10 pb-14">
+      <header class="mb-8 flex items-start gap-4">
+        <img
+          src="../icons/48.png"
+          width="44"
+          height="44"
+          alt=""
+          class="h-11 w-11 shrink-0 rounded-xl shadow-card ring-1 ring-black/5"
+        />
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-zinc-900">Recount options</h1>
+          <p class="mt-1 text-sm leading-relaxed text-zinc-500">
+            Tune endpoints and privacy. Changes apply after you save.
+          </p>
+        </div>
+      </header>
+
+      <p
+        id="install-row"
+        class="mb-5 rounded-xl border border-zinc-200/90 bg-white/90 px-4 py-3 text-sm text-zinc-600 shadow-card backdrop-blur-sm"
+      >
+        Detecting install…
+      </p>
+
+      <section
+        class="mb-5 space-y-3 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-card"
+        aria-labelledby="tracking-heading"
+      >
+        <h2 id="tracking-heading" class="text-sm font-semibold text-zinc-900">Tab tracking</h2>
+        <p class="options-hint !mt-0">
+          Recount only requests access to <code>http</code> and <code>https</code> page URLs (not
+          <code>file://</code> or browser pages). Grant this once so passive tab time and the end-of-day banner can
+          run.
+        </p>
+        <p id="tracking-status" class="options-hint !mt-0 font-medium text-zinc-600"></p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button type="button" id="grant-tracking-options-btn" class="btn-primary">Allow site access</button>
+        </div>
+      </section>
+
+      <section
+        class="mb-5 space-y-3 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-card"
+        aria-labelledby="api-heading"
+      >
+        <h2 id="api-heading" class="text-sm font-semibold text-zinc-900">API base URL</h2>
+        <input id="apiUrl" type="url" class="options-field" placeholder="" autocomplete="off" aria-labelledby="api-heading" />
+        <p class="options-hint !mt-0">
+          Leave blank to use the default for your install (dev Workers URL when unpacked, production when installed from
+          a store). No trailing slash.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button type="button" id="use-local-default" class="btn-secondary">Use dev API default</button>
+          <button type="button" id="use-store-default" class="btn-secondary">Use production API</button>
+        </div>
+      </section>
+
+      <section
+        class="mb-5 space-y-3 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-card"
+        aria-labelledby="web-heading"
+      >
+        <h2 id="web-heading" class="text-sm font-semibold text-zinc-900">Web app URL</h2>
+        <input id="webUrl" type="url" class="options-field" placeholder="" autocomplete="off" aria-labelledby="web-heading" />
+        <p class="options-hint !mt-0">
+          Where “View dashboard” and other web links open. Leave blank for the packaged default
+          (<code class="whitespace-nowrap">https://recount.world</code>). No trailing slash.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button type="button" id="use-local-web-default" class="btn-secondary">Dev / Workers web</button>
+          <button type="button" id="use-store-web-default" class="btn-secondary">Production web</button>
+        </div>
+      </section>
+
+      <section
+        class="mb-6 space-y-3 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-card"
+        aria-labelledby="blocked-heading"
+      >
+        <h2 id="blocked-heading" class="text-sm font-semibold text-zinc-900">Blocked domains</h2>
+        <p class="options-hint !mt-0">One hostname per line. These sites are never tracked.</p>
+        <textarea
+          id="blocked"
+          rows="6"
+          class="options-field min-h-[140px] resize-y font-mono text-[13px] leading-snug"
+          placeholder="bank.example.com"
+          aria-labelledby="blocked-heading"
+        ></textarea>
+        <p class="options-hint !mt-0">
+          You can also edit this list in the web app under Dashboard → Settings → Features (it syncs here when the
+          extension loads your profile).
+        </p>
+        <p class="options-hint !mt-0">
+          Distraction list and intent lock live in the web app under <strong class="font-medium text-zinc-700">Settings</strong>
+          (synced when you are signed in).
+        </p>
+      </section>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" id="save" class="btn-primary px-6 py-2.5 sm:min-w-[120px]">Save</button>
+        <p id="status" class="min-h-[1.25rem] text-sm text-zinc-600 sm:text-right"></p>
       </div>
+
+      <p
+        id="options-version"
+        class="mt-10 text-center text-[11px] font-medium tabular-nums tracking-wide text-zinc-400 empty:hidden"
+        aria-hidden="true"
+      ></p>
     </div>
-    <label for="apiUrl">API base URL</label>
-    <input id="apiUrl" type="url" placeholder="" />
-    <p class="hint">
-      Leave blank to use the default for your install (localhost for unpacked, production URL for store). No trailing
-      slash.
-    </p>
-    <div class="row-actions">
-      <button type="button" id="use-local-default">Use local default</button>
-      <button type="button" id="use-store-default">Use store default</button>
-    </div>
-    <label for="webUrl">Web app URL</label>
-    <input id="webUrl" type="url" placeholder="" />
-    <p class="hint">
-      Where “View dashboard” and other web links open. Leave blank for the packaged default
-      (<code>WEB_APP_ORIGIN</code> in <code>src/utils/constants.js</code> — currently the live Workers site).
-    </p>
-    <div class="row-actions">
-      <button type="button" id="use-local-web-default">Local web default</button>
-      <button type="button" id="use-store-web-default">Production web default</button>
-    </div>
-    <label for="blocked">Blocked domains (one per line)</label>
-    <textarea id="blocked" rows="6" placeholder="bank.example.com"></textarea>
-    <p class="hint">These hostnames are never tracked. You can also edit this list in the web app under Dashboard → Settings → Features (it syncs here when the extension loads your profile).</p>
-    <p class="hint">
-      Distraction list and intent lock are configured in the web app under <strong>Settings</strong> (synced when the
-      extension is signed in).
-    </p>
-    <button type="button" id="save">Save</button>
-    <p id="status"></p>
-    <p id="options-version" class="options-version" aria-hidden="true"></p>
     <script type="module" src="options.js"></script>
   </body>
 </html>

@@ -1,6 +1,9 @@
 import * as esbuild from "esbuild";
+import autoprefixer from "autoprefixer";
 import { mkdirSync, readFileSync, writeFileSync, cpSync } from "node:fs";
 import { dirname, join } from "node:path";
+import postcss from "postcss";
+import tailwindcss from "tailwindcss";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -55,5 +58,10 @@ writeFileSync(join(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 writeFileSync(join(dist, "popup/index.html"), readFileSync(join(root, "src/popup/index.html"), "utf8"));
 writeFileSync(join(dist, "options/index.html"), readFileSync(join(root, "src/options/index.html"), "utf8"));
+
+const tailwindEntry = readFileSync(join(root, "src/options/tailwind-entry.css"), "utf8");
+const twFrom = join(root, "src/options/tailwind-entry.css");
+const twResult = await postcss([tailwindcss, autoprefixer]).process(tailwindEntry, { from: twFrom });
+writeFileSync(join(dist, "options/options.css"), twResult.css);
 
 console.log("Built to", dist);

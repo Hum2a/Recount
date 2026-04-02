@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .options-field {
+    @apply mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400;
+    @apply focus:border-recount-accent focus:outline-none focus:ring-2 focus:ring-recount-accent/20;
+  }
+  .options-label {
+    @apply mt-5 block text-sm font-semibold text-zinc-900 first:mt-0;
+  }
+  .options-hint {
+    @apply mt-1.5 text-xs leading-relaxed text-zinc-500;
+  }
+  .options-hint code {
+    @apply rounded bg-zinc-100 px-1 py-0.5 font-mono text-[0.8em] text-zinc-700;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-recount-accent px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors;
+    @apply hover:bg-recount-accentHover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-recount-accent;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-800 shadow-sm transition-colors;
+    @apply hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400;
+  }
+}
