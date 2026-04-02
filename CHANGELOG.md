@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) where applicable.
 
 
+
+## [v0.2.1] - 2026-04-02
+
+### 🐛 Patch Release
+
+### 🔧 Changed
+- ✨ Update @recount packages to version 0.2.0 and enhance extension styling
+- ✨ Refactor Secret Sync Logic in sync-cf-env Script
+- ✨ Update Secret Management Command in sync-cf-env Script
+- 📝 Update changelog for v0.2.0
+- 🔢 Update version to v0.2.0 in package.json and README.md
+- ✨ Enhance Signup Process with Automatic Email Confirmation and Session Management
+- ✨ Add Privacy Policy Page and Update Environment Configuration
+- ✨ Update .gitignore to Include New File Patterns
+- ✨ Implement Analytics Functionality in Popup
+- ✨ Add Analytics Tab to Popup Interface
+- ✨ Update Extension Icons
+- ✨ Update README and Extension Options for Web App URL Configuration
+- ✨ Update Stripe Integration and Documentation
+- ✨ Enhance Intentions Management and Dashboard Features
+- ✨ Add Blocked Domains Feature and Enhance Profile Management
+- ✨ Improve CORS Handling and API URL Resolution
+- ✨ Update Settings Page to Support Distraction Presets and Custom Hostnames
+- ✨ Add Distraction Preset Picker and Preset Data
+- ✨ Add line of code reporting functionality
+- ✨ Enhance Settings Page with New Features and UI Components
+- ✨ Refactor Settings Page and Introduce Collapsible Sections
+- ✨ Enhance authentication middleware and user access checks
+- 📝 Update README and enhance API URL handling
+- ✨ Add testing scripts for API and workspace in package.json
+- ✨ Add Vitest coverage for Stripe webhook and enhance CI workflow
+- 🔒 Enhance security and improve API functionality
+- 📝 Update documentation and add security backlogs
+- 📝 Add .cursorignore file to exclude unnecessary files from version control
+- ✨ Initialize project with essential configuration files
+- 🔒 Add signup password policy tests to enhance security
+- 🔒 Strengthen password requirements for user signup
+- ✅ Mark security hardening checklist items as completed
+- 🔒 Implement CI security workflow with enhanced vulnerability checks
+- 🔒 Enhance API security with authorization regression tests
+- 🔒 Enhance API security with improved validation and secret handling
+- 🛡️ Add security hardening checklist and implement various security enhancements
+- 🔧 Refactor CORS handling and improve origin validation
+- 🔧 Refactor CORS handling and environment validation
+- ✨ Add origin normalization for CORS handling
+- 🔧 Update dependencies and configuration for improved compatibility and performance
+- 📝 Update CHANGELOG.md and enhance release script for better changelog generation
+- add version number to all of these files
+
+---
 ## [v0.2.0] - 2026-03-27
 
 ### ✨ Minor Release
