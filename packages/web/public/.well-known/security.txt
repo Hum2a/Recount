@@ -1,0 +1,7 @@
+# Recount — security disclosures (RFC 9116)
+# https://securitytxt.org/
+
+Contact: https://github.com/Hum2a/Recount/security/advisories/new
+Expires: 2027-04-19T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://github.com/Hum2a/Recount/blob/main/SECURITY.md
