@@ -54,10 +54,10 @@ export function UpgradeCard() {
         <div>
           <h2 className="text-lg font-medium">Unlock lifetime access</h2>
           <p className="mt-1 text-sm text-muted">
-            £14.99 one-time — full history, AI end-of-day reports, trends, CSV export.
+            £9.99 one-time — full history, AI end-of-day reports, trends, CSV export.
           </p>
         </div>
-        <Button onClick={checkout}>Unlock lifetime access — £14.99</Button>
+        <Button onClick={checkout}>Unlock lifetime access — £9.99</Button>
       </div>
       {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
     </motion.div>

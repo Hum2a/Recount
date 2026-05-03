@@ -145,10 +145,13 @@ graph TB
 
 ### 1. Database migrations
 
-Run SQL from [`packages/api/src/db/migrations/`](./packages/api/src/db/migrations/) **in order** in the Supabase SQL editor:
+Run SQL from [`packages/api/src/db/migrations/`](./packages/api/src/db/migrations/) **in order**:
 
-- Through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`**, **`011_stripe_webhook_events.sql`** (Stripe webhook idempotency), **`012_profile_blocked_domains.sql`** (extension never-track list on `profiles`).  
-  For **`010`**: JWT **`SELECT`** own rows + admin/developer **`SELECT`** on core tables; writes stay behind the API.
+- **Supabase SQL editor:** paste and run each file in filename order.
+- **CLI (Postgres URI):** set **`DATABASE_URL`** (or **`SUPABASE_DB_URL`**) to your Supabase **database** connection string (Project Settings → Database), optionally in `packages/api/.env`, then from the repo root run **`npm run db:migrate`**.
+
+Files include through **`005`**, optional **`006`**, **`007`**, optional **`008`**, optional **`009`**, optional **`010_rls_select_own_or_staff.sql`**, **`011_stripe_webhook_events.sql`** (Stripe webhook idempotency), **`012_profile_blocked_domains.sql`** (extension never-track list on `profiles`).  
+For **`010`**: JWT **`SELECT`** own rows + admin/developer **`SELECT`** on core tables; writes stay behind the API.
 
 ### 2. Environment files
 
@@ -185,6 +188,7 @@ The dashboard loads data from the API during server rendering; if you only start
 | `npm run build:extension` | Output → `packages/extension/dist` |
 | `npm run sync:cf:env` | Sync Cloudflare env |
 | `npm run deploy:cf` | API worker then web worker (see script notes for Windows) |
+| `npm run db:migrate` | Apply `packages/api/src/db/migrations/*.sql` in order (`DATABASE_URL` / `SUPABASE_DB_URL`) |
 
 <details>
 <summary><strong>Windows build tips</strong></summary>

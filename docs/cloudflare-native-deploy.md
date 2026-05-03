@@ -119,6 +119,7 @@ Set as secrets/vars for `recount-api`:
 - `SUPABASE_ANON_KEY`
 - `OPENAI_API_KEY` (**secret**)
 - `STRIPE_SECRET_KEY` (**secret**)
+- `STRIPE_PRICE_ID` (Lifetime Stripe Price id, e.g. £9.99 GBP — same mode as secret key)
 - `STRIPE_WEBHOOK_SECRET` (**secret**)
 - `RESEND_API_KEY` (**secret**)
 - `FROM_EMAIL`

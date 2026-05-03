@@ -148,7 +148,7 @@ export function HomeCapabilities() {
           <p className="relative text-xs font-semibold uppercase tracking-wider text-blue-300">Full archive + AI</p>
           <h3 className="relative mt-1 text-lg font-medium text-foreground">Lifetime</h3>
           <p className="relative mt-2 text-3xl font-semibold bg-gradient-to-r from-white to-blue-100/90 bg-clip-text text-transparent">
-            £14.99
+            £9.99
           </p>
           <p className="relative text-sm text-blue-200/80">One-time purchase</p>
           <p className="relative mt-3 text-sm text-muted">

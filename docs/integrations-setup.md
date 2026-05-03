@@ -13,7 +13,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 | **Supabase** | Auth, database, RLS, user profiles | Web: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. API: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
 | **Your API host** | All REST logic, Stripe webhook, AI, email jobs | Deploy `packages/api`; set full `packages/api/.env` (see §3) |
 | **Your web host** | Marketing + dashboard (Next.js) | Deploy `packages/web`; `NEXT_PUBLIC_*` + `NEXT_PUBLIC_API_URL` |
-| **Stripe** | Lifetime checkout, `license_active` | API: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` + dashboard webhook (checkout amount is **£14.99** GBP, set in API Worker/Express Stripe service code) |
+| **Stripe** | Lifetime checkout, `license_active` | API: `STRIPE_SECRET_KEY`, **`STRIPE_PRICE_ID`** (Lifetime Price in Stripe, e.g. **£9.99** GBP), `STRIPE_WEBHOOK_SECRET` + dashboard webhook |
 | **OpenAI** | AI accountability reports (licensed users) | API: `OPENAI_API_KEY` |
 | **Resend** | Weekly digest email (opt-in users) | API: `RESEND_API_KEY`, `FROM_EMAIL` (verified domain) + optional `DIGEST_JOB_SECRET` + cron |
 | **Google Chrome Web Store** (optional) | Distributing the extension | Publisher account, listing, then extension ID → `ALLOWED_ORIGINS` |
@@ -29,7 +29,7 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 ### Steps
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL:** Run migrations **in order** from `packages/api/src/db/migrations/` in the Supabase SQL editor (see root `README.md`; includes `010` RLS hardening and `011` Stripe webhook dedupe).
+2. **SQL:** Run migrations **in order** from `packages/api/src/db/migrations/` — either paste each file into the Supabase SQL editor, or from the repo root run **`npm run db:migrate`** with **`DATABASE_URL`** (or **`SUPABASE_DB_URL`**) set to your Postgres connection string (see root `README.md`; includes `010` RLS hardening and `011` Stripe webhook dedupe).
 3. **API keys:** Settings → API → copy **Project URL**, **anon public**, and **service_role** (keep service role **server-only**).
 4. **Auth URLs:** Authentication → URL configuration → set **Site URL** and redirect URLs to your production web origin (e.g. `https://app.yourdomain.com`) and local dev if needed.
 5. **Web env** (`packages/web/.env.local`):  
@@ -75,8 +75,8 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 
 ### Steps
 
-1. [Stripe Dashboard](https://dashboard.stripe.com) → no **Price** object is required for checkout: the API creates sessions with **£14.99 GBP** via Stripe `price_data` (see `packages/api/src/services/stripe.js` and `packages/api-worker/src/services/stripe.ts`).
-2. API env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+1. [Stripe Dashboard](https://dashboard.stripe.com) → **Products** → create (or reuse) a **one-time Price** for Lifetime (e.g. **£9.99 GBP**). Copy the Price id (`price_…`).
+2. API env: `STRIPE_SECRET_KEY`, **`STRIPE_PRICE_ID`** (same Stripe mode as the secret key: test vs live), `STRIPE_WEBHOOK_SECRET`.
 3. **Webhook:** Developers → Webhooks → add endpoint  
    `https://<your-api-host>/api/payments/webhook`  
    - Event: **`checkout.session.completed`**  

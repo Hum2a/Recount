@@ -41,7 +41,7 @@ function sampleCheckoutCompletedEvent() {
         id: "cs_test_1",
         metadata: { userId: USER_ID },
         payment_intent: "pi_test_1",
-        amount_total: 1499,
+        amount_total: 999,
         currency: "gbp",
         customer_details: { email: "buyer@example.com" },
       },

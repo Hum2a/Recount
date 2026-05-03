@@ -94,7 +94,7 @@ export function PricingCheckout() {
   return (
     <div className="space-y-2">
       <Button className="w-full" onClick={checkout} disabled={loading}>
-        {loading ? "Redirecting…" : "Unlock lifetime access — £14.99"}
+        {loading ? "Redirecting…" : "Unlock lifetime access — £9.99"}
       </Button>
       {err && <p className="text-center text-xs text-red-400">{err}</p>}
     </div>

@@ -72,6 +72,7 @@ async function main() {
     "SUPABASE_ANON_KEY",
     "OPENAI_API_KEY",
     "STRIPE_SECRET_KEY",
+    "STRIPE_PRICE_ID",
     "STRIPE_WEBHOOK_SECRET",
     "RESEND_API_KEY",
     "FROM_EMAIL",

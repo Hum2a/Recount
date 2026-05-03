@@ -6,6 +6,8 @@ export const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
+  /** Stripe Dashboard Price for Lifetime one-time checkout (e.g. £9.99 GBP). */
+  STRIPE_PRICE_ID: z.string().regex(/^price_[A-Za-z0-9]+$/, "Must be a Stripe Price id (price_…)"),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),
   FROM_EMAIL: z.string().email(),

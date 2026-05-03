@@ -20,9 +20,13 @@
     "deploy:api:cf": "node scripts/deploy-api-cf.mjs",
     "deploy:cf": "node scripts/deploy-cf.mjs",
     "loc": "node scripts/count-loc.mjs",
-    "loc:json": "node scripts/count-loc.mjs --json"
+    "loc:json": "node scripts/count-loc.mjs --json",
+    "db:migrate": "node scripts/run-migrations.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1"
   }
 }

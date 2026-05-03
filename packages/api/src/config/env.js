@@ -15,6 +15,8 @@ const devDefaults = {
   SUPABASE_ANON_KEY: "dev-placeholder-supabase-anon-not-real",
   OPENAI_API_KEY: "sk-dev-placeholder-openai-not-real",
   STRIPE_SECRET_KEY: "sk_test_dev_placeholder_not_real",
+  /** Placeholder; replace with a real test-mode Price id from Stripe Dashboard (Lifetime £9.99). */
+  STRIPE_PRICE_ID: "price_devplaceholder00000000",
   STRIPE_WEBHOOK_SECRET: "whsec_dev_placeholder_not_real",
   RESEND_API_KEY: "re_dev_placeholder_not_real",
   FROM_EMAIL: "noreply@example.com",
@@ -29,6 +31,8 @@ const schema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
+  /** Stripe Dashboard Price for Lifetime one-time checkout (e.g. £9.99 GBP). */
+  STRIPE_PRICE_ID: z.string().regex(/^price_[A-Za-z0-9]+$/, "Must be a Stripe Price id (price_…)"),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),
   FROM_EMAIL: z.string().email(),

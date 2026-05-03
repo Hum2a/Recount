@@ -58,7 +58,7 @@ export default async function PricingPage({ searchParams }: Props) {
 
         <AnimatedCard delay={0.12} className="rounded-xl bg-card/80 p-6 shadow-lg shadow-blue-500/10 ring-1 ring-accent/45 backdrop-blur-sm">
           <h2 className="text-lg font-medium">Lifetime</h2>
-          <p className="mt-2 text-3xl font-semibold">£14.99</p>
+          <p className="mt-2 text-3xl font-semibold">£9.99</p>
           <p className="text-sm text-muted">One-time purchase</p>
           <p className="mt-3 text-sm text-muted">
             Unlocks <strong className="text-foreground/90">full activity history</strong>, <strong className="text-foreground/90">AI reports</strong>, longer charts and export windows.
