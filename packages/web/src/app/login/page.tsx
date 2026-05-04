@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { FieldWithHint } from "@/components/ui/field-hint";
+import { PasswordInputWithToggle } from "@/components/ui/password-input";
 import { getApiBaseUrl } from "@/lib/api-url";
 
 function safeNextPath(raw: string | null) {
@@ -96,10 +97,8 @@ export default function LoginPage() {
           label="Password"
           hint="Your Recount account password. If you use a password manager, paste here or use its browser fill."
         >
-          <input
+          <PasswordInputWithToggle
             id="login-password"
-            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

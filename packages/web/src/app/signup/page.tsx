@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AppMark } from "@/components/brand/app-mark";
 import { Button } from "@/components/ui/button";
 import { FieldWithHint } from "@/components/ui/field-hint";
+import { PasswordInputWithToggle } from "@/components/ui/password-input";
 import { getApiBaseUrl } from "@/lib/api-url";
 
 function getPasswordRequirements(password: string) {
@@ -106,10 +107,8 @@ export default function SignupPage() {
           label="Password"
           hint="Use a strong password with 12+ characters and mixed character types. A password manager is strongly recommended."
         >
-          <input
+          <PasswordInputWithToggle
             id="signup-password"
-            className="mt-1 w-full rounded-md border border-white/10 bg-card px-3 py-2 text-foreground"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
