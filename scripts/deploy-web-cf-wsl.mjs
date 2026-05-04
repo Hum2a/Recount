@@ -17,7 +17,7 @@ function run(command, args, opts = {}) {
 
 async function main() {
   if (process.platform !== "win32") {
-    console.log("Not running on Windows; use `npm run deploy:web:cf` directly.");
+    console.log("Not running on Windows; use `npm run deploy:web` directly.");
     return;
   }
 
@@ -33,7 +33,7 @@ async function main() {
   const winPath = process.cwd().replace(/\\/g, "/");
   const lowerDrive = winPath[0].toLowerCase();
   const linuxPath = `/mnt/${lowerDrive}${winPath.slice(2)}`;
-  const cmd = `cd "${linuxPath}" && npm run deploy:web:cf`;
+  const cmd = `cd "${linuxPath}" && npm run deploy:web`;
 
   await run("wsl", ["bash", "-lc", cmd]);
 }

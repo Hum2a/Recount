@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cf:build": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
+    "cf:build": "cross-env WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS= npx opennextjs-cloudflare build",
+    "deploy": "cross-env WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS= npx opennextjs-cloudflare build && cross-env WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS= npx opennextjs-cloudflare deploy",
+    "preview:cf": "cross-env WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS= npx opennextjs-cloudflare build && cross-env WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS= npx opennextjs-cloudflare preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -30,6 +30,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.35",
     "postcss": "^8.4.49",

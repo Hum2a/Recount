@@ -1,5 +1,10 @@
 import { spawn } from "node:child_process";
 
+/**
+ * Web deploy runs `@recount/web` `deploy`, which sets WRANGLER_BUILD_* (via cross-env)
+ * so package exports resolve like Node — same as CI (.github/workflows/deploy-cloudflare.yml).
+ */
+
 function run(command, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -12,13 +17,6 @@ function run(command, args, opts = {}) {
       else reject(new Error(`${command} ${args.join(" ")} failed with code ${code ?? "unknown"}`));
     });
   });
-}
-
-if (process.platform === "win32") {
-  console.error(
-    "Web deploy is blocked on Windows due to OpenNext middleware path-resolution bug. Use Linux/WSL/CI for `deploy:web:cf`."
-  );
-  process.exit(1);
 }
 
 run("npm", ["run", "deploy", "-w", "@recount/web"]).catch((err) => {
