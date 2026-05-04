@@ -22,7 +22,7 @@ Paste this file into another workspace (or attach it to a chat) so an assistant 
   - **`packages/web`** — **Next.js 14.2** (App Router), **TypeScript**, **Tailwind**, **Supabase SSR** (`@supabase/ssr`), **Zustand**, **Recharts**, **Framer Motion**, **Geist** font. Deploy path: **OpenNext + Cloudflare** (`@opennextjs/cloudflare`, Wrangler).
   - **`packages/extension`** — **Chrome Manifest V3**, vanilla JS, **esbuild** build → `dist/`, **Tailwind** for UI surfaces. Background service worker module; popup + options pages; content scripts for nudges (`web_accessible_resources`).
 
-- **Root scripts:** `dev:api` (:3001), `dev:web` (:3000), `dev:api:worker` (Wrangler dev), `build`, `build:extension`, `test` (workspaces), `deploy:cf` / `deploy:web:cf` / `deploy:api:cf`, `sync:cf:env`, `loc`.
+- **Root scripts:** `dev:api` (:3001), `dev:web` (:3000), `dev:api:worker` (Wrangler dev), `build`, `build:extension`, `test` (workspaces), `deploy` / `deploy:cf`, `deploy:web`, `deploy:api`, `sync:cf:env`, `loc`.
 
 - **Docs:** `docs/integrations-setup.md`, `docs/cloudflare-native-deploy.md`; security notes in `SECURITY.md`, `SECURITY_HARDENING.md`, `docs/SECURITY_FINDINGS.md`.
 

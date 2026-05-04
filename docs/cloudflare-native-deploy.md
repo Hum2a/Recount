@@ -6,7 +6,7 @@ This guide sets up:
 - **API** (`packages/api-worker`) on **Cloudflare Workers**.
 - **Deploys via npm commands** from the repo root.
 
-> Current status in this repo: API Worker routes are fully migrated. On Windows, `npm run deploy:cf` deploys API and intentionally skips web deploy unless forced (`FORCE_WINDOWS_WEB_DEPLOY=1`) because OpenNext has a known path-resolution issue on Windows.
+> **Windows:** `@recount/web` sets `WRANGLER_BUILD_PLATFORM=node` and `WRANGLER_BUILD_CONDITIONS=` (same as CI) for Wrangler. OpenNext’s own CLI still warns that Windows is not fully supported: **`npm run cf:build` / `deploy:web` may fail on native Windows** (e.g. Next.js standalone `routes-manifest` copy). Prefer **WSL** or **GitHub Actions** (`npm run deploy:cf`) for reliable web builds; use `deploy:web:cf:wsl` if you want the deploy script run inside WSL.
 
 ---
 
@@ -35,33 +35,31 @@ From repo root:
 
 ```bash
 npm run dev:web
-npm run deploy:web:cf
-npm run deploy:web:cf:wsl
+npm run deploy:web
+npm run deploy:web:cf:wsl   # optional: same as deploy:web via WSL on Windows
 
 npm run dev:api:worker
-npm run deploy:api:cf
+npm run deploy:api
 
 npm run sync:cf:env
-npm run deploy:cf
+npm run deploy
 ```
 
 What they call:
 
-- `deploy:web:cf` -> `@recount/web` script `deploy` (`opennext build` + `wrangler deploy`)
-- `deploy:web:cf:wsl` -> run `deploy:web:cf` inside WSL (Windows helper)
-- `deploy:api:cf` -> `@recount/api-worker` script `deploy` (`wrangler deploy`)
+- `deploy` / `deploy:cf` -> sync secrets (unless skipped), `@recount/api-worker` deploy, then `@recount/web` deploy
+- `deploy:web` / `deploy:web:cf` (alias) -> `@recount/web` script `deploy` (`opennextjs-cloudflare build` + deploy)
+- `deploy:web:cf:wsl` -> run `deploy:web` inside WSL (Windows helper if you prefer Linux paths)
+- `deploy:api` / `deploy:api:cf` (alias) -> `@recount/api-worker` script `deploy` (`npx wrangler deploy`)
 - `sync:cf:env` -> push env values from local `.env` files to Cloudflare Worker secrets
-- `deploy:cf` -> sync env, deploy API Worker, then deploy web when runtime supports it
 
-`deploy:cf` behavior toggles:
+`deploy` / `deploy:cf` toggles:
 
 - `SKIP_CF_ENV_SYNC=1` -> skip secret sync step
-- `FORCE_WINDOWS_WEB_DEPLOY=1` -> attempt web deploy on Windows anyway (normally blocked)
 
-For PowerShell, set env vars like:
+For PowerShell:
 
 ```powershell
-$env:FORCE_WINDOWS_WEB_DEPLOY = "1"
 $env:SKIP_CF_ENV_SYNC = "1"
 ```
 
