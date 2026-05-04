@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+## [v1.0.0] - 2026-05-04
+
+### 🚀 Major Release
+
+### 🔧 Changed
+- ✨ Implement password input component with toggle visibility in login and signup pages
+- ✨ Enhance login and signup functionality in web app
+- ✨ Add Cloudflare cache configuration file
+- ✨ Update README and deployment documentation for Windows compatibility
+- ✨ Update deployment commands and documentation
+- ✨ Update deployment scripts and package dependencies
+- ✨ Enhance report generation features and documentation
+- 🔢 Update version to v0.2.1 and adjust pricing for lifetime access
+- ✨ Add security.txt for vulnerability disclosures
+- ✨ Add technical specification document for Recount project
+- 📝 Update changelog for v0.2.1
+- 🔢 Update version to v0.2.1 in package.json and README.md
+- ✨ Update @recount packages to version 0.2.0 and enhance extension styling
+- ✨ Refactor Secret Sync Logic in sync-cf-env Script
+- ✨ Update Secret Management Command in sync-cf-env Script
+
+---
 ## [v0.2.1] - 2026-04-02
 
 ### 🐛 Patch Release
