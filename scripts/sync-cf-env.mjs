@@ -1,26 +1,8 @@
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-
-function parseEnvFile(filePath) {
-  if (!existsSync(filePath)) return {};
-  const text = readFileSync(filePath, "utf8");
-  const out = {};
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const eq = line.indexOf("=");
-    if (eq <= 0) continue;
-    const key = line.slice(0, eq).trim();
-    let value = line.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    out[key] = value;
-  }
-  return out;
-}
+import { parseEnvFile } from "./parse-dotenv.mjs";
 
 /** Strip CR and trim; avoids CRLF/.env quirks breaking Wrangler’s multipart upload. */
 function normalizeSecretValue(value) {
@@ -51,11 +33,13 @@ async function main() {
   const root = process.cwd();
   const apiEnvPath = resolve(root, "packages/api/.env");
   const webEnvPath = resolve(root, "packages/web/.env.local");
+  const webEnvProductionPath = resolve(root, "packages/web/.env.production");
   const apiWorkerConfig = resolve(root, "packages/api-worker/wrangler.toml");
   const webWorkerConfig = resolve(root, "packages/web/wrangler.toml");
 
   const apiEnv = parseEnvFile(apiEnvPath);
-  const webEnv = parseEnvFile(webEnvPath);
+  /** Local first, then `.env.production` overwrites — production NEXT_PUBLIC_* win for Cloudflare. */
+  const webEnv = { ...parseEnvFile(webEnvPath), ...parseEnvFile(webEnvProductionPath) };
 
   /** Prefer local files; in CI there is often no .env on disk — use process.env from the runner (e.g. GitHub Actions secrets mapped to env). */
   function pickEnv(local, key) {

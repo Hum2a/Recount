@@ -35,7 +35,13 @@ function contentSecurityPolicy() {
     "data:",
   ]);
   const connectSrc = Array.from(connectParts).join(" ");
-  const scriptSrc = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : [])].join(" ");
+  // Cloudflare Web Analytics / Insights loads beacon from static.cloudflareinsights.com
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://static.cloudflareinsights.com",
+    ...(dev ? ["'unsafe-eval'"] : []),
+  ].join(" ");
   return [
     "default-src 'self'",
     "base-uri 'self'",

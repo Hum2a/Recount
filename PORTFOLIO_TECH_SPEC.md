@@ -70,7 +70,7 @@ Paste this file into another workspace (or attach it to a chat) so an assistant 
 
 ## Web app (`packages/web`)
 
-- **Routing:** App Router under `src/app/` — marketing pages, `(auth)/login` & `signup`, `dashboard/*` (activity, history, reports, settings, admin, pricing, privacy).
+- **Routing:** App Router under `src/app/` — marketing pages, `login` & `signup`, `dashboard/*` (activity, history, reports, settings, admin, pricing, privacy).
 - **API calls:** Server components / route handlers use **`getApiBaseUrl()`** (`src/lib/api-url.ts`) — normalizes localhost vs `127.0.0.1` for SSR vs browser CORS confusion. **`NEXT_PUBLIC_API_URL`** points at Express or Worker.
 - **State / UI:** Zustand where needed; Recharts for admin analytics; shared UI under `src/components/ui/`.
 

@@ -100,7 +100,17 @@ The web package is wired for OpenNext Cloudflare:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_API_URL` (your API worker URL, e.g. `https://api.yourdomain.com`)
 
-Local sync source for these keys: `packages/web/.env.local` (`npm run sync:cf:env`).
+Local sync source for these keys: `packages/web/.env.local` plus **`packages/web/.env.production`** (production values override local for `sync:cf:env`).
+
+### Build-time `NEXT_PUBLIC_*` when deploying from your machine
+
+`NEXT_PUBLIC_*` are embedded at **`next build`** time. Wrangler secrets alone do not fix a wrong client bundle if the build never saw the right values.
+
+- Copy **`packages/web/.env.production.example`** to **`packages/web/.env.production`** and set real production URLs (especially **`NEXT_PUBLIC_API_URL`** = your API Worker `https://…` URL, not `localhost` and not `https://recount.world:3001`).
+- **`npm run deploy:web`** runs `deploy-web-cf.mjs`, which injects **`.env.production`** and optional **`.env.deploy`** into the build environment so they take effect even when **`.env.local` is for dev** (Next normally lets `.env.local` win over `.env.production` when only reading files).
+- GitHub Actions already sets the `NEXT_PUBLIC_*` repository secrets for CI builds.
+
+Stale `_next/static/chunks/...` **404** often means an old HTML shell cached old chunk hashes — hard refresh or purge CDN cache after deploy.
 
 ---
 

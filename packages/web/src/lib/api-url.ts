@@ -15,7 +15,10 @@ export function getApiBaseUrl(): string {
     const u = new URL(raw);
     if (typeof window !== "undefined") {
       const pageHost = window.location.hostname;
-      if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+      const loopback = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+      // Dev-only: align loopback API host with the page (localhost vs 127.0.0.1). In production,
+      // never rewrite — a build that still has localhost would otherwise become e.g. recount.world:3001.
+      if (loopback && process.env.NODE_ENV === "development") {
         if (pageHost === "::1" || pageHost === "[::1]") {
           u.hostname = "127.0.0.1";
         } else {
