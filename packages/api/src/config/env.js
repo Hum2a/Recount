@@ -23,6 +23,8 @@ const devDefaults = {
   // Both hosts: browser Origin must match exactly; dev users often open Next on 127.0.0.1 vs localhost.
   ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000",
   WEB_URL: "http://localhost:3000",
+  OPENAI_REPORT_MODEL: "gpt-4o-mini",
+  REPORT_GENERATE_MAX_PER_UTC_DAY: "15",
 };
 
 const schema = z.object({
@@ -71,6 +73,17 @@ const schema = z.object({
     if (val === undefined || val === null || String(val).trim() === "") return undefined;
     return val;
   }, z.coerce.number().int().min(1).max(10).optional()),
+  /** OpenAI chat model id for accountability reports (both narrative and score steps). */
+  OPENAI_REPORT_MODEL: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return "gpt-4o-mini";
+    return String(val).trim();
+  }, z.string().min(1)),
+  /** Soft cap on POST /api/reports/generate attempts per user per UTC calendar day (ledger table 013). */
+  REPORT_GENERATE_MAX_PER_UTC_DAY: z.preprocess((val) => {
+    if (val === undefined || val === null || String(val).trim() === "") return 15;
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 15;
+  }, z.number().int().min(1).max(500)),
 });
 
 function isEmpty(v) {

@@ -64,7 +64,28 @@ const files = readdirSync(migrationsDir)
 
 const client = new pg.Client({ connectionString: databaseUrl });
 
-await client.connect();
+try {
+  await client.connect();
+} catch (err) {
+  let host = "(could not parse)";
+  try {
+    host = new URL(databaseUrl.replace(/^postgres(ql)?:/i, "http:")).hostname;
+  } catch {
+    /* ignore */
+  }
+  console.error(`Could not connect to Postgres (${host}):`, err?.message ?? err);
+  if (err?.code === "ENOTFOUND") {
+    console.error(`
+Hint — ENOTFOUND usually means the hostname in DATABASE_URL is wrong or won’t resolve on your network:
+  • In Supabase: Project Settings → Database → copy the connection string again (“URI”). Your project ref must match.
+  • If db.<project-ref>.supabase.co fails (IPv4/DNS), use Session pooler: same screen → Connection pooling → “Session mode”
+    (host often looks like *.pooler.supabase.com, port 5432 or 6543 — use the exact string Supabase shows).
+  • Ensure DATABASE_URL or SUPABASE_DB_URL is in packages/api/.env or your shell (no extra quotes breaking the URL).
+`);
+  }
+  process.exit(1);
+}
+
 try {
   for (const file of files) {
     const sql = readFileSync(join(migrationsDir, file), "utf8");

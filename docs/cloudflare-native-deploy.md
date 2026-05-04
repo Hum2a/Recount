@@ -118,6 +118,8 @@ Set as secrets/vars for `recount-api`:
 - `SUPABASE_SERVICE_ROLE_KEY` (**secret**)
 - `SUPABASE_ANON_KEY`
 - `OPENAI_API_KEY` (**secret**)
+- `OPENAI_REPORT_MODEL` (optional; default `gpt-4o-mini`)
+- `REPORT_GENERATE_MAX_PER_UTC_DAY` (optional; default 15; requires DB migration 013)
 - `STRIPE_SECRET_KEY` (**secret**)
 - `STRIPE_PRICE_ID` (Lifetime Stripe Price id, e.g. £9.99 GBP — same mode as secret key)
 - `STRIPE_WEBHOOK_SECRET` (**secret**)

@@ -5,6 +5,12 @@ import { createSupabaseAdmin } from "../supabase";
 import { generateAccountabilityReport } from "../services/openai";
 import type { WorkerEnv } from "../env";
 import type { AppVars } from "../types";
+import { mapReportOpenAIError } from "../utils/report-openai-errors";
+import {
+  countReportGenerationsThisUtcDay,
+  insertReportGenerateEvent,
+  maxReportGenerationsPerUtcDay,
+} from "../utils/report-rate-limit";
 import { zodErrorMessage } from "../utils";
 
 const generateSchema = z.object({
@@ -56,13 +62,33 @@ reports.post("/generate", requireAuth, requireLicense, async (c) => {
   const intentions = { goals: ((intention?.goals as unknown[]) ?? []).map((g) => String(g)) };
   const { domainSummary, totalActiveSec } = await aggregateDay(c.env, userId, date);
   const totalActiveMin = Math.round(totalActiveSec / 60);
-  const { ai_summary, score, goals_met, goals_missed } = await generateAccountabilityReport(
-    c.env,
-    intentions,
-    domainSummary,
-    totalActiveMin,
-    date
-  );
+
+  const { count: genCount, error: genCountErr } = await countReportGenerationsThisUtcDay(supabaseAdmin, userId);
+  if (genCountErr) throw genCountErr;
+  const dailyMax = maxReportGenerationsPerUtcDay(c.env);
+  if ((genCount ?? 0) >= dailyMax) {
+    return c.json(
+      {
+        error: `Daily report generation limit reached (${dailyMax} per UTC day). Try again tomorrow.`,
+        code: "report_daily_limit",
+      },
+      429
+    );
+  }
+
+  await insertReportGenerateEvent(supabaseAdmin, userId, date);
+
+  let ai_summary: string;
+  let score: number;
+  let goals_met: string[];
+  let goals_missed: string[];
+  try {
+    const out = await generateAccountabilityReport(c.env, intentions, domainSummary, totalActiveMin, date);
+    ({ ai_summary, score, goals_met, goals_missed } = out);
+  } catch (openaiErr) {
+    const { httpStatus, body } = mapReportOpenAIError(openaiErr);
+    return c.json(body, httpStatus);
+  }
 
   const top_domains = domainSummary.slice(0, 15).map((d) => ({
     domain: d.domain,

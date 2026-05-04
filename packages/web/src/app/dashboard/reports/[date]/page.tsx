@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { hasFullProductAccess } from "@/lib/entitlements";
+import { GenerateReportButton } from "../../generate-report-button";
 
 type Props = { params: { date: string } };
 
@@ -28,9 +29,18 @@ export default async function ReportDetailPage({ params }: Props) {
     return (
       <div className="space-y-4">
         <Link href="/dashboard/reports" className="text-sm text-muted hover:text-foreground">
-          ← Back
+          ← All reports
         </Link>
-        <p className="text-sm text-muted">No report for this date.</p>
+        <div className="rounded-xl bg-card p-6 ring-1 ring-white/10">
+          <h1 className="text-xl font-semibold">No report for {date}</h1>
+          <p className="mt-2 text-sm text-muted">
+            Generate an AI accountability report for this day (uses your intentions and tracked time for that UTC
+            date).
+          </p>
+          <div className="mt-4">
+            <GenerateReportButton date={date} variant="compact" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -48,9 +58,17 @@ export default async function ReportDetailPage({ params }: Props) {
       <Link href="/dashboard/reports" className="text-sm text-muted hover:text-foreground">
         ← All reports
       </Link>
-      <header>
-        <h1 className="text-2xl font-semibold">{date}</h1>
-        <p className="mt-1 font-mono text-sm text-muted">Score {r.score}/10</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{date}</h1>
+          <p className="mt-1 font-mono text-sm text-muted">Score {r.score ?? "—"}/10</p>
+        </div>
+        <GenerateReportButton
+          date={date}
+          variant="compact"
+          mode="regenerate"
+          confirmPrompt="Replace this day's report with a newly generated one? This counts toward your daily generation limit (UTC)."
+        />
       </header>
       <section className="rounded-xl bg-card p-6 ring-1 ring-white/10">
         <h2 className="text-sm font-medium text-muted">Summary</h2>

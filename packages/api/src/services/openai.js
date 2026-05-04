@@ -2,7 +2,12 @@ import OpenAI from "openai";
 import { env } from "../config/env.js";
 import { logger } from "../logger.js";
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+/** ~90s covers two sequential chat calls under load; SDK retries transient network failures. */
+const openai = new OpenAI({
+  apiKey: env.OPENAI_API_KEY,
+  timeout: 90_000,
+  maxRetries: 2,
+});
 
 const MAX_GOALS = 40;
 const MAX_GOAL_LEN = 400;
@@ -96,9 +101,10 @@ function sanitizeGoalList(arr) {
  */
 export async function generateAccountabilityReport(intentions, domainSummary, totalActiveMin, dateLabel) {
   const userPrompt = buildUserPrompt(intentions, domainSummary, totalActiveMin, dateLabel);
+  const model = env.OPENAI_REPORT_MODEL;
 
   const reportCompletion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -111,7 +117,7 @@ export async function generateAccountabilityReport(intentions, domainSummary, to
   ai_summary = stripControlChars(ai_summary).slice(0, 8000);
 
   const scoreCompletion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model,
     messages: [
       {
         role: "system",

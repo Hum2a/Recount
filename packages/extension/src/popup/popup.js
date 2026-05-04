@@ -789,20 +789,43 @@ $("analytics-open-activity-btn")?.addEventListener("click", () => {
 $("generate-report-btn")?.addEventListener("click", async () => {
   setMsg("");
   const pre = /** @type {HTMLPreElement} */ ($("report-preview-body"));
-  if (pre) pre.textContent = "Generating… (this can take ~10–30s)";
-  const date = todayUtc();
-  const res = await apiFetch("/api/reports/generate", {
-    method: "POST",
-    body: JSON.stringify({ date }),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (pre) pre.textContent = body?.error || "Could not generate.";
-    setMsg(body?.error || "Could not generate report.");
-    return;
+  if (pre) {
+    pre.textContent =
+      "Generating… Large days can take up to ~90s; the browser stops waiting after ~95s (check Reports on the site).";
   }
-  setMsg("Report generated.", true);
-  await loadTodayReportPreview();
+  const date = todayUtc();
+  const controller = new AbortController();
+  const clientTimeoutMs = 95_000;
+  const tid = setTimeout(() => controller.abort(), clientTimeoutMs);
+  try {
+    const res = await apiFetch("/api/reports/generate", {
+      method: "POST",
+      body: JSON.stringify({ date }),
+      signal: controller.signal,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (pre) pre.textContent = body?.error || "Could not generate.";
+      setMsg(body?.error || "Could not generate report.");
+      return;
+    }
+    setMsg("Report generated.", true);
+    await loadTodayReportPreview();
+  } catch (e) {
+    const name = e && typeof e === "object" && "name" in e ? String(/** @type {{ name?: string }} */ (e).name) : "";
+    if (name === "AbortError") {
+      if (pre) {
+        pre.textContent =
+          "Stopped waiting after 95s. Open Reports on the site — the server may still be finishing.";
+      }
+      setMsg("Timed out after 95s. Check Reports in the browser or try again.");
+      return;
+    }
+    if (pre) pre.textContent = "Could not generate.";
+    setMsg("Could not generate report.");
+  } finally {
+    clearTimeout(tid);
+  }
 });
 
 $("flush-now-btn")?.addEventListener("click", () => {

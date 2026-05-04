@@ -15,6 +15,8 @@ export const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().min(1),
   DIGEST_JOB_SECRET: z.string().optional(),
   LOGIN_AUDIT_SALT: z.string().min(16).optional(),
+  OPENAI_REPORT_MODEL: z.string().min(1).optional(),
+  REPORT_GENERATE_MAX_PER_UTC_DAY: z.coerce.number().int().min(1).max(500).optional(),
 });
 
 export type WorkerEnv = z.infer<typeof envSchema>;

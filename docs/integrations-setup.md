@@ -97,7 +97,8 @@ Use this when wiring **production** (or full **local**) environments. Shared pla
 
 1. [OpenAI Platform](https://platform.openai.com) → API keys → create a secret key.
 2. API env: `OPENAI_API_KEY=sk-…`
-3. Ensure billing/limits are acceptable for your traffic; model choice lives in API code (`packages/api/src/services/openai.js`).
+3. Optional tuning: **`OPENAI_REPORT_MODEL`** (defaults to **`gpt-4o-mini`** for both LLM steps), **`REPORT_GENERATE_MAX_PER_UTC_DAY`** (defaults to **15** generate attempts per user per UTC day — requires migration **`013_report_generation_events.sql`**).
+4. Ensure billing/limits are acceptable for your traffic.
 
 **Without this:** report generation fails; rest of app can work on Free/Lifetime non-AI features.
 

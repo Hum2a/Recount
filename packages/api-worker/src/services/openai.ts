@@ -87,11 +87,16 @@ export async function generateAccountabilityReport(
   totalActiveMin: number,
   dateLabel: string
 ) {
-  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  const openai = new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+    timeout: 90_000,
+    maxRetries: 2,
+  });
   const userPrompt = buildUserPrompt(intentions, domainSummary, totalActiveMin, dateLabel);
+  const model = env.OPENAI_REPORT_MODEL ?? "gpt-4o-mini";
 
   const reportCompletion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
@@ -104,7 +109,7 @@ export async function generateAccountabilityReport(
   ai_summary = stripControlChars(ai_summary).slice(0, 8000);
 
   const scoreCompletion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model,
     messages: [
       {
         role: "system",

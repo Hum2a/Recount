@@ -1,9 +1,15 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { hasFullProductAccess } from "@/lib/entitlements";
 import { UpgradeCard } from "../upgrade-card";
+import { GenerateReportButton } from "../generate-report-button";
+import { AnimatedCard } from "@/components/motion/animated-card";
+import { ReportsHistory } from "./reports-history";
+
+function todayUtc() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default async function ReportsPage() {
   const supabase = await createClient();
@@ -30,23 +36,20 @@ export default async function ReportsPage() {
   const hist = await histRes.json().catch(() => ({}));
   const rows = hist.data ?? [];
 
+  const today = todayUtc();
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">AI reports</h1>
-      <ul className="space-y-4">
-        {rows.length === 0 && <li className="text-sm text-muted">No reports yet.</li>}
-        {rows.map((r: { id: string; date: string; score: number | null; ai_summary: string }) => (
-          <li key={r.id} className="rounded-xl bg-card p-4 ring-1 ring-white/10">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <Link href={`/dashboard/reports/${r.date}`} className="font-medium hover:underline">
-                {r.date}
-              </Link>
-              <span className="font-mono text-sm text-muted">{r.score ?? "—"}/10</span>
-            </div>
-            <p className="mt-2 line-clamp-3 text-sm text-muted">{r.ai_summary}</p>
-          </li>
-        ))}
-      </ul>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h1 className="text-2xl font-semibold">AI reports</h1>
+        <AnimatedCard className="rounded-xl bg-card/80 px-4 py-3 ring-1 ring-white/10">
+          <p className="text-xs text-muted">Quick action · UTC day {today}</p>
+          <div className="mt-2">
+            <GenerateReportButton date={today} variant="compact" />
+          </div>
+        </AnimatedCard>
+      </div>
+      <ReportsHistory rows={rows} />
     </div>
   );
 }

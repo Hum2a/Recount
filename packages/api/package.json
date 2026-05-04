@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:verbose": "vitest run --reporter=verbose"
+    "test": "npx vitest run",
+    "test:watch": "npx vitest",
+    "test:verbose": "npx vitest run --reporter=verbose"
   },
   "dependencies": {
     "@recount/shared": "*",

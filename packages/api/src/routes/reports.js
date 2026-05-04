@@ -3,6 +3,12 @@ import { z } from "zod";
 import { supabaseAdmin } from "../db/client.js";
 import { requireAuth, requireLicense } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
+import { mapReportOpenAIError } from "../lib/report-openai-errors.js";
+import {
+  countReportGenerationsThisUtcDay,
+  insertReportGenerateEvent,
+  maxReportGenerationsPerUtcDay,
+} from "../lib/report-rate-limit.js";
 import { generateAccountabilityReport } from "../services/openai.js";
 
 const router = Router();
@@ -65,12 +71,36 @@ router.post("/generate", requireAuth, requireLicense, validate(generateSchema), 
     const { domainSummary, totalActiveSec } = await aggregateDay(req.user.id, date);
     const totalActiveMin = Math.round(totalActiveSec / 60);
 
-    const { ai_summary, score, goals_met, goals_missed } = await generateAccountabilityReport(
-      intentions,
-      domainSummary,
-      totalActiveMin,
-      date
+    const { count: genCount, error: genCountErr } = await countReportGenerationsThisUtcDay(
+      supabaseAdmin,
+      req.user.id
     );
+    if (genCountErr) throw genCountErr;
+    const dailyMax = maxReportGenerationsPerUtcDay();
+    if ((genCount ?? 0) >= dailyMax) {
+      return res.status(429).json({
+        error: `Daily report generation limit reached (${dailyMax} per UTC day). Try again tomorrow.`,
+        code: "report_daily_limit",
+      });
+    }
+
+    await insertReportGenerateEvent(supabaseAdmin, req.user.id, date);
+
+    let ai_summary;
+    let score;
+    let goals_met;
+    let goals_missed;
+    try {
+      ({ ai_summary, score, goals_met, goals_missed } = await generateAccountabilityReport(
+        intentions,
+        domainSummary,
+        totalActiveMin,
+        date
+      ));
+    } catch (openaiErr) {
+      const { httpStatus, body } = mapReportOpenAIError(openaiErr);
+      return res.status(httpStatus).json(body);
+    }
 
     const top_domains = domainSummary.slice(0, 15).map((d) => ({
       domain: d.domain,
