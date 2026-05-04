@@ -84,6 +84,19 @@ async function main() {
 
   console.log("Syncing API worker secrets (packages/api/.env + process.env) ...");
   const apiSecrets = buildSecretsObject(apiKeys, apiEnv);
+  const syncedApiKeys = Object.keys(apiSecrets).sort();
+  if (syncedApiKeys.length > 0) {
+    console.log(`  → keys: ${syncedApiKeys.join(", ")}`);
+  }
+  const missingApiOptional = apiKeys.filter((k) => !apiSecrets[k]);
+  const warnMissing = missingApiOptional.filter((k) =>
+    ["ALLOWED_ORIGINS", "WEB_URL"].includes(k)
+  );
+  if (warnMissing.length > 0) {
+    console.log(
+      `  (not set — skipped: ${warnMissing.join(", ")}; add to packages/api/.env or environment)`
+    );
+  }
   if (Object.keys(apiSecrets).length > 0) {
     const secretsPath = join(tmpdir(), `recount-cf-api-secrets-${process.pid}-${Date.now()}.json`);
     try {
@@ -100,8 +113,12 @@ async function main() {
     console.log("(No API worker secrets found to sync; skipping.)");
   }
 
-  console.log("Syncing web worker secrets (packages/web/.env.local + process.env) ...");
+  console.log("Syncing web worker secrets (packages/web/.env.local + .env.production + process.env) ...");
   const webSecrets = buildSecretsObject(webKeys, webEnv);
+  const syncedWebKeys = Object.keys(webSecrets).sort();
+  if (syncedWebKeys.length > 0) {
+    console.log(`  → keys: ${syncedWebKeys.join(", ")}`);
+  }
   if (Object.keys(webSecrets).length > 0) {
     const secretsPath = join(tmpdir(), `recount-cf-web-secrets-${process.pid}-${Date.now()}.json`);
     try {

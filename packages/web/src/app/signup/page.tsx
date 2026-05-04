@@ -82,7 +82,7 @@ export default function SignupPage() {
       <h1 className="text-2xl font-semibold">Create account</h1>
       <p className="mt-2 text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="text-accent underline-offset-4 hover:underline">
+        <Link href="/login" prefetch={false} className="text-accent underline-offset-4 hover:underline">
           Sign in
         </Link>
       </p>

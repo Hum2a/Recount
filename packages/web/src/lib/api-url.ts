@@ -1,4 +1,17 @@
 /**
+ * If `NEXT_PUBLIC_API_URL` is set without a scheme (e.g. `api.example.workers.dev`), `fetch`
+ * treats it as a path on the **current** origin → `https://recount.world/api.host.../...`.
+ * Always produce an absolute URL string before parsing.
+ */
+function ensureAbsoluteUrl(raw: string): string {
+  const t = raw.trim();
+  if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith("//")) return `https:${t}`;
+  if (/^(localhost|127\.0\.0\.1|\[::1\])(?::|$)/i.test(t)) return `http://${t}`;
+  return `https://${t}`;
+}
+
+/**
  * Base URL for the Recount REST API (`packages/api`).
  *
  * **Browser:** If the env URL points at loopback (`localhost` or `127.0.0.1`), the hostname is
@@ -10,7 +23,7 @@
  * does not hit IPv6-only `::1` while Express listens on IPv4.
  */
 export function getApiBaseUrl(): string {
-  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/+$/, "");
+  const raw = ensureAbsoluteUrl((process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/+$/, ""));
   try {
     const u = new URL(raw);
     if (typeof window !== "undefined") {

@@ -2,17 +2,23 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const createUserMock = vi.fn();
+const signInWithPasswordMock = vi.fn();
 vi.mock("../../db/client.js", () => ({
   supabaseAdmin: {
     from: vi.fn(),
+    auth: {
+      admin: {
+        createUser: (...args) => createUserMock(...args),
+      },
+    },
   },
 }));
 
-const signUpMock = vi.fn();
 vi.mock("../../db/client-auth.js", () => ({
   supabaseAuth: {
     auth: {
-      signUp: (...args) => signUpMock(...args),
+      signInWithPassword: (...args) => signInWithPasswordMock(...args),
     },
   },
 }));
@@ -207,9 +213,14 @@ describe("Signup password policy", () => {
   });
 
   it("accepts a strong password that meets policy", async () => {
-    signUpMock.mockResolvedValue({
+    createUserMock.mockResolvedValue({
       data: {
         user: { id: "new-user", email: "test@example.com" },
+      },
+      error: null,
+    });
+    signInWithPasswordMock.mockResolvedValue({
+      data: {
         session: { access_token: "token", refresh_token: "refresh" },
       },
       error: null,
@@ -229,6 +240,7 @@ describe("Signup password policy", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(signUpMock).toHaveBeenCalled();
+    expect(createUserMock).toHaveBeenCalled();
+    expect(signInWithPasswordMock).toHaveBeenCalled();
   });
 });

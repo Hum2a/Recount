@@ -41,37 +41,39 @@ const refreshSchema = z
 router.post("/signup", authLimiter, validate(signupSchema), async (req, res, next) => {
   try {
     const { email, password } = req.validated;
-    const { data, error } = await supabaseAuth.auth.signUp({ email, password });
-    if (error) {
-      logger.warn({ err: error }, "signup");
-      return res.status(400).json({ error: "Could not complete signup. Try again or use a different email." });
-    }
-    if (!data.user) return res.status(400).json({ error: "Signup failed" });
 
-    let session = data.session;
-    if (!session) {
-      const { error: confirmErr } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
-        email_confirm: true,
-      });
-      if (confirmErr) {
-        logger.error({ err: confirmErr }, "confirm email on signup");
-        return res.status(500).json({ error: "Could not complete signup" });
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (createErr) {
+      const dup =
+        /already|registered|exists/i.test(createErr.message ?? "") || createErr.code === "email_exists";
+      if (dup) {
+        logger.warn({ err: createErr }, "signup duplicate");
+        return res.status(400).json({ error: "Could not complete signup. Try again or use a different email." });
       }
-      const { data: signInData, error: signInErr } = await supabaseAuth.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInErr || !signInData?.session) {
-        logger.warn({ err: signInErr }, "sign-in after signup");
-        return res.status(500).json({
-          error: "Account created but automatic sign-in failed. Try signing in with your email and password.",
-        });
-      }
-      session = signInData.session;
+      logger.error({ err: createErr }, "signup createUser");
+      return res.status(500).json({ error: "Could not complete signup" });
     }
+    if (!created?.user) return res.status(400).json({ error: "Signup failed" });
+
+    const { data: signInData, error: signInErr } = await supabaseAuth.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInErr || !signInData?.session) {
+      logger.warn({ err: signInErr }, "sign-in after signup");
+      return res.status(500).json({
+        error: "Account created but automatic sign-in failed. Try signing in with your email and password.",
+      });
+    }
+    const session = signInData.session;
+    const user = created.user;
 
     const { error: profileErr } = await supabaseAdmin.from("profiles").upsert(
-      { id: data.user.id, email },
+      { id: user.id, email },
       { onConflict: "id" }
     );
     if (profileErr) {
@@ -80,7 +82,7 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
     }
 
     await recordLoginEvent(supabaseAdmin, {
-      userId: data.user.id,
+      userId: user.id,
       eventType: "signup",
       provider: "password",
       req,
@@ -88,7 +90,7 @@ router.post("/signup", authLimiter, validate(signupSchema), async (req, res, nex
 
     return res.json({
       data: {
-        user: data.user,
+        user,
         session,
       },
     });

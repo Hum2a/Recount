@@ -3,7 +3,11 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   try {
-    return await updateSession(request);
+    const res = await updateSession(request);
+    // Avoid edge/browser holding **stale HTML** that references old `_next/static` chunk hashes
+    // after a new deploy (mismatch → 404 on chunks, MIME type text/html).
+    res.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    return res;
   } catch {
     // Avoid returning an HTML error document for asset URLs if session refresh fails.
     return NextResponse.next();

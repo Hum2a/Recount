@@ -72,7 +72,7 @@ export default function LoginPage() {
       <h1 className="text-2xl font-semibold">Sign in</h1>
       <p className="mt-2 text-sm text-muted">
         No account?{" "}
-        <Link href="/signup" className="text-accent underline-offset-4 hover:underline">
+        <Link href="/signup" prefetch={false} className="text-accent underline-offset-4 hover:underline">
           Sign up
         </Link>
       </p>

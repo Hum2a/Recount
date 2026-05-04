@@ -44,34 +44,43 @@ auth.post("/signup", async (c) => {
   const supabaseAuth = createSupabaseAuth(c.env);
   const supabaseAdmin = createSupabaseAdmin(c.env);
 
-  const { data, error } = await supabaseAuth.auth.signUp({ email, password });
-  if (error) return c.json({ error: "Could not complete signup. Try again or use a different email." }, 400);
-  if (!data.user) return c.json({ error: "Signup failed" }, 400);
-
-  let session = data.session;
-  if (!session) {
-    const { error: confirmErr } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
-      email_confirm: true,
-    });
-    if (confirmErr) return c.json({ error: "Could not complete signup" }, 500);
-    const { data: signInData, error: signInErr } = await supabaseAuth.auth.signInWithPassword({ email, password });
-    if (signInErr || !signInData?.session) {
-      return c.json(
-        {
-          error: "Account created but automatic sign-in failed. Try signing in with your email and password.",
-        },
-        500
-      );
+  /** Server-side create avoids fragile signUp(null session) + admin.updateUserById(email_confirm). */
+  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (createErr) {
+    const dup =
+      /already|registered|exists/i.test(createErr.message ?? "") ||
+      (createErr as { code?: string }).code === "email_exists";
+    if (dup) {
+      return c.json({ error: "Could not complete signup. Try again or use a different email." }, 400);
     }
-    session = signInData.session;
+    console.error("[auth/signup] admin.createUser", createErr);
+    return c.json({ error: "Could not complete signup" }, 500);
   }
+  if (!created?.user) return c.json({ error: "Signup failed" }, 400);
 
-  const { error: profileErr } = await supabaseAdmin.from("profiles").upsert({ id: data.user.id, email }, { onConflict: "id" });
+  const { data: signInData, error: signInErr } = await supabaseAuth.auth.signInWithPassword({ email, password });
+  if (signInErr || !signInData?.session) {
+    console.error("[auth/signup] signIn after create", signInErr);
+    return c.json(
+      {
+        error: "Account created but automatic sign-in failed. Try signing in with your email and password.",
+      },
+      500
+    );
+  }
+  const session = signInData.session;
+  const user = created.user;
+
+  const { error: profileErr } = await supabaseAdmin.from("profiles").upsert({ id: user.id, email }, { onConflict: "id" });
   if (profileErr) return c.json({ error: "Could not create profile" }, 500);
 
   await recordLoginEvent({
     env: c.env,
-    userId: data.user.id,
+    userId: user.id,
     eventType: "signup",
     provider: "password",
     userAgent: c.req.header("User-Agent") ?? null,
@@ -80,7 +89,7 @@ auth.post("/signup", async (c) => {
 
   return c.json({
     data: {
-      user: data.user,
+      user,
       session,
     },
   });

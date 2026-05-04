@@ -110,7 +110,7 @@ Local sync source for these keys: `packages/web/.env.local` plus **`packages/web
 - **`npm run deploy:web`** runs `deploy-web-cf.mjs`, which injects **`.env.production`** and optional **`.env.deploy`** into the build environment so they take effect even when **`.env.local` is for dev** (Next normally lets `.env.local` win over `.env.production` when only reading files).
 - GitHub Actions already sets the `NEXT_PUBLIC_*` repository secrets for CI builds.
 
-Stale `_next/static/chunks/...` **404** often means an old HTML shell cached old chunk hashes — hard refresh or purge CDN cache after deploy.
+Stale `_next/static/chunks/...` **404** (and `text/html` MIME for a `.js` URL) almost always means the **HTML you have is from an older deploy** than the static assets on the edge. The web worker middleware sets **`Cache-Control: no-store`** on HTML/RSC responses to reduce that; after each deploy, **purge Cloudflare cache** for `recount.world` (Caching → Configuration → Purge Everything, or a selective purge for `/` and `/login`, `/signup`). Then hard-refresh the browser (Ctrl+Shift+R).
 
 ---
 
