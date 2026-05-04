@@ -20,7 +20,7 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "openai": "^4.85.1",
-    "pino": "^9.6.0",
+    "pino": "^10.3.1",
     "resend": "^4.1.2",
     "stripe": "^17.7.0",
     "zod": "^3.24.2"
