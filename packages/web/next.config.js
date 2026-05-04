@@ -50,6 +50,13 @@ function contentSecurityPolicy() {
 
 const nextConfig = {
   reactStrictMode: true,
+  /** Avoid PackFileCacheStrategy ENOENT renames on Windows (often breaks manifests → spurious `/_document`). */
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = false;
+    }
+    return config;
+  },
   async headers() {
     return [
       {

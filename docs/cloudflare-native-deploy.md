@@ -6,7 +6,7 @@ This guide sets up:
 - **API** (`packages/api-worker`) on **Cloudflare Workers**.
 - **Deploys via npm commands** from the repo root.
 
-> **Windows:** `@recount/web` sets `WRANGLER_BUILD_PLATFORM=node` and `WRANGLER_BUILD_CONDITIONS=` (same as CI) for Wrangler. OpenNext’s own CLI still warns that Windows is not fully supported: **`npm run cf:build` / `deploy:web` may fail on native Windows** (e.g. Next.js standalone `routes-manifest` copy). Prefer **WSL** or **GitHub Actions** (`npm run deploy:cf`) for reliable web builds; use `deploy:web:cf:wsl` if you want the deploy script run inside WSL.
+> **Windows:** `@recount/web` sets `WRANGLER_BUILD_*` (same as CI) for Wrangler. `next.config.js` turns off **production webpack disk cache** to avoid `PackFileCacheStrategy` rename `ENOENT` / misleading `PageNotFoundError: /_document` when the cache is corrupt. If a build still acts oddly, delete `packages/web/.next` and retry; OpenNext’s CLI may still recommend WSL — use **`deploy:web:cf:wsl`** or **GitHub Actions** if needed.
 
 ---
 

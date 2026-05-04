@@ -189,7 +189,7 @@ The dashboard loads data from the API during server rendering; if you only start
 | `npm run sync:cf:env` | Sync Cloudflare env |
 | `npm run deploy` / `npm run deploy:cf` | Sync secrets (unless skipped), API worker, then web worker |
 | `npm run deploy:api` | API worker only (`deploy:api:cf` is an alias) |
-| `npm run deploy:web` | Web worker only (`deploy:web:cf` is an alias). `WRANGLER_BUILD_*` matches CI for Wrangler; OpenNext still recommends WSL — native Windows builds may fail (e.g. Next standalone copy step) |
+| `npm run deploy:web` | Web worker only (`deploy:web:cf` is an alias). `WRANGLER_BUILD_*` matches CI; `next.config.js` disables production webpack disk cache to avoid Windows cache rename issues. OpenNext may still prefer WSL for edge cases |
 | `npm run db:migrate` | Apply `packages/api/src/db/migrations/*.sql` in order (`DATABASE_URL` / `SUPABASE_DB_URL`) |
 
 <details>
